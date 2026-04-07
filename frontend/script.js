@@ -4,7 +4,7 @@ const questionInput = document.getElementById("question");
 const chatHistory = document.getElementById("chat-history");
 const statsBox = document.getElementById("stats");
 
-const API_URL = "http://127.0.0.1:8000";
+const API_URL = "https://study-chatbot-python.onrender.com";
 
 function addMessage(text, type) {
   const message = document.createElement("div");
