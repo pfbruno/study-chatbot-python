@@ -23,8 +23,14 @@ def generate_ai_response(question: str) -> str:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "Explique de forma simples e didática."},
-                {"role": "user", "content": question}
+                {
+                    "role": "system",
+                    "content": "Você é um professor didático, claro e objetivo. Explique em português do Brasil."
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
             ],
             temperature=0.7,
         )
@@ -32,22 +38,26 @@ def generate_ai_response(question: str) -> str:
         return response.choices[0].message.content
 
     except Exception as e:
-        return "Erro ao gerar resposta com IA."
+        return f"Erro IA: {str(e)}"
 
 
 def process_question(text: str) -> dict:
     category = classify_question(text)
-
     ai_response = generate_ai_response(text)
 
-    formatted_response = f"Tema: {category}\n\nResposta:\n{ai_response}"
+    formatted_response = (
+        f"Tema identificado: {category}\n\n"
+        f"Explicação:\n{ai_response}\n\n"
+        f"Resumo:\nResposta gerada por IA.\n\n"
+        f"Sugestão de estudo:\nAprofunde o tema com exercícios e revisão."
+    )
 
     save_interaction(text, category, formatted_response)
 
     return {
         "category": category,
         "explanation": ai_response,
-        "summary": "Resposta gerada por IA",
-        "study_tip": "Aprofunde com exercícios.",
+        "summary": "Resposta gerada por IA.",
+        "study_tip": "Aprofunde o tema com exercícios e revisão.",
         "formatted_response": formatted_response
     }
