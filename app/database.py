@@ -3,8 +3,6 @@ import sqlite3
 from datetime import datetime
 
 DB_PATH = os.path.join(os.getcwd(), "data", "chatbot.db")
-
-# garante que a pasta data exista
 os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 
@@ -19,10 +17,10 @@ def create_table():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS interactions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        question TEXT,
-        category TEXT,
-        response TEXT,
-        created_at TEXT
+        question TEXT NOT NULL,
+        category TEXT NOT NULL,
+        response TEXT NOT NULL,
+        created_at TEXT NOT NULL
     )
     """)
 
@@ -47,8 +45,28 @@ def get_all_interactions():
     conn = connect()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM interactions")
+    cursor.execute("""
+    SELECT id, question, category, response, created_at
+    FROM interactions
+    ORDER BY id ASC
+    """)
     data = cursor.fetchall()
 
     conn.close()
     return data
+
+
+def get_recent_interactions(limit=20):
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT id, question, category, response, created_at
+    FROM interactions
+    ORDER BY id DESC
+    LIMIT ?
+    """, (limit,))
+    data = cursor.fetchall()
+
+    conn.close()
+    return data[::-1]

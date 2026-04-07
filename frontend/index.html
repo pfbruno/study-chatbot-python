@@ -5,25 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Study Chatbot</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="container">
-    <h1>Study Chatbot</h1>
-    <p class="subtitle">Chatbot educacional com análise de dados</p>
+    <header class="header">
+      <h1>Study Chatbot</h1>
+      <p class="subtitle">Chatbot educacional com análise de dados</p>
+    </header>
 
-    <div class="chat-box">
+    <section class="input-section">
       <textarea id="question" placeholder="Digite sua pergunta..."></textarea>
-      <button id="send-btn">Enviar</button>
-    </div>
 
-    <div class="chat-history" id="chat-history">
-    </div>
+      <div class="actions">
+        <button id="send-btn">Enviar</button>
+        <button id="clear-btn" class="secondary">Limpar chat</button>
+      </div>
+    </section>
 
-    <div class="stats-box">
+    <section>
+      <h2>Chat</h2>
+      <div class="chat-history" id="chat-history"></div>
+    </section>
+
+    <section class="stats-section">
       <h2>Estatísticas</h2>
-      <button id="stats-btn">Ver estatísticas</button>
-      <pre id="stats">As estatísticas aparecerão aqui...</pre>
-    </div>
+      <button id="stats-btn">Atualizar estatísticas</button>
+
+      <div class="stats-grid">
+        <div class="stats-card">
+          <h3>Resumo</h3>
+          <pre id="stats">As estatísticas aparecerão aqui...</pre>
+        </div>
+
+        <div class="stats-card">
+          <h3>Gráfico</h3>
+          <canvas id="stats-chart"></canvas>
+        </div>
+      </div>
+    </section>
   </div>
 
   <script src="script.js"></script>
