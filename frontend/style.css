@@ -62,3 +62,29 @@ pre {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+.chat-history {
+  margin-top: 20px;
+}
+
+.message {
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  max-width: 80%;
+}
+
+.user {
+  background: #d1e7ff;
+  align-self: flex-end;
+}
+
+.bot {
+  background: #eaeaea;
+  align-self: flex-start;
+}
+
+.chat-history {
+  display: flex;
+  flex-direction: column;
+}
