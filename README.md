@@ -4,8 +4,8 @@ Chatbot educacional desenvolvido em Python com FastAPI, capaz de responder pergu
 
 ## 🔗 Acesso ao projeto
 
-- Frontend: https://SEU-LINK-VERCEL
-- API: https://SEU-LINK-RENDER/docs
+- Frontend: https://study-chatbot-python-uksv.vercel.app
+- API: https://study-chatbot-python.onrender.com/docs
 
 ## ⚙️ Tecnologias
 
