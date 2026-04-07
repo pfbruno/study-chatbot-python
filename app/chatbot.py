@@ -1,4 +1,5 @@
 from intents import CATEGORIES
+from database import save_interaction
 
 def classify_question(text):
     text = text.lower()
@@ -38,5 +39,8 @@ Este tema pertence à área de {category}.
 Sugestão de estudo:
 Revisar conceitos básicos e praticar exercícios.
 """
+
+    # salvar no banco
+    save_interaction(text, category, response)
 
     return response
