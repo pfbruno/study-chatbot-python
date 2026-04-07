@@ -1,7 +1,6 @@
-from chatbot import process_question
-from database import create_table
-from analytics import total_questions, questions_by_category, most_frequent_category
-
+from app.chatbot import process_question
+from app.database import create_table
+from app.analytics import total_questions, questions_by_category, most_frequent_category
 
 def show_stats():
     print("\n=== ESTATÍSTICAS ===")

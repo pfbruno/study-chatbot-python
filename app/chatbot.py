@@ -1,5 +1,5 @@
-from intents import CATEGORIES
-from database import save_interaction
+from app.intents import CATEGORIES
+from app.database import save_interaction
 
 def classify_question(text):
     text = text.lower()

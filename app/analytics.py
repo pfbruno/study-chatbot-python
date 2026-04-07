@@ -1,4 +1,4 @@
-from database import get_all_interactions
+from app.database import get_all_interactions
 
 
 def total_questions():
