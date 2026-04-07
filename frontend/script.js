@@ -15,6 +15,14 @@ function addMessage(text, type) {
   chatHistory.scrollTop = chatHistory.scrollHeight;
 }
 
+function formatResponse(text) {
+  return text
+    .replace("Tema identificado:", "\nTema identificado:\n")
+    .replace("Explicação:", "\nExplicação:\n")
+    .replace("Resumo:", "\nResumo:\n")
+    .replace("Sugestão de estudo:", "\nSugestão de estudo:\n");
+}
+
 sendBtn.addEventListener("click", async () => {
   const question = questionInput.value.trim();
 
@@ -33,7 +41,7 @@ sendBtn.addEventListener("click", async () => {
     });
 
     const data = await res.json();
-    addMessage(data.response, "bot");
+    addMessage(formatResponse(data.response), "bot");
 
   } catch (error) {
     addMessage("Erro ao conectar com a API.", "bot");
@@ -59,5 +67,13 @@ statsBtn.addEventListener("click", async () => {
 
   } catch (error) {
     statsBox.textContent = "Erro ao carregar.";
+  }
+});
+
+// ENTER para enviar
+questionInput.addEventListener("keypress", function (e) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendBtn.click();
   }
 });
