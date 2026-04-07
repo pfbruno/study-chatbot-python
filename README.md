@@ -1,24 +1,41 @@
-# Study Chatbot Python
+# Study Chatbot com Análise de Dados
 
-Chatbot educacional com foco em:
-- classificação de perguntas
-- respostas estruturadas
-- análise de dados de estudo
+Chatbot educacional desenvolvido em Python com FastAPI, capaz de responder perguntas, classificar temas e gerar estatísticas de uso.
 
-## Tecnologias
+## 🔗 Acesso ao projeto
+
+- Frontend: https://SEU-LINK-VERCEL
+- API: https://SEU-LINK-RENDER/docs
+
+## ⚙️ Tecnologias
+
 - Python
-- SQLite (em breve)
-- FastAPI (em breve)
+- FastAPI
+- SQLite
+- JavaScript
+- HTML/CSS
 
-## Objetivo
-Criar um sistema inteligente que auxilia estudantes e gera dados sobre aprendizado.
+## 🚀 Funcionalidades
 
-## Roadmap
-- [x] Chatbot em terminal
-- [ ] Persistência de dados
-- [ ] Análise de dados
-- [ ] API
-- [ ] Interface web
+- Chat interativo
+- Identificação de tema
+- Sugestão de estudo
+- Persistência de dados (SQLite)
+- Estatísticas de uso
 
-## Status
-Em desenvolvimento
+## 📊 Diferencial
+
+O sistema armazena interações e gera análise de dados das perguntas feitas, permitindo identificar padrões de estudo.
+
+## 📷 Demonstração
+
+### Chat funcionando
+![Chat](<img width="1087" height="329" alt="image" src="https://github.com/user-attachments/assets/9ae452a1-4416-465f-8009-8b94b15f2488" />
+)
+### Interação com o usuário
+![Conversa](<img width="889" height="674" alt="image" src="https://github.com/user-attachments/assets/1e6f37c8-a5bb-4952-89c6-27e7d7c1505e" />
+)
+### Estatísticas
+![Estatísticas](<img width="992" height="327" alt="image" src="https://github.com/user-attachments/assets/0323f391-cf72-4e93-a66f-92031745f47f" />
+)
+
