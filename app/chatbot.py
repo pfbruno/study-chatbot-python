@@ -1,5 +1,10 @@
+import os
+from openai import OpenAI
+
 from app.intents import CATEGORIES
 from app.database import save_interaction
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def classify_question(text: str) -> str:
@@ -13,55 +18,36 @@ def classify_question(text: str) -> str:
     return "geral"
 
 
-def build_response_parts(category: str) -> dict:
-    responses = {
-        "programacao": {
-            "explanation": "Esse tema envolve lógica, sintaxe e construção de soluções com código.",
-            "summary": "Programação trabalha com instruções, estruturas e resolução de problemas computacionais.",
-            "study_tip": "Revise funções, variáveis, estruturas condicionais e pratique exercícios simples."
-        },
-        "matematica": {
-            "explanation": "Esse tema envolve raciocínio lógico, interpretação e aplicação de fórmulas.",
-            "summary": "Matemática exige compreensão dos conceitos e treino constante com exercícios.",
-            "study_tip": "Revise a teoria, resolva exemplos básicos e aumente a dificuldade gradualmente."
-        },
-        "biologia": {
-            "explanation": "Esse tema envolve estruturas, processos vitais e organização dos seres vivos.",
-            "summary": "Biologia estuda a vida em diferentes níveis, do molecular ao ecológico.",
-            "study_tip": "Use mapas mentais, revise conceitos-chave e associe teoria com exemplos."
-        },
-        "vestibular": {
-            "explanation": "Esse tema envolve estratégia de prova, revisão e foco nos conteúdos mais cobrados.",
-            "summary": "Vestibular exige organização, prática e constância nos estudos.",
-            "study_tip": "Monte um cronograma, resolva provas anteriores e revise seus erros."
-        },
-        "geral": {
-            "explanation": "Não consegui identificar com precisão o tema da sua pergunta.",
-            "summary": "A pergunta pode estar genérica ou curta demais.",
-            "study_tip": "Tente reformular com mais contexto, por exemplo dizendo a disciplina ou o assunto."
-        }
-    }
+def generate_ai_response(question: str) -> str:
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Explique de forma simples e didática."},
+                {"role": "user", "content": question}
+            ],
+            temperature=0.7,
+        )
 
-    return responses[category]
+        return response.choices[0].message.content
+
+    except Exception as e:
+        return "Erro ao gerar resposta com IA."
 
 
 def process_question(text: str) -> dict:
     category = classify_question(text)
-    parts = build_response_parts(category)
 
-    formatted_response = (
-        f"Tema identificado: {category}\n\n"
-        f"Explicação:\n{parts['explanation']}\n\n"
-        f"Resumo:\n{parts['summary']}\n\n"
-        f"Sugestão de estudo:\n{parts['study_tip']}"
-    )
+    ai_response = generate_ai_response(text)
+
+    formatted_response = f"Tema: {category}\n\nResposta:\n{ai_response}"
 
     save_interaction(text, category, formatted_response)
 
     return {
         "category": category,
-        "explanation": parts["explanation"],
-        "summary": parts["summary"],
-        "study_tip": parts["study_tip"],
+        "explanation": ai_response,
+        "summary": "Resposta gerada por IA",
+        "study_tip": "Aprofunde com exercícios.",
         "formatted_response": formatted_response
     }
