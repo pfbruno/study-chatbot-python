@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.chatbot import process_question
@@ -6,6 +7,14 @@ from app.database import create_table
 from app.analytics import total_questions, questions_by_category, most_frequent_category
 
 app = FastAPI(title="Study Chatbot API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class QuestionInput(BaseModel):
