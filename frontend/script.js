@@ -750,6 +750,11 @@ async function startExam() {
     renderPdfTabs();
     buildAnswerSheet();
 
+    finishExamBtn.disabled = !currentExam.has_answer_key;
+    finishExamBtn.title = currentExam.has_answer_key
+      ? ""
+      : "Esta edição ainda não possui gabarito completo cadastrado.";
+
     examRunner.classList.remove("hidden");
     examResultCard.classList.add("hidden");
   } catch (error) {
@@ -760,7 +765,7 @@ async function startExam() {
 }
 
 async function finishExam() {
-  if (!selectedExamTypeKey || !selectedExamYear || !currentExam) return;
+  if (!selectedExamTypeKey || !selectedExamYear || !currentExam || !currentExam.has_answer_key) return;
 
   try {
     finishExamBtn.disabled = true;
