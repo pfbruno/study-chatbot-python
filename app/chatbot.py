@@ -26,20 +26,35 @@ def classify_question(text: str) -> str:
 
 def generate_ai_response(question: str) -> str:
     try:
-        prompt = f"Explique de forma simples e didática: {question}"
+        prompt = f"Explique de forma simples e didática, em português do Brasil: {question}"
 
         response = requests.post(
             API_URL,
             headers=headers,
-            json={"inputs": prompt}
+            json={"inputs": prompt},
+            timeout=60
         )
 
-        result = response.json()
+        # se a resposta não vier OK, mostra o texto bruto
+        if response.status_code != 200:
+            return f"Erro IA HTTP {response.status_code}: {response.text}"
 
-        if isinstance(result, list):
-            return result[0].get("generated_text", "Sem resposta.")
-        else:
-            return str(result)
+        # tenta converter para JSON
+        try:
+            result = response.json()
+        except Exception:
+            return f"Erro IA: resposta inválida da API -> {response.text}"
+
+        if isinstance(result, list) and len(result) > 0:
+            return result[0].get("generated_text", "Sem resposta gerada.")
+
+        if isinstance(result, dict):
+            if "generated_text" in result:
+                return result["generated_text"]
+            if "error" in result:
+                return f"Erro IA: {result['error']}"
+
+        return f"Resposta inesperada da IA: {result}"
 
     except Exception as e:
         return f"Erro IA: {str(e)}"
