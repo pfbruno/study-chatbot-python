@@ -20,7 +20,7 @@ body {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 24px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 24px;
   height: 100vh;
@@ -369,7 +369,7 @@ button.secondary {
 
 .exam-meta {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-top: 18px;
 }
@@ -405,73 +405,97 @@ button.secondary {
   color: #9ca3af;
 }
 
-.question-counter {
-  background: #111827;
-  border: 1px solid #374151;
-  border-radius: 999px;
-  padding: 8px 14px;
-  color: #e5e7eb;
-  font-size: 0.95rem;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 10px;
-  background: #111827;
-  border-radius: 999px;
-  overflow: hidden;
+.pdf-tabs {
+  display: flex;
+  gap: 10px;
   margin-top: 18px;
+  flex-wrap: wrap;
 }
 
-.progress-fill {
-  height: 100%;
-  width: 0%;
+.pdf-tab-btn {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+.pdf-tab-btn.active {
   background: #2563eb;
-  transition: width 0.2s ease;
+  border-color: #60a5fa;
 }
 
-.question-card {
+.exam-runner-layout {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 20px;
   margin-top: 20px;
+  min-height: 760px;
+}
+
+.pdf-viewer-card,
+.answer-sheet-card {
   background: #111827;
   border: 1px solid #374151;
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
+  min-height: 0;
 }
 
-.question-card h3 {
-  margin: 0 0 18px;
-  line-height: 1.5;
+.pdf-viewer-card {
+  display: flex;
+  flex-direction: column;
 }
 
-.question-options {
+#official-pdf-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 700px;
+  border: none;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.answer-sheet-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.answer-sheet-header h3 {
+  margin: 0 0 8px;
+}
+
+.answer-sheet-header p {
+  margin: 0;
+  color: #9ca3af;
+}
+
+.answer-sheet-grid {
+  margin-top: 18px;
   display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
-.option-item {
+.answer-item {
+  background: #0f172a;
   border: 1px solid #374151;
   border-radius: 12px;
-  padding: 14px;
-  background: #0f172a;
-  cursor: pointer;
-  transition: 0.2s ease;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
+  padding: 12px;
 }
 
-.option-item:hover {
-  border-color: #60a5fa;
-}
-
-.option-item.selected {
-  background: #1d4ed8;
-  border-color: #60a5fa;
-}
-
-.option-letter {
+.answer-item-number {
   font-weight: 700;
-  min-width: 24px;
+  margin-bottom: 10px;
+}
+
+.answer-item select {
+  width: 100%;
+  background: #111827;
+  color: #e5e7eb;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  padding: 10px;
 }
 
 .result-box {
@@ -540,6 +564,16 @@ canvas {
   padding: 8px;
 }
 
+@media (max-width: 1280px) {
+  .exam-runner-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #official-pdf-frame {
+    min-height: 540px;
+  }
+}
+
 @media (max-width: 1200px) {
   .exam-type-grid {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
@@ -547,6 +581,10 @@ canvas {
 
   .exam-years-grid {
     grid-template-columns: repeat(4, minmax(80px, 1fr));
+  }
+
+  .exam-meta {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -619,8 +657,9 @@ canvas {
     grid-template-columns: 1fr 1fr;
   }
 
-  .exam-years-grid {
-    grid-template-columns: 1fr 1fr 1fr;
+  .exam-years-grid,
+  .answer-sheet-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .exam-meta {
@@ -634,7 +673,8 @@ canvas {
 
 @media (max-width: 520px) {
   .exam-type-grid,
-  .exam-years-grid {
-    grid-template-columns: 1fr 1fr;
+  .exam-years-grid,
+  .answer-sheet-grid {
+    grid-template-columns: 1fr;
   }
 }
