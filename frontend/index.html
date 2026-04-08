@@ -11,22 +11,125 @@
   <div class="app-layout">
     <main class="chat-panel">
       <header class="header">
-        <h1>Study Chatbot</h1>
-        <p class="subtitle">Chatbot educacional com análise de dados</p>
+        <div>
+          <h1>Study Chatbot</h1>
+          <p class="subtitle">Chatbot educacional com análise de dados e simulados</p>
+        </div>
+
+        <div class="top-actions">
+          <button id="chat-tab-btn" class="tab-btn active">Chat</button>
+          <button id="exams-tab-btn" class="tab-btn secondary">Provas</button>
+        </div>
       </header>
 
-      <section class="chat-section">
-        <div class="chat-history" id="chat-history"></div>
-      </section>
+      <div class="panel-content">
+        <section id="chat-view" class="view active">
+          <section class="chat-section">
+            <div class="chat-history" id="chat-history"></div>
+          </section>
 
-      <section class="input-section">
-        <textarea id="question" placeholder="Digite sua pergunta..."></textarea>
+          <section class="input-section">
+            <textarea id="question" placeholder="Digite sua pergunta..."></textarea>
 
-        <div class="actions">
-          <button id="send-btn">Enviar</button>
-          <button id="clear-btn" class="secondary">Limpar chat</button>
-        </div>
-      </section>
+            <div class="actions">
+              <button id="send-btn">Enviar</button>
+              <button id="clear-btn" class="secondary">Limpar chat</button>
+            </div>
+          </section>
+        </section>
+
+        <section id="exam-view" class="view">
+          <div class="exam-page">
+            <section class="exam-block">
+              <div class="section-heading">
+                <h2>Escolha a prova</h2>
+                <p>Selecione o tipo de prova e depois o ano desejado.</p>
+              </div>
+
+              <div id="exam-type-grid" class="exam-type-grid"></div>
+            </section>
+
+            <section class="exam-block">
+              <div class="section-heading">
+                <h2>Anos disponíveis</h2>
+                <p id="selected-exam-label">Selecione uma prova para visualizar os anos.</p>
+              </div>
+
+              <div id="exam-years-grid" class="exam-years-grid"></div>
+            </section>
+
+            <section id="exam-intro-card" class="exam-block exam-intro-card hidden">
+              <div class="section-heading">
+                <h2 id="exam-intro-title">Título da prova</h2>
+                <p id="exam-intro-description">Descrição da prova selecionada.</p>
+              </div>
+
+              <div class="exam-meta">
+                <div class="meta-item">
+                  <span class="meta-label">Instituição</span>
+                  <strong id="exam-meta-type">-</strong>
+                </div>
+
+                <div class="meta-item">
+                  <span class="meta-label">Ano</span>
+                  <strong id="exam-meta-year">-</strong>
+                </div>
+
+                <div class="meta-item">
+                  <span class="meta-label">Questões</span>
+                  <strong id="exam-meta-count">-</strong>
+                </div>
+              </div>
+
+              <div class="exam-intro-actions">
+                <button id="start-exam-btn">Realizar prova</button>
+              </div>
+            </section>
+
+            <section id="exam-runner" class="exam-block hidden">
+              <div class="runner-header">
+                <div>
+                  <h2 id="runner-title">Prova</h2>
+                  <p id="runner-subtitle">Questão atual</p>
+                </div>
+
+                <div class="question-counter" id="question-counter">Questão 1 de 1</div>
+              </div>
+
+              <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill"></div>
+              </div>
+
+              <div class="question-card">
+                <h3 id="question-statement">Enunciado da questão</h3>
+                <div id="question-options" class="question-options"></div>
+              </div>
+
+              <div class="runner-actions">
+                <button id="prev-question-btn" class="secondary">Anterior</button>
+                <button id="next-question-btn">Próxima</button>
+                <button id="finish-exam-btn" class="secondary">Finalizar prova</button>
+              </div>
+            </section>
+
+            <section id="exam-result-card" class="exam-block hidden">
+              <div class="section-heading">
+                <h2>Resultado</h2>
+                <p>Confira seu desempenho na prova realizada.</p>
+              </div>
+
+              <div class="result-box">
+                <div class="result-score" id="result-score">0%</div>
+                <div class="result-details" id="result-details">Você acertou 0 de 0 questões.</div>
+              </div>
+
+              <div class="result-actions">
+                <button id="restart-exam-btn">Refazer prova</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
     </main>
 
     <aside class="stats-panel">
