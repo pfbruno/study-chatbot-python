@@ -1,0 +1,23 @@
+{
+  "title": "ENEM 2022",
+  "description": "Simulado carregado pelo backend. Basta repetir este padrão para adicionar quantas provas quiser.",
+  "institution": "ENEM",
+  "year": 2022,
+  "questions": [
+    {
+      "statement": "Qual é o valor de 15% de 200?",
+      "options": ["20", "25", "30", "35"],
+      "correct_answer": 2
+    },
+    {
+      "statement": "A fotossíntese ocorre principalmente em qual organela celular?",
+      "options": ["Mitocôndria", "Cloroplasto", "Lisossomo", "Ribossomo"],
+      "correct_answer": 1
+    },
+    {
+      "statement": "A Revolução Francesa teve início em qual ano?",
+      "options": ["1789", "1776", "1804", "1815"],
+      "correct_answer": 0
+    }
+  ]
+}
