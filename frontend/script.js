@@ -10,6 +10,10 @@ const API_URL = "https://study-chatbot-python.onrender.com";
 
 let statsChart = null;
 
+function scrollChatToBottom() {
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
 function saveChatToLocalStorage() {
   localStorage.setItem("study_chat_history", chatHistory.innerHTML);
 }
@@ -18,6 +22,7 @@ function loadChatFromLocalStorage() {
   const saved = localStorage.getItem("study_chat_history");
   if (saved) {
     chatHistory.innerHTML = saved;
+    scrollChatToBottom();
   }
 }
 
@@ -32,8 +37,8 @@ function addMessage(text, type, isHtml = false) {
   }
 
   chatHistory.appendChild(message);
-  chatHistory.scrollTop = chatHistory.scrollHeight;
   saveChatToLocalStorage();
+  scrollChatToBottom();
 
   return message;
 }
