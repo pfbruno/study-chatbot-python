@@ -24,18 +24,18 @@ const examIntroDescription = document.getElementById("exam-intro-description");
 const examMetaType = document.getElementById("exam-meta-type");
 const examMetaYear = document.getElementById("exam-meta-year");
 const examMetaCount = document.getElementById("exam-meta-count");
+const examMetaCorrection = document.getElementById("exam-meta-correction");
 const startExamBtn = document.getElementById("start-exam-btn");
 
 const examRunner = document.getElementById("exam-runner");
 const runnerTitle = document.getElementById("runner-title");
 const runnerSubtitle = document.getElementById("runner-subtitle");
-const questionCounter = document.getElementById("question-counter");
-const progressFill = document.getElementById("progress-fill");
-const questionStatement = document.getElementById("question-statement");
-const questionOptions = document.getElementById("question-options");
-const prevQuestionBtn = document.getElementById("prev-question-btn");
-const nextQuestionBtn = document.getElementById("next-question-btn");
+const pdfTabs = document.getElementById("pdf-tabs");
+const officialPdfFrame = document.getElementById("official-pdf-frame");
+const answerSheetGrid = document.getElementById("answer-sheet-grid");
+const answerSheetStatus = document.getElementById("answer-sheet-status");
 const finishExamBtn = document.getElementById("finish-exam-btn");
+const saveLocalBtn = document.getElementById("save-local-btn");
 
 const examResultCard = document.getElementById("exam-result-card");
 const resultScore = document.getElementById("result-score");
@@ -48,9 +48,8 @@ let examCatalog = [];
 let selectedExamTypeKey = null;
 let selectedExamYear = null;
 let currentExam = null;
-let currentQuestionIndex = 0;
 let userAnswers = [];
-
+let currentPdfIndex = 0;
 
 function scrollChatToBottom() {
   chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -338,7 +337,6 @@ async function sendQuestion() {
     }
 
     const data = await response.json();
-
     const botText =
       data.explanation ||
       data.response ||
@@ -538,8 +536,8 @@ function selectExamType(typeKey) {
   selectedExamTypeKey = typeKey;
   selectedExamYear = null;
   currentExam = null;
-  currentQuestionIndex = 0;
   userAnswers = [];
+  currentPdfIndex = 0;
 
   renderExamTypes();
   renderExamYears();
@@ -559,10 +557,11 @@ function renderExamIntro() {
   if (!yearData) return;
 
   examIntroTitle.textContent = yearData.title;
-  examIntroDescription.textContent = yearData.description || "Prova disponível para realização no site.";
+  examIntroDescription.textContent = yearData.description || "Prova oficial disponível para realização no site.";
   examMetaType.textContent = examType.label;
   examMetaYear.textContent = yearData.year;
   examMetaCount.textContent = `${yearData.question_count} questões`;
+  examMetaCorrection.textContent = yearData.has_answer_key ? "Automática" : "Sem gabarito";
 
   examIntroCard.classList.remove("hidden");
 }
@@ -588,6 +587,125 @@ async function loadExamCatalog() {
   }
 }
 
+function renderPdfTabs() {
+  pdfTabs.innerHTML = "";
+
+  if (!currentExam || !currentExam.pdfs || currentExam.pdfs.length === 0) {
+    officialPdfFrame.src = "";
+    return;
+  }
+
+  currentExam.pdfs.forEach((pdf, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "pdf-tab-btn";
+
+    if (index === currentPdfIndex) {
+      button.classList.add("active");
+    }
+
+    button.textContent = pdf.label;
+
+    button.addEventListener("click", () => {
+      currentPdfIndex = index;
+      renderPdfTabs();
+      officialPdfFrame.src = pdf.url;
+    });
+
+    pdfTabs.appendChild(button);
+  });
+
+  officialPdfFrame.src = currentExam.pdfs[currentPdfIndex].url;
+}
+
+function buildAnswerSheet() {
+  answerSheetGrid.innerHTML = "";
+
+  if (!currentExam) return;
+
+  for (let i = 1; i <= currentExam.question_count; i++) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "answer-item";
+
+    const number = document.createElement("div");
+    number.className = "answer-item-number";
+    number.textContent = `Questão ${i}`;
+
+    const select = document.createElement("select");
+    select.dataset.index = String(i - 1);
+
+    const options = [
+      { value: "", label: "Em branco" },
+      { value: "A", label: "A" },
+      { value: "B", label: "B" },
+      { value: "C", label: "C" },
+      { value: "D", label: "D" },
+      { value: "E", label: "E" }
+    ];
+
+    options.forEach((item) => {
+      const option = document.createElement("option");
+      option.value = item.value;
+      option.textContent = item.label;
+      select.appendChild(option);
+    });
+
+    select.value = userAnswers[i - 1] || "";
+    select.addEventListener("change", (event) => {
+      const index = Number(event.target.dataset.index);
+      userAnswers[index] = event.target.value || null;
+      updateAnswerSheetStatus();
+    });
+
+    wrapper.appendChild(number);
+    wrapper.appendChild(select);
+    answerSheetGrid.appendChild(wrapper);
+  }
+
+  updateAnswerSheetStatus();
+}
+
+function updateAnswerSheetStatus() {
+  const answered = userAnswers.filter((item) => item !== null && item !== "").length;
+  const total = userAnswers.length;
+  answerSheetStatus.textContent = `Respondidas: ${answered} de ${total}`;
+}
+
+function getLocalExamStorageKey() {
+  return `exam_answers_${selectedExamTypeKey}_${selectedExamYear}`;
+}
+
+function saveAnswersLocally() {
+  if (!currentExam) return;
+
+  localStorage.setItem(
+    getLocalExamStorageKey(),
+    JSON.stringify({
+      exam_type: selectedExamTypeKey,
+      year: selectedExamYear,
+      answers: userAnswers
+    })
+  );
+
+  alert("Respostas salvas localmente no navegador.");
+}
+
+function tryLoadSavedAnswers() {
+  if (!currentExam) return;
+
+  const raw = localStorage.getItem(getLocalExamStorageKey());
+  if (!raw) return;
+
+  try {
+    const data = JSON.parse(raw);
+    if (Array.isArray(data.answers) && data.answers.length === currentExam.question_count) {
+      userAnswers = data.answers;
+    }
+  } catch {
+    userAnswers = new Array(currentExam.question_count).fill(null);
+  }
+}
+
 async function startExam() {
   if (!selectedExamTypeKey || !selectedExamYear) return;
 
@@ -600,79 +718,25 @@ async function startExam() {
     }
 
     currentExam = await response.json();
-    currentQuestionIndex = 0;
+    currentPdfIndex = 0;
     userAnswers = new Array(currentExam.question_count).fill(null);
+
+    tryLoadSavedAnswers();
+
+    runnerTitle.textContent = currentExam.title;
+    runnerSubtitle.textContent = currentExam.has_answer_key
+      ? "PDF oficial e folha de respostas com correção automática."
+      : "PDF oficial e folha de respostas. Esta prova ainda não possui correção automática.";
+
+    renderPdfTabs();
+    buildAnswerSheet();
 
     examRunner.classList.remove("hidden");
     examResultCard.classList.add("hidden");
-
-    renderCurrentQuestion();
   } catch (error) {
     alert(`Erro ao carregar prova: ${error.message}`);
   } finally {
     startExamBtn.disabled = false;
-  }
-}
-
-function renderCurrentQuestion() {
-  if (!currentExam) return;
-
-  const totalQuestions = currentExam.questions.length;
-  const question = currentExam.questions[currentQuestionIndex];
-
-  runnerTitle.textContent = currentExam.title;
-  runnerSubtitle.textContent = "Responda as questões diretamente no site.";
-  questionCounter.textContent = `Questão ${currentQuestionIndex + 1} de ${totalQuestions}`;
-  questionStatement.textContent = question.statement;
-
-  const progressPercent = ((currentQuestionIndex + 1) / totalQuestions) * 100;
-  progressFill.style.width = `${progressPercent}%`;
-
-  questionOptions.innerHTML = "";
-
-  question.options.forEach((option, index) => {
-    const optionDiv = document.createElement("div");
-    optionDiv.className = "option-item";
-
-    if (userAnswers[currentQuestionIndex] === index) {
-      optionDiv.classList.add("selected");
-    }
-
-    optionDiv.addEventListener("click", () => {
-      userAnswers[currentQuestionIndex] = index;
-      renderCurrentQuestion();
-    });
-
-    const letter = document.createElement("div");
-    letter.className = "option-letter";
-    letter.textContent = String.fromCharCode(65 + index);
-
-    const text = document.createElement("div");
-    text.className = "option-text";
-    text.textContent = option;
-
-    optionDiv.appendChild(letter);
-    optionDiv.appendChild(text);
-    questionOptions.appendChild(optionDiv);
-  });
-
-  prevQuestionBtn.disabled = currentQuestionIndex === 0;
-  nextQuestionBtn.disabled = currentQuestionIndex === totalQuestions - 1;
-}
-
-function goToPreviousQuestion() {
-  if (currentQuestionIndex > 0) {
-    currentQuestionIndex--;
-    renderCurrentQuestion();
-  }
-}
-
-function goToNextQuestion() {
-  if (!currentExam) return;
-
-  if (currentQuestionIndex < currentExam.questions.length - 1) {
-    currentQuestionIndex++;
-    renderCurrentQuestion();
   }
 }
 
@@ -691,15 +755,19 @@ async function finishExam() {
     });
 
     if (!response.ok) {
-      throw new Error(`Erro HTTP ${response.status}`);
+      const errorData = await response.json().catch(() => null);
+      const detail = errorData?.detail || `Erro HTTP ${response.status}`;
+      throw new Error(detail);
     }
 
     const result = await response.json();
 
     resultScore.textContent = `${result.score_percentage}%`;
     resultDetails.textContent =
-      `Você acertou ${result.correct_answers} de ${result.total_questions} questões. ` +
-      `Erros: ${result.wrong_answers}. Em branco: ${result.unanswered_count}.`;
+      `Acertos: ${result.correct_answers}. ` +
+      `Erros: ${result.wrong_answers}. ` +
+      `Em branco: ${result.unanswered_count}. ` +
+      `Anuladas: ${result.annulled_count}.`;
 
     examResultCard.classList.remove("hidden");
   } catch (error) {
@@ -710,7 +778,8 @@ async function finishExam() {
 }
 
 function restartExam() {
-  startExam();
+  examResultCard.classList.add("hidden");
+  examRunner.classList.remove("hidden");
 }
 
 sendBtn.addEventListener("click", sendQuestion);
@@ -728,10 +797,9 @@ questionInput.addEventListener("keydown", function (event) {
 });
 
 startExamBtn.addEventListener("click", startExam);
-prevQuestionBtn.addEventListener("click", goToPreviousQuestion);
-nextQuestionBtn.addEventListener("click", goToNextQuestion);
 finishExamBtn.addEventListener("click", finishExam);
 restartExamBtn.addEventListener("click", restartExam);
+saveLocalBtn.addEventListener("click", saveAnswersLocally);
 
 loadSavedMessages();
 loadStats();
