@@ -33,6 +33,8 @@ def list_exam_types() -> list[dict[str, Any]]:
                         "description": year.get("description", ""),
                         "question_count": year.get("question_count", 0),
                         "has_answer_key": bool(year.get("answer_key")),
+                        "has_pdfs": bool(year.get("pdfs")),
+                        "official_page_url": year.get("official_page_url"),
                     }
                     for year in sorted(years, key=lambda item: item["year"], reverse=True)
                 ],
@@ -61,6 +63,7 @@ def get_exam_by_type_and_year(exam_type: str, year: int) -> dict[str, Any]:
                     "question_count": year_item.get("question_count", 0),
                     "pdfs": year_item.get("pdfs", []),
                     "has_answer_key": bool(year_item.get("answer_key")),
+                    "official_page_url": year_item.get("official_page_url"),
                 }
 
     raise FileNotFoundError(f"Prova não encontrada para {exam_type} {year}.")
@@ -76,7 +79,10 @@ def get_exam_with_answer_key(exam_type: str, year: int) -> dict[str, Any]:
 
         for year_item in exam.get("years", []):
             if int(year_item["year"]) == int(year):
-                return year_item
+                return {
+                    **year_item,
+                    "institution": exam["label"],
+                }
 
     raise FileNotFoundError(f"Prova não encontrada para {exam_type} {year}.")
 
@@ -150,7 +156,7 @@ def submit_exam_answers(exam_type: str, year: int, answers: list[str | None]) ->
 
     return {
         "title": exam["title"],
-        "institution": exam["institution"] if "institution" in exam else exam_type.upper(),
+        "institution": exam["institution"],
         "year": exam["year"],
         "total_questions": len(answer_key),
         "valid_questions": valid_questions,
