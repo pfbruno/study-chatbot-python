@@ -43,6 +43,13 @@ function addMessage(text, type, isHtml = false) {
   return message;
 }
 
+questionInput.addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    sendBtn.click();
+  }
+});
+
 function formatBotResponse(data) {
   return `
 <strong>Tema identificado:</strong> ${data.category}

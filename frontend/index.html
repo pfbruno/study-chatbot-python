@@ -8,42 +8,45 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <div class="container">
-    <header class="header">
-      <h1>Study Chatbot</h1>
-      <p class="subtitle">Chatbot educacional com análise de dados</p>
-    </header>
+  <div class="app-layout">
+    <main class="chat-panel">
+      <header class="header">
+        <h1>Study Chatbot</h1>
+        <p class="subtitle">Chatbot educacional com análise de dados</p>
+      </header>
 
-    <section class="input-section">
-      <textarea id="question" placeholder="Digite sua pergunta..."></textarea>
+      <section class="chat-section">
+        <div class="chat-history" id="chat-history"></div>
+      </section>
 
-      <div class="actions">
-        <button id="send-btn">Enviar</button>
-        <button id="clear-btn" class="secondary">Limpar chat</button>
-      </div>
-    </section>
+      <section class="input-section">
+        <textarea id="question" placeholder="Digite sua pergunta..."></textarea>
 
-    <section class="chat-section">
-      <h2>Chat</h2>
-      <div class="chat-history" id="chat-history"></div>
-    </section>
-
-    <section class="stats-section">
-      <h2>Estatísticas</h2>
-      <button id="stats-btn">Atualizar estatísticas</button>
-
-      <div class="stats-grid">
-        <div class="stats-card">
-          <h3>Resumo</h3>
-          <pre id="stats">As estatísticas aparecerão aqui...</pre>
+        <div class="actions">
+          <button id="send-btn">Enviar</button>
+          <button id="clear-btn" class="secondary">Limpar chat</button>
         </div>
+      </section>
+    </main>
 
-        <div class="stats-card">
-          <h3>Gráfico</h3>
-          <canvas id="stats-chart"></canvas>
+    <aside class="stats-panel">
+      <section class="stats-section">
+        <h2>Estatísticas</h2>
+        <button id="stats-btn">Atualizar estatísticas</button>
+
+        <div class="stats-grid">
+          <div class="stats-card">
+            <h3>Resumo</h3>
+            <pre id="stats">As estatísticas aparecerão aqui...</pre>
+          </div>
+
+          <div class="stats-card">
+            <h3>Gráfico</h3>
+            <canvas id="stats-chart"></canvas>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </aside>
   </div>
 
   <script src="script.js"></script>
