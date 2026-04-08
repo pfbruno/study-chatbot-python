@@ -25,6 +25,7 @@ const examMetaType = document.getElementById("exam-meta-type");
 const examMetaYear = document.getElementById("exam-meta-year");
 const examMetaCount = document.getElementById("exam-meta-count");
 const examMetaCorrection = document.getElementById("exam-meta-correction");
+const openOfficialPageBtn = document.getElementById("open-official-page-btn");
 const startExamBtn = document.getElementById("start-exam-btn");
 
 const examRunner = document.getElementById("exam-runner");
@@ -557,11 +558,14 @@ function renderExamIntro() {
   if (!yearData) return;
 
   examIntroTitle.textContent = yearData.title;
-  examIntroDescription.textContent = yearData.description || "Prova oficial disponível para realização no site.";
+  examIntroDescription.textContent = yearData.description || "Prova oficial disponível.";
   examMetaType.textContent = examType.label;
   examMetaYear.textContent = yearData.year;
-  examMetaCount.textContent = `${yearData.question_count} questões`;
+  examMetaCount.textContent = yearData.question_count > 0 ? `${yearData.question_count} questões` : "Não informado";
   examMetaCorrection.textContent = yearData.has_answer_key ? "Automática" : "Sem gabarito";
+
+  openOfficialPageBtn.disabled = !yearData.official_page_url;
+  startExamBtn.disabled = !(yearData.has_pdfs && yearData.question_count > 0);
 
   examIntroCard.classList.remove("hidden");
 }
@@ -706,6 +710,16 @@ function tryLoadSavedAnswers() {
   }
 }
 
+function openOfficialPage() {
+  const examType = getSelectedExamType();
+  if (!examType || !selectedExamYear) return;
+
+  const yearData = examType.years.find((item) => String(item.year) === String(selectedExamYear));
+  if (yearData?.official_page_url) {
+    window.open(yearData.official_page_url, "_blank");
+  }
+}
+
 async function startExam() {
   if (!selectedExamTypeKey || !selectedExamYear) return;
 
@@ -718,6 +732,11 @@ async function startExam() {
     }
 
     currentExam = await response.json();
+
+    if (!currentExam.pdfs || currentExam.pdfs.length === 0 || currentExam.question_count <= 0) {
+      throw new Error("Esta edição ainda não possui PDFs oficiais completos cadastrados para execução no site.");
+    }
+
     currentPdfIndex = 0;
     userAnswers = new Array(currentExam.question_count).fill(null);
 
@@ -796,6 +815,7 @@ questionInput.addEventListener("keydown", function (event) {
   }
 });
 
+openOfficialPageBtn.addEventListener("click", openOfficialPage);
 startExamBtn.addEventListener("click", startExam);
 finishExamBtn.addEventListener("click", finishExam);
 restartExamBtn.addEventListener("click", restartExam);
