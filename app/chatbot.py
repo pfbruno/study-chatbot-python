@@ -6,10 +6,11 @@ from app.database import save_interaction
 
 HF_API_KEY = os.getenv("HF_API_KEY")
 
-API_URL = "https://router.huggingface.co/hf-inference/models/google/flan-t5-base"
+API_URL = "https://router.huggingface.co/v1/chat/completions"
 
-headers = {
-    "Authorization": f"Bearer {HF_API_KEY}"
+HEADERS = {
+    "Authorization": f"Bearer {HF_API_KEY}",
+    "Content-Type": "application/json"
 }
 
 
@@ -26,35 +27,37 @@ def classify_question(text: str) -> str:
 
 def generate_ai_response(question: str) -> str:
     try:
-        prompt = f"Explique de forma simples e didática, em português do Brasil: {question}"
+        payload = {
+            "model": "openai/gpt-oss-120b:fastest",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Você é um professor didático, claro e objetivo. "
+                        "Responda sempre em português do Brasil."
+                    )
+                },
+                {
+                    "role": "user",
+                    "content": question
+                }
+            ],
+            "stream": False
+        }
 
         response = requests.post(
             API_URL,
-            headers=headers,
-            json={"inputs": prompt},
+            headers=HEADERS,
+            json=payload,
             timeout=60
         )
 
-        # se a resposta não vier OK, mostra o texto bruto
         if response.status_code != 200:
             return f"Erro IA HTTP {response.status_code}: {response.text}"
 
-        # tenta converter para JSON
-        try:
-            result = response.json()
-        except Exception:
-            return f"Erro IA: resposta inválida da API -> {response.text}"
+        result = response.json()
 
-        if isinstance(result, list) and len(result) > 0:
-            return result[0].get("generated_text", "Sem resposta gerada.")
-
-        if isinstance(result, dict):
-            if "generated_text" in result:
-                return result["generated_text"]
-            if "error" in result:
-                return f"Erro IA: {result['error']}"
-
-        return f"Resposta inesperada da IA: {result}"
+        return result["choices"][0]["message"]["content"]
 
     except Exception as e:
         return f"Erro IA: {str(e)}"
@@ -77,6 +80,6 @@ def process_question(text: str) -> dict:
         "category": category,
         "explanation": ai_response,
         "summary": "Resposta gerada por IA.",
-        "study_tip": "Aprofunde com exercícios.",
+        "study_tip": "Aprofunde com exercícios e revisão.",
         "formatted_response": formatted_response
     }
