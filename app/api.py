@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from app.analytics import most_frequent_category, questions_by_category, total_questions
 from app.chatbot import process_question
 from app.database import create_table, get_recent_interactions
-from app.exams import ensure_exams_directory, get_public_exam, list_exam_catalog, submit_exam_answers
+from app.exams import get_exam_by_type_and_year, list_exam_types, submit_exam_answers
 
 
 app = FastAPI(title="Study Chatbot API")
@@ -24,13 +24,12 @@ class QuestionInput(BaseModel):
 
 
 class ExamSubmission(BaseModel):
-    answers: list[int | None]
+    answers: list[str | None]
 
 
 @app.on_event("startup")
 def startup_event():
     create_table()
-    ensure_exams_directory()
 
 
 @app.get("/")
@@ -77,17 +76,15 @@ def history():
 
 @app.get("/exams")
 def get_exams():
-    return {"exam_types": list_exam_catalog()}
+    return {"exam_types": list_exam_types()}
 
 
 @app.get("/exams/{exam_type}/{year}")
 def get_exam(exam_type: str, year: int):
     try:
-        return get_public_exam(exam_type, year)
+        return get_exam_by_type_and_year(exam_type, year)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @app.post("/exams/{exam_type}/{year}/submit")
