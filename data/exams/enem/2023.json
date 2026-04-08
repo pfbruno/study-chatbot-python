@@ -1,0 +1,28 @@
+{
+  "title": "ENEM 2023",
+  "description": "Exemplo de prova alimentada por arquivo JSON no backend.",
+  "institution": "ENEM",
+  "year": 2023,
+  "questions": [
+    {
+      "statement": "Qual das alternativas apresenta uma fonte de energia renovável?",
+      "options": ["Petróleo", "Carvão mineral", "Energia solar", "Gás natural"],
+      "correct_answer": 2
+    },
+    {
+      "statement": "Em uma progressão aritmética 2, 5, 8, 11, o próximo termo é:",
+      "options": ["12", "13", "14", "15"],
+      "correct_answer": 2
+    },
+    {
+      "statement": "Um texto dissertativo-argumentativo tem como principal objetivo:",
+      "options": [
+        "Narrar uma história fictícia",
+        "Defender um ponto de vista",
+        "Descrever um cenário",
+        "Listar dados sem análise"
+      ],
+      "correct_answer": 1
+    }
+  ]
+}
