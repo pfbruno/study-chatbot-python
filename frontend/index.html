@@ -13,7 +13,7 @@
       <header class="header">
         <div>
           <h1>Study Chatbot</h1>
-          <p class="subtitle">Chatbot educacional com análise de dados e simulados</p>
+          <p class="subtitle">Chatbot educacional com provas reais e simulados</p>
         </div>
 
         <div class="top-actions">
@@ -43,7 +43,7 @@
             <section class="exam-block">
               <div class="section-heading">
                 <h2>Escolha a prova</h2>
-                <p>Selecione o tipo de prova e depois o ano desejado.</p>
+                <p>Selecione a instituição, depois o ano, e realize a prova oficial dentro do site.</p>
               </div>
 
               <div id="exam-type-grid" class="exam-type-grid"></div>
@@ -58,7 +58,7 @@
               <div id="exam-years-grid" class="exam-years-grid"></div>
             </section>
 
-            <section id="exam-intro-card" class="exam-block exam-intro-card hidden">
+            <section id="exam-intro-card" class="exam-block hidden">
               <div class="section-heading">
                 <h2 id="exam-intro-title">Título da prova</h2>
                 <p id="exam-intro-description">Descrição da prova selecionada.</p>
@@ -79,6 +79,11 @@
                   <span class="meta-label">Questões</span>
                   <strong id="exam-meta-count">-</strong>
                 </div>
+
+                <div class="meta-item">
+                  <span class="meta-label">Correção</span>
+                  <strong id="exam-meta-correction">-</strong>
+                </div>
               </div>
 
               <div class="exam-intro-actions">
@@ -90,32 +95,40 @@
               <div class="runner-header">
                 <div>
                   <h2 id="runner-title">Prova</h2>
-                  <p id="runner-subtitle">Questão atual</p>
+                  <p id="runner-subtitle">PDF oficial e folha de respostas no próprio site.</p>
                 </div>
 
-                <div class="question-counter" id="question-counter">Questão 1 de 1</div>
+                <div class="runner-tools">
+                  <button id="save-local-btn" class="secondary">Salvar respostas localmente</button>
+                </div>
               </div>
 
-              <div class="progress-bar">
-                <div id="progress-fill" class="progress-fill"></div>
-              </div>
+              <div class="pdf-tabs" id="pdf-tabs"></div>
 
-              <div class="question-card">
-                <h3 id="question-statement">Enunciado da questão</h3>
-                <div id="question-options" class="question-options"></div>
-              </div>
+              <div class="exam-runner-layout">
+                <div class="pdf-viewer-card">
+                  <iframe id="official-pdf-frame" title="PDF oficial da prova"></iframe>
+                </div>
 
-              <div class="runner-actions">
-                <button id="prev-question-btn" class="secondary">Anterior</button>
-                <button id="next-question-btn">Próxima</button>
-                <button id="finish-exam-btn" class="secondary">Finalizar prova</button>
+                <div class="answer-sheet-card">
+                  <div class="answer-sheet-header">
+                    <h3>Folha de respostas</h3>
+                    <p id="answer-sheet-status">Selecione suas respostas.</p>
+                  </div>
+
+                  <div id="answer-sheet-grid" class="answer-sheet-grid"></div>
+
+                  <div class="runner-actions">
+                    <button id="finish-exam-btn">Finalizar correção</button>
+                  </div>
+                </div>
               </div>
             </section>
 
             <section id="exam-result-card" class="exam-block hidden">
               <div class="section-heading">
                 <h2>Resultado</h2>
-                <p>Confira seu desempenho na prova realizada.</p>
+                <p>Correção automática da prova com o gabarito cadastrado.</p>
               </div>
 
               <div class="result-box">
@@ -124,7 +137,7 @@
               </div>
 
               <div class="result-actions">
-                <button id="restart-exam-btn">Refazer prova</button>
+                <button id="restart-exam-btn">Voltar para a prova</button>
               </div>
             </section>
           </div>
