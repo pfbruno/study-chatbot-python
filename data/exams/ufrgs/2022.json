@@ -1,0 +1,28 @@
+{
+  "title": "Vestibular UFRGS 2022",
+  "description": "Exemplo inicial para estrutura de vestibulares no backend.",
+  "institution": "UFRGS",
+  "year": 2022,
+  "questions": [
+    {
+      "statement": "Qual é a capital do Rio Grande do Sul?",
+      "options": ["Caxias do Sul", "Pelotas", "Porto Alegre", "Santa Maria"],
+      "correct_answer": 2
+    },
+    {
+      "statement": "O número atômico representa:",
+      "options": [
+        "A soma de prótons e nêutrons",
+        "A quantidade de elétrons em qualquer situação",
+        "A quantidade de prótons no núcleo",
+        "A massa molar do elemento"
+      ],
+      "correct_answer": 2
+    },
+    {
+      "statement": "Em uma função do 1º grau, o gráfico é representado por:",
+      "options": ["Parábola", "Reta", "Circunferência", "Hipérbole"],
+      "correct_answer": 1
+    }
+  ]
+}
