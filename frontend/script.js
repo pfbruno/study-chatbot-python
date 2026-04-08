@@ -1,169 +1,6 @@
 const API_BASE_URL = "https://study-chatbot-python.onrender.com";
 const STORAGE_KEY = "study_chatbot_messages";
 
-const EXAMS_DATA = {
-  enem: {
-    label: "ENEM",
-    years: {
-      2022: {
-        title: "ENEM 2022",
-        description: "Simulado inicial do ENEM com questões objetivas para treino no site.",
-        questions: [
-          {
-            statement: "Na matemática básica, qual é o valor de 15% de 200?",
-            options: ["20", "25", "30", "35"],
-            answer: 2
-          },
-          {
-            statement: "A fotossíntese ocorre principalmente em qual organela celular?",
-            options: ["Mitocôndria", "Cloroplasto", "Lisossomo", "Ribossomo"],
-            answer: 1
-          },
-          {
-            statement: "A Revolução Francesa teve início em qual ano?",
-            options: ["1789", "1776", "1804", "1815"],
-            answer: 0
-          }
-        ]
-      },
-      2023: {
-        title: "ENEM 2023",
-        description: "Simulado com foco em interpretação, ciências da natureza e raciocínio lógico.",
-        questions: [
-          {
-            statement: "Qual das alternativas apresenta uma fonte de energia renovável?",
-            options: ["Petróleo", "Carvão mineral", "Energia solar", "Gás natural"],
-            answer: 2
-          },
-          {
-            statement: "Em uma progressão aritmética 2, 5, 8, 11, o próximo termo é:",
-            options: ["12", "13", "14", "15"],
-            answer: 2
-          },
-          {
-            statement: "Na língua portuguesa, um texto dissertativo-argumentativo tem como principal objetivo:",
-            options: [
-              "Narrar uma história fictícia",
-              "Defender um ponto de vista",
-              "Descrever um cenário",
-              "Listar dados sem análise"
-            ],
-            answer: 1
-          }
-        ]
-      }
-    }
-  },
-  ufrgs: {
-    label: "UFRGS",
-    years: {
-      2022: {
-        title: "Vestibular UFRGS 2022",
-        description: "Simulado com questões em padrão objetivo para prática no portal.",
-        questions: [
-          {
-            statement: "Qual é a capital do Rio Grande do Sul?",
-            options: ["Caxias do Sul", "Pelotas", "Porto Alegre", "Santa Maria"],
-            answer: 2
-          },
-          {
-            statement: "O número atômico representa:",
-            options: [
-              "A soma de prótons e nêutrons",
-              "A quantidade de elétrons em qualquer situação",
-              "A quantidade de prótons no núcleo",
-              "A massa molar do elemento"
-            ],
-            answer: 2
-          },
-          {
-            statement: "Em uma função do 1º grau, o gráfico é representado por:",
-            options: ["Parábola", "Reta", "Circunferência", "Hipérbole"],
-            answer: 1
-          }
-        ]
-      },
-      2023: {
-        title: "Vestibular UFRGS 2023",
-        description: "Simulado introdutório com questões de humanas, exatas e linguagem.",
-        questions: [
-          {
-            statement: "No contexto da geopolítica, a sigla ONU significa:",
-            options: [
-              "Organização das Nações Unidas",
-              "Ordem Nacional Unificada",
-              "Operação Nuclear Universal",
-              "Organização Nativa Unilateral"
-            ],
-            answer: 0
-          },
-          {
-            statement: "Qual é o resultado de 9²?",
-            options: ["18", "72", "81", "99"],
-            answer: 2
-          },
-          {
-            statement: "Em biologia, a unidade básica da vida é:",
-            options: ["Tecido", "Órgão", "Sistema", "Célula"],
-            answer: 3
-          }
-        ]
-      }
-    }
-  },
-  ufsc: {
-    label: "UFSC",
-    years: {
-      2022: {
-        title: "Vestibular UFSC 2022",
-        description: "Simulado inicial com questões de revisão para prática online.",
-        questions: [
-          {
-            statement: "A água entra em ebulição ao nível do mar, em condições normais, a:",
-            options: ["0 °C", "50 °C", "100 °C", "150 °C"],
-            answer: 2
-          },
-          {
-            statement: "Qual alternativa apresenta um verbo no infinitivo?",
-            options: ["Correu", "Estudando", "Aprender", "Partimos"],
-            answer: 2
-          },
-          {
-            statement: "Em história do Brasil, a Proclamação da República ocorreu em:",
-            options: ["1822", "1889", "1930", "1964"],
-            answer: 1
-          }
-        ]
-      },
-      2023: {
-        title: "Vestibular UFSC 2023",
-        description: "Simulado online com foco em fundamentos cobrados em vestibulares.",
-        questions: [
-          {
-            statement: "Qual alternativa apresenta apenas números primos?",
-            options: ["2, 3 e 5", "4, 6 e 8", "9, 11 e 13", "10, 12 e 14"],
-            answer: 0
-          },
-          {
-            statement: "A camada da atmosfera mais próxima da superfície terrestre é a:",
-            options: ["Estratosfera", "Mesosfera", "Troposfera", "Termosfera"],
-            answer: 2
-          },
-          {
-            statement: "Em física, a unidade de força no Sistema Internacional é:",
-            options: ["Joule", "Pascal", "Watt", "Newton"],
-            answer: 3
-          }
-        ]
-      }
-    }
-  },
-  outros: {
-    label: "...",
-    years: {}
-  }
-};
-
 const questionInput = document.getElementById("question");
 const sendBtn = document.getElementById("send-btn");
 const clearBtn = document.getElementById("clear-btn");
@@ -207,11 +44,13 @@ const restartExamBtn = document.getElementById("restart-exam-btn");
 
 let statsChartInstance = null;
 
+let examCatalog = [];
 let selectedExamTypeKey = null;
 let selectedExamYear = null;
 let currentExam = null;
 let currentQuestionIndex = 0;
 let userAnswers = [];
+
 
 function scrollChatToBottom() {
   chatHistory.scrollTop = chatHistory.scrollHeight;
@@ -406,7 +245,6 @@ function formatBotResponse(rawText) {
   }
 
   closeList();
-
   return html.trim() || "<p>Não foi possível gerar uma resposta.</p>";
 }
 
@@ -476,14 +314,9 @@ function removeLoadingMessage() {
 
 async function sendQuestion() {
   const question = questionInput.value.trim();
-
   if (!question) return;
 
-  const userMessage = {
-    sender: "user",
-    text: question
-  };
-
+  const userMessage = { sender: "user", text: question };
   renderMessage(userMessage);
   addMessageToStorage(userMessage);
 
@@ -553,7 +386,6 @@ async function loadStats() {
     }
 
     const data = await response.json();
-
     statsPre.textContent = JSON.stringify(data, null, 2);
     renderStatsChart(data);
   } catch (error) {
@@ -564,7 +396,12 @@ async function loadStats() {
 function renderStatsChart(data) {
   if (!chartCanvas) return;
 
-  const categories = data.category_counts || data.categories || {};
+  const categories =
+    data.questions_by_category ||
+    data.category_counts ||
+    data.categories ||
+    {};
+
   const labels = Object.keys(categories);
   const values = Object.values(categories);
 
@@ -632,24 +469,68 @@ function showView(viewName) {
   examsTabBtn.classList.toggle("secondary", isChat);
 }
 
+function getSelectedExamType() {
+  return examCatalog.find((exam) => exam.key === selectedExamTypeKey) || null;
+}
+
 function renderExamTypes() {
   examTypeGrid.innerHTML = "";
 
-  Object.entries(EXAMS_DATA).forEach(([key, exam]) => {
+  examCatalog.forEach((exam) => {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "exam-type-card";
     card.textContent = exam.label;
 
-    if (selectedExamTypeKey === key) {
+    if (selectedExamTypeKey === exam.key) {
       card.classList.add("active");
     }
 
     card.addEventListener("click", () => {
-      selectExamType(key);
+      selectExamType(exam.key);
     });
 
     examTypeGrid.appendChild(card);
+  });
+}
+
+function renderExamYears() {
+  examYearsGrid.innerHTML = "";
+  examIntroCard.classList.add("hidden");
+  examRunner.classList.add("hidden");
+  examResultCard.classList.add("hidden");
+
+  const examType = getSelectedExamType();
+
+  if (!examType) {
+    selectedExamLabel.textContent = "Selecione uma prova para visualizar os anos.";
+    return;
+  }
+
+  selectedExamLabel.textContent = `Prova selecionada: ${examType.label}`;
+
+  if (!examType.years || examType.years.length === 0) {
+    const emptyMessage = document.createElement("p");
+    emptyMessage.textContent = "Nenhum ano cadastrado ainda para esta prova.";
+    examYearsGrid.appendChild(emptyMessage);
+    return;
+  }
+
+  examType.years.forEach((yearItem) => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "exam-year-card";
+    card.textContent = yearItem.year;
+
+    if (String(selectedExamYear) === String(yearItem.year)) {
+      card.classList.add("active");
+    }
+
+    card.addEventListener("click", () => {
+      selectExamYear(yearItem.year);
+    });
+
+    examYearsGrid.appendChild(card);
   });
 }
 
@@ -657,91 +538,80 @@ function selectExamType(typeKey) {
   selectedExamTypeKey = typeKey;
   selectedExamYear = null;
   currentExam = null;
-  userAnswers = [];
   currentQuestionIndex = 0;
-
-  examIntroCard.classList.add("hidden");
-  examRunner.classList.add("hidden");
-  examResultCard.classList.add("hidden");
+  userAnswers = [];
 
   renderExamTypes();
   renderExamYears();
 }
 
-function renderExamYears() {
-  examYearsGrid.innerHTML = "";
-
-  if (!selectedExamTypeKey) {
-    selectedExamLabel.textContent = "Selecione uma prova para visualizar os anos.";
-    return;
-  }
-
-  const examType = EXAMS_DATA[selectedExamTypeKey];
-  const years = Object.keys(examType.years).sort((a, b) => Number(b) - Number(a));
-
-  selectedExamLabel.textContent = `Prova selecionada: ${examType.label}`;
-
-  if (years.length === 0) {
-    const emptyMessage = document.createElement("p");
-    emptyMessage.textContent = "Nenhum ano cadastrado ainda para esta prova.";
-    examYearsGrid.appendChild(emptyMessage);
-    return;
-  }
-
-  years.forEach((year) => {
-    const card = document.createElement("button");
-    card.type = "button";
-    card.className = "exam-year-card";
-    card.textContent = year;
-
-    if (selectedExamYear === year) {
-      card.classList.add("active");
-    }
-
-    card.addEventListener("click", () => {
-      selectExamYear(year);
-    });
-
-    examYearsGrid.appendChild(card);
-  });
-}
-
 function selectExamYear(year) {
   selectedExamYear = year;
-  const examType = EXAMS_DATA[selectedExamTypeKey];
-  currentExam = examType.years[year];
-
   renderExamYears();
   renderExamIntro();
 }
 
 function renderExamIntro() {
-  if (!currentExam) {
-    examIntroCard.classList.add("hidden");
-    return;
-  }
+  const examType = getSelectedExamType();
+  if (!examType || !selectedExamYear) return;
 
-  examIntroTitle.textContent = currentExam.title;
-  examIntroDescription.textContent = currentExam.description;
-  examMetaType.textContent = EXAMS_DATA[selectedExamTypeKey].label;
-  examMetaYear.textContent = selectedExamYear;
-  examMetaCount.textContent = `${currentExam.questions.length} questões`;
+  const yearData = examType.years.find((item) => String(item.year) === String(selectedExamYear));
+  if (!yearData) return;
+
+  examIntroTitle.textContent = yearData.title;
+  examIntroDescription.textContent = yearData.description || "Prova disponível para realização no site.";
+  examMetaType.textContent = examType.label;
+  examMetaYear.textContent = yearData.year;
+  examMetaCount.textContent = `${yearData.question_count} questões`;
 
   examIntroCard.classList.remove("hidden");
-  examRunner.classList.add("hidden");
-  examResultCard.classList.add("hidden");
 }
 
-function startExam() {
-  if (!currentExam) return;
+async function loadExamCatalog() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/exams`);
+    if (!response.ok) {
+      throw new Error(`Erro HTTP ${response.status}`);
+    }
 
-  userAnswers = new Array(currentExam.questions.length).fill(null);
-  currentQuestionIndex = 0;
+    const data = await response.json();
+    examCatalog = data.exam_types || [];
 
-  examRunner.classList.remove("hidden");
-  examResultCard.classList.add("hidden");
+    renderExamTypes();
 
-  renderCurrentQuestion();
+    if (examCatalog.length > 0) {
+      selectExamType(examCatalog[0].key);
+    }
+  } catch (error) {
+    examTypeGrid.innerHTML = `<p>Erro ao carregar catálogo de provas: ${error.message}</p>`;
+    examYearsGrid.innerHTML = "";
+  }
+}
+
+async function startExam() {
+  if (!selectedExamTypeKey || !selectedExamYear) return;
+
+  try {
+    startExamBtn.disabled = true;
+
+    const response = await fetch(`${API_BASE_URL}/exams/${selectedExamTypeKey}/${selectedExamYear}`);
+    if (!response.ok) {
+      throw new Error(`Erro HTTP ${response.status}`);
+    }
+
+    currentExam = await response.json();
+    currentQuestionIndex = 0;
+    userAnswers = new Array(currentExam.question_count).fill(null);
+
+    examRunner.classList.remove("hidden");
+    examResultCard.classList.add("hidden");
+
+    renderCurrentQuestion();
+  } catch (error) {
+    alert(`Erro ao carregar prova: ${error.message}`);
+  } finally {
+    startExamBtn.disabled = false;
+  }
 }
 
 function renderCurrentQuestion() {
@@ -806,24 +676,37 @@ function goToNextQuestion() {
   }
 }
 
-function finishExam() {
-  if (!currentExam) return;
+async function finishExam() {
+  if (!selectedExamTypeKey || !selectedExamYear || !currentExam) return;
 
-  let correctAnswers = 0;
+  try {
+    finishExamBtn.disabled = true;
 
-  currentExam.questions.forEach((question, index) => {
-    if (userAnswers[index] === question.answer) {
-      correctAnswers++;
+    const response = await fetch(`${API_BASE_URL}/exams/${selectedExamTypeKey}/${selectedExamYear}/submit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ answers: userAnswers })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro HTTP ${response.status}`);
     }
-  });
 
-  const totalQuestions = currentExam.questions.length;
-  const score = Math.round((correctAnswers / totalQuestions) * 100);
+    const result = await response.json();
 
-  resultScore.textContent = `${score}%`;
-  resultDetails.textContent = `Você acertou ${correctAnswers} de ${totalQuestions} questões em ${currentExam.title}.`;
+    resultScore.textContent = `${result.score_percentage}%`;
+    resultDetails.textContent =
+      `Você acertou ${result.correct_answers} de ${result.total_questions} questões. ` +
+      `Erros: ${result.wrong_answers}. Em branco: ${result.unanswered_count}.`;
 
-  examResultCard.classList.remove("hidden");
+    examResultCard.classList.remove("hidden");
+  } catch (error) {
+    alert(`Erro ao finalizar prova: ${error.message}`);
+  } finally {
+    finishExamBtn.disabled = false;
+  }
 }
 
 function restartExam() {
@@ -852,6 +735,5 @@ restartExamBtn.addEventListener("click", restartExam);
 
 loadSavedMessages();
 loadStats();
-renderExamTypes();
-renderExamYears();
+loadExamCatalog();
 showView("chat");
