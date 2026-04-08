@@ -5,10 +5,38 @@
       "label": "ENEM",
       "years": [
         {
+          "year": 2025,
+          "title": "ENEM 2025",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2025",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2024,
+          "title": "ENEM 2024",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 180,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2024",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2023,
+          "title": "ENEM 2023",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2023",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
           "year": 2022,
           "title": "ENEM 2022",
-          "description": "Prova oficial do ENEM 2022 com PDFs oficiais e correção automática baseada no gabarito cadastrado. Nesta configuração, o 1º dia usa o caderno azul (inglês) e o 2º dia usa o caderno cinza.",
+          "description": "Prova oficial do ENEM 2022 com PDFs oficiais e correção automática baseada no gabarito cadastrado.",
           "question_count": 180,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022",
           "pdfs": [
             {
               "label": "1º dia - Caderno Azul",
@@ -39,6 +67,204 @@
             "C","C","B","C","C","D","B","D","E","E",
             "C","B","D","C","A","B","E","E","C","D"
           ]
+        },
+        {
+          "year": 2021,
+          "title": "ENEM 2021",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2021",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2020,
+          "title": "ENEM 2020",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2020",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2019,
+          "title": "ENEM 2019",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2019",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2018,
+          "title": "ENEM 2018",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2018",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2017,
+          "title": "ENEM 2017",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2017",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2016,
+          "title": "ENEM 2016",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2016",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2015,
+          "title": "ENEM 2015",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2015",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2014,
+          "title": "ENEM 2014",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2014",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2013,
+          "title": "ENEM 2013",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2013",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2012,
+          "title": "ENEM 2012",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2012",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2011,
+          "title": "ENEM 2011",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2011",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2010,
+          "title": "ENEM 2010",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2010",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2009,
+          "title": "ENEM 2009",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2009",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2008,
+          "title": "ENEM 2008",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2008",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2007,
+          "title": "ENEM 2007",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2007",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2006,
+          "title": "ENEM 2006",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2006",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2005,
+          "title": "ENEM 2005",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2005",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2004,
+          "title": "ENEM 2004",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2004",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2003,
+          "title": "ENEM 2003",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2003",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2002,
+          "title": "ENEM 2002",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2002",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2001,
+          "title": "ENEM 2001",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2001",
+          "pdfs": [],
+          "answer_key": []
+        },
+        {
+          "year": 2000,
+          "title": "ENEM 2000",
+          "description": "Edição oficial listada pelo Inep.",
+          "question_count": 0,
+          "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2000",
+          "pdfs": [],
+          "answer_key": []
         }
       ]
     },
