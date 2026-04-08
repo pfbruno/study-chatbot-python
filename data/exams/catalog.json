@@ -1,0 +1,56 @@
+{
+  "exams": [
+    {
+      "key": "enem",
+      "label": "ENEM",
+      "years": [
+        {
+          "year": 2022,
+          "title": "ENEM 2022",
+          "description": "Prova oficial do ENEM 2022 com PDFs oficiais e correção automática baseada no gabarito cadastrado. Nesta configuração, o 1º dia usa o caderno azul (inglês) e o 2º dia usa o caderno cinza.",
+          "question_count": 180,
+          "pdfs": [
+            {
+              "label": "1º dia - Caderno Azul",
+              "url": "https://download.inep.gov.br/enem/provas_e_gabaritos/2022_PV_impresso_D1_CD1.pdf"
+            },
+            {
+              "label": "2º dia - Caderno Cinza",
+              "url": "https://download.inep.gov.br/enem/provas_e_gabaritos/2022_PV_impresso_D2_CD6.pdf"
+            }
+          ],
+          "answer_key": [
+            "D","C","B","D","E","E","A","A","A","C",
+            "A","B","B","D","B","E","B","A","C","C",
+            "B","E","E","E","C","C","B","B","D","C",
+            "A","A","A","D","C","C","A","B","E","D",
+            "B","D","E","C","E","D","E","A","B","E",
+            "E","D","A","E","B","A","A","E","C","B",
+            "E","C","B","A","B","C","D","D","A","A",
+            "A","D","B","C","E","D","A","E","A","C",
+            "D","B","B","C","D","C","B","E","C","A",
+            "D","D","E","C","D","B","E","A","C","C",
+            "A","E","B","E","A","E","B","B","C","C",
+            "D","D","C","B","D","D","A","C","B","E",
+            "A","C","E","A","B","C","E","A","B","E",
+            "D","A","D","B","A","B","E","E","D","A",
+            "E","A","B","D","D","C","E","B","D","B",
+            "A","A","A","A","A","C",null,"C","B","C",
+            "C","C","B","C","C","D","B","D","E","E",
+            "C","B","D","C","A","B","E","E","C","D"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "ufrgs",
+      "label": "UFRGS",
+      "years": []
+    },
+    {
+      "key": "ufsc",
+      "label": "UFSC",
+      "years": []
+    }
+  ]
+}
