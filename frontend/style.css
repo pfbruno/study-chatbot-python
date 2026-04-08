@@ -122,16 +122,21 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
 button.secondary {
   background: #374151;
 }
 
 .message {
-  max-width: 78%;
-  padding: 14px;
+  max-width: 82%;
+  padding: 14px 16px;
   border-radius: 14px;
-  white-space: pre-line;
-  line-height: 1.5;
+  line-height: 1.6;
   word-break: break-word;
   border: 1px solid transparent;
 }
@@ -152,7 +157,101 @@ button.secondary {
 
 .loading {
   font-style: italic;
-  opacity: 0.8;
+  opacity: 0.85;
+}
+
+.message-content > *:first-child {
+  margin-top: 0;
+}
+
+.message-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4 {
+  color: #ffffff;
+  margin: 0 0 12px;
+  line-height: 1.35;
+}
+
+.message-content h1 {
+  font-size: 1.3rem;
+}
+
+.message-content h2 {
+  font-size: 1.15rem;
+}
+
+.message-content h3,
+.message-content h4 {
+  font-size: 1.02rem;
+}
+
+.message-content p {
+  margin: 0 0 12px;
+  color: #e5e7eb;
+}
+
+.message-content strong {
+  color: #ffffff;
+}
+
+.message-content ul,
+.message-content ol {
+  margin: 0 0 12px 20px;
+  padding: 0;
+}
+
+.message-content li {
+  margin-bottom: 8px;
+}
+
+.response-table-wrapper {
+  overflow-x: auto;
+  margin: 12px 0;
+  border: 1px solid #374151;
+  border-radius: 12px;
+}
+
+.response-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 420px;
+  background: #111827;
+}
+
+.response-table th,
+.response-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #374151;
+  text-align: left;
+  vertical-align: top;
+}
+
+.response-table th {
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.response-table td {
+  color: #d1d5db;
+}
+
+.response-table tr:last-child td {
+  border-bottom: none;
+}
+
+.inline-code {
+  background: #0f172a;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: Consolas, monospace;
+  font-size: 0.95em;
 }
 
 .stats-panel {
