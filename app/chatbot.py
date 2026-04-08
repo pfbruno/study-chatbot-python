@@ -1,10 +1,16 @@
 import os
-from openai import OpenAI
+import requests
 
 from app.intents import CATEGORIES
 from app.database import save_interaction
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+HF_API_KEY = os.getenv("HF_API_KEY")
+
+API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+
+headers = {
+    "Authorization": f"Bearer {HF_API_KEY}"
+}
 
 
 def classify_question(text: str) -> str:
@@ -20,22 +26,20 @@ def classify_question(text: str) -> str:
 
 def generate_ai_response(question: str) -> str:
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Você é um professor didático, claro e objetivo. Explique em português do Brasil."
-                },
-                {
-                    "role": "user",
-                    "content": question
-                }
-            ],
-            temperature=0.7,
+        prompt = f"Explique de forma simples e didática: {question}"
+
+        response = requests.post(
+            API_URL,
+            headers=headers,
+            json={"inputs": prompt}
         )
 
-        return response.choices[0].message.content
+        result = response.json()
+
+        if isinstance(result, list):
+            return result[0].get("generated_text", "Sem resposta.")
+        else:
+            return str(result)
 
     except Exception as e:
         return f"Erro IA: {str(e)}"
@@ -49,7 +53,7 @@ def process_question(text: str) -> dict:
         f"Tema identificado: {category}\n\n"
         f"Explicação:\n{ai_response}\n\n"
         f"Resumo:\nResposta gerada por IA.\n\n"
-        f"Sugestão de estudo:\nAprofunde o tema com exercícios e revisão."
+        f"Sugestão de estudo:\nAprofunde com exercícios e revisão."
     )
 
     save_interaction(text, category, formatted_response)
@@ -58,6 +62,6 @@ def process_question(text: str) -> dict:
         "category": category,
         "explanation": ai_response,
         "summary": "Resposta gerada por IA.",
-        "study_tip": "Aprofunde o tema com exercícios e revisão.",
+        "study_tip": "Aprofunde com exercícios.",
         "formatted_response": formatted_response
     }
