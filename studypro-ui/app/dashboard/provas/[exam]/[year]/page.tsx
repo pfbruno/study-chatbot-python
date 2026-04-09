@@ -110,6 +110,12 @@ export default function ExamYearDetailPage() {
     return new Map(result.results_by_question.map((item) => [item.question_number, item]))
   }, [result])
 
+  function getQuestionStatus(questionNumber: number) {
+    const item = questionResultsMap.get(questionNumber)
+    if (!item) return null
+    return item.status
+  }
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
@@ -173,7 +179,7 @@ export default function ExamYearDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="space-y-6">
           <Card className="border-border/60 bg-card/80 backdrop-blur">
             <CardHeader>
@@ -256,33 +262,6 @@ export default function ExamYearDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-border/60 bg-card/80 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="text-base">Resumo da resolução</CardTitle>
-            </CardHeader>
-
-            <CardContent className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Respondidas</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">{answeredCount}</p>
-              </div>
-
-              <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Em branco</p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">{unansweredCount}</p>
-              </div>
-
-              <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                  Total de questões
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-foreground">
-                  {exam.question_count}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
           {result ? (
             <Card className="border-border/60 bg-card/80 backdrop-blur">
               <CardHeader>
@@ -292,182 +271,190 @@ export default function ExamYearDetailPage() {
                 </CardTitle>
               </CardHeader>
 
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Acertos
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">
-                      {result.correct_answers}
-                    </p>
-                  </div>
+              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Acertos</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {result.correct_answers}
+                  </p>
+                </div>
 
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Erros</p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">
-                      {result.wrong_answers}
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Erros</p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {result.wrong_answers}
+                  </p>
+                </div>
 
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Percentual
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">
-                      {result.score_percentage.toFixed(1)}%
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Percentual
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {result.score_percentage.toFixed(1)}%
+                  </p>
+                </div>
 
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Em branco
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">
-                      {result.unanswered_count}
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Em branco
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {result.unanswered_count}
+                  </p>
+                </div>
 
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Anuladas
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">
-                      {result.annulled_count}
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Anuladas
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {result.annulled_count}
+                  </p>
+                </div>
 
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                      Válidas
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">
-                      {result.valid_questions}
-                    </p>
-                  </div>
+                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                    Válidas
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-foreground">
+                    {result.valid_questions}
+                  </p>
                 </div>
               </CardContent>
             </Card>
           ) : null}
         </div>
 
-        <Card className="border-border/60 bg-card/80 backdrop-blur">
-          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-            <CardTitle className="text-base">Folha de respostas</CardTitle>
+        <div className="xl:sticky xl:top-6 xl:self-start">
+          <Card className="border-border/60 bg-card/80 backdrop-blur">
+            <CardHeader className="space-y-4">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <CardTitle className="text-base">Folha de respostas</CardTitle>
 
-            <button
-              type="button"
-              onClick={() => void handleSubmit()}
-              disabled={submitting || !exam.has_answer_key}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {submitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-              Realizar correção
-            </button>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            {!exam.has_answer_key ? (
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                Esta prova não possui gabarito disponível no momento. Você ainda pode marcar as
-                respostas, mas a correção automática está desabilitada.
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={submitting || !exam.has_answer_key}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {submitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  Realizar correção
+                </button>
               </div>
-            ) : null}
 
-            {submitError ? (
-              <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {submitError}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Respondidas
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{answeredCount}</p>
+                </div>
+
+                <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Em branco
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">{unansweredCount}</p>
+                </div>
+
+                <div className="rounded-xl border border-border/60 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Total
+                  </p>
+                  <p className="mt-1 text-xl font-semibold text-foreground">
+                    {exam.question_count}
+                  </p>
+                </div>
               </div>
-            ) : null}
+            </CardHeader>
 
-            <div className="grid gap-3">
-              {Array.from({ length: exam.question_count }, (_, index) => {
-                const questionNumber = index + 1
-                const questionResult = questionResultsMap.get(questionNumber)
+            <CardContent className="space-y-4">
+              {!exam.has_answer_key ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                  Esta prova não possui gabarito disponível no momento. Você ainda pode marcar as
+                  respostas, mas a correção automática está desabilitada.
+                </div>
+              ) : null}
 
-                return (
-                  <div
-                    key={questionNumber}
-                    className="rounded-xl border border-border/60 bg-background/35 p-4"
-                  >
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-md border border-border/60 bg-background/60 px-2 py-1 text-sm font-semibold text-foreground">
-                          Questão {questionNumber}
-                        </span>
+              {submitError ? (
+                <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                  {submitError}
+                </div>
+              ) : null}
 
-                        {questionResult?.status === "correct" ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-300">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Correta
+              <div className="max-h-[70vh] overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                  {Array.from({ length: exam.question_count }, (_, index) => {
+                    const questionNumber = index + 1
+                    const questionResult = questionResultsMap.get(questionNumber)
+                    const status = getQuestionStatus(questionNumber)
+
+                    return (
+                      <div
+                        key={questionNumber}
+                        className="rounded-xl border border-border/60 bg-background/35 p-3"
+                      >
+                        <div className="mb-2 flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-foreground">
+                            {questionNumber}
                           </span>
-                        ) : null}
 
-                        {questionResult?.status === "wrong" ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-300">
-                            <XCircle className="h-3.5 w-3.5" />
-                            Incorreta
-                          </span>
-                        ) : null}
+                          {status === "correct" ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                          ) : status === "wrong" ? (
+                            <XCircle className="h-4 w-4 text-rose-400" />
+                          ) : status === "annulled" ? (
+                            <span className="text-[10px] font-medium text-amber-300">AN</span>
+                          ) : status === "blank" ? (
+                            <span className="text-[10px] font-medium text-slate-300">BR</span>
+                          ) : null}
+                        </div>
 
-                        {questionResult?.status === "annulled" ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-300">
-                            Anulada
-                          </span>
-                        ) : null}
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {ALTERNATIVES.map((alternative) => {
+                            const selected = answers[index] === alternative
 
-                        {questionResult?.status === "blank" ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-slate-500/30 bg-slate-500/10 px-2 py-1 text-xs font-medium text-slate-300">
-                            Em branco
-                          </span>
+                            return (
+                              <button
+                                key={alternative}
+                                type="button"
+                                onClick={() => updateAnswer(index, alternative)}
+                                className={`inline-flex h-8 w-full items-center justify-center rounded-md border text-xs font-semibold transition ${
+                                  selected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-border/60 bg-background/50 text-foreground hover:border-primary/60"
+                                }`}
+                              >
+                                {alternative}
+                              </button>
+                            )
+                          })}
+                        </div>
+
+                        {questionResult ? (
+                          <div className="mt-2 text-[11px] text-muted-foreground">
+                            <span className="font-medium text-foreground">
+                              {questionResult.user_answer ?? "-"}
+                            </span>
+                            {" / "}
+                            <span className="font-medium text-foreground">
+                              {questionResult.correct_answer ?? "-"}
+                            </span>
+                          </div>
                         ) : null}
                       </div>
-
-                      {questionResult ? (
-                        <div className="text-xs text-muted-foreground">
-                          Sua resposta:{" "}
-                          <span className="font-medium text-foreground">
-                            {questionResult.user_answer ?? "-"}
-                          </span>
-                          {" • "}
-                          Gabarito:{" "}
-                          <span className="font-medium text-foreground">
-                            {questionResult.correct_answer ?? "-"}
-                          </span>
-                        </div>
-                      ) : null}
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {ALTERNATIVES.map((alternative) => {
-                        const selected = answers[index] === alternative
-
-                        return (
-                          <button
-                            key={alternative}
-                            type="button"
-                            onClick={() => updateAnswer(index, alternative)}
-                            className={`inline-flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-semibold transition ${
-                              selected
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border/60 bg-background/50 text-foreground hover:border-primary/60"
-                            }`}
-                          >
-                            {alternative}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                    )
+                  })}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
