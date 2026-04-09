@@ -32,6 +32,7 @@ export default function ExamYearDetailPage() {
   const [exam, setExam] = useState<ExamDetail | null>(null)
   const [answers, setAnswers] = useState<Array<string | null>>([])
   const [result, setResult] = useState<ExamSubmissionResponse | null>(null)
+  const [selectedPdfUrl, setSelectedPdfUrl] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -47,6 +48,7 @@ export default function ExamYearDetailPage() {
         const data = await getExamByTypeAndYear(examParam, yearParam)
         setExam(data)
         setAnswers(Array.from({ length: data.question_count }, () => null))
+        setSelectedPdfUrl(data.pdfs?.[0]?.url ?? null)
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Não foi possível carregar a prova."
@@ -171,48 +173,86 @@ export default function ExamYearDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
           <Card className="border-border/60 bg-card/80 backdrop-blur">
             <CardHeader>
-              <CardTitle className="text-base">Arquivos da prova</CardTitle>
+              <CardTitle className="text-base">Visualização da prova</CardTitle>
             </CardHeader>
 
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               {exam.pdfs.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhum PDF disponível para esta prova.
                 </p>
               ) : (
-                exam.pdfs.map((pdf) => (
-                  <a
-                    key={pdf.url}
-                    href={pdf.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-between rounded-xl border border-border/60 bg-background/40 px-4 py-3 text-sm transition hover:border-primary/60 hover:bg-background/70"
-                  >
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-foreground">{pdf.label}</span>
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {exam.pdfs.map((pdf) => {
+                      const isSelected = selectedPdfUrl === pdf.url
+
+                      return (
+                        <button
+                          key={pdf.url}
+                          type="button"
+                          onClick={() => setSelectedPdfUrl(pdf.url)}
+                          className={`rounded-lg border px-3 py-2 text-sm transition ${
+                            isSelected
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-border/60 bg-background/50 text-foreground hover:border-primary/60"
+                          }`}
+                        >
+                          {pdf.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="flex flex-wrap gap-3">
+                    {selectedPdfUrl ? (
+                      <a
+                        href={selectedPdfUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background/50 px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/60"
+                      >
+                        Abrir PDF em nova guia
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    ) : null}
+
+                    {exam.official_page_url ? (
+                      <a
+                        href={exam.official_page_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background/50 px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/60"
+                      >
+                        Página oficial
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    ) : null}
+                  </div>
+
+                  {selectedPdfUrl ? (
+                    <div className="overflow-hidden rounded-xl border border-border/60 bg-black">
+                      <iframe
+                        src={selectedPdfUrl}
+                        title="Visualizador de PDF da prova"
+                        className="h-[900px] w-full"
+                      />
                     </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-border/60 bg-background/30 px-4 py-10 text-center text-sm text-muted-foreground">
+                      Selecione um PDF para visualizar.
+                    </div>
+                  )}
 
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                  </a>
-                ))
+                  <p className="text-xs text-muted-foreground">
+                    Se o PDF não carregar no visualizador, use o botão “Abrir PDF em nova guia”.
+                  </p>
+                </>
               )}
-
-              {exam.official_page_url ? (
-                <a
-                  href={exam.official_page_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-primary transition hover:underline"
-                >
-                  Acessar página oficial
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              ) : null}
             </CardContent>
           </Card>
 
