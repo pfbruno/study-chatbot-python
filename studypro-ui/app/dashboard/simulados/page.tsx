@@ -1,657 +1,508 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { CheckCircle2, Loader2, Play, RotateCcw, Send, XCircle } from "lucide-react"
+import { useEffect, useMemo, useState } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getExamTypes, type ExamType } from "@/lib/api"
+type SimulationMode = "balanced" | "random";
+
+type SubjectMetadata = {
+  name: string;
+  count: number;
+};
+
+type SimulationConfigResponse = {
+  exam_type?: string;
+  year?: number;
+  title: string;
+  total_questions: number;
+  valid_questions: number;
+  subjects: SubjectMetadata[];
+};
+
+type SimulationQuestion = {
+  number: number;
+  subject: string;
+  statement: string;
+  options: Record<string, string>;
+  source_pdf_label?: string | null;
+};
+
+type SimulationGenerationResponse = {
+  simulation_id: string;
+  generated_at: string;
+  exam_type: string;
+  year: number;
+  title: string;
+  mode: SimulationMode;
+  requested_question_count: number;
+  generated_question_count: number;
+  filters: {
+    subjects: string[];
+    mode: SimulationMode;
+    seed: number | null;
+  };
+  subjects_used: string[];
+  question_numbers: number[];
+  questions: SimulationQuestion[];
+};
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-  "https://study-chatbot-python.onrender.com"
+  "https://study-chatbot-python.onrender.com";
 
-const ALTERNATIVES = ["A", "B", "C", "D", "E"] as const
-
-type SubjectConfig = {
-  name: string
-  count: number
-}
-
-type SimulationConfigResponse = {
-  exam_type: string
-  year: number
-  title: string
-  total_questions_registered: number
-  total_valid_questions: number
-  annulled_questions: number
-  subjects: SubjectConfig[]
-}
-
-type SimulationQuestion = {
-  number: number
-  subject: string
-  statement: string
-  options: Record<string, string>
-  source_pdf_label?: string | null
-}
-
-type RandomSimulationResponse = {
-  exam_type: string
-  year: number
-  title: string
-  mode: "random" | "balanced"
-  requested_question_count: number
-  generated_question_count: number
-  subjects_used: string[]
-  questions: SimulationQuestion[]
-}
-
-type SimulationResultItem = {
-  question_number: number
-  subject: string
-  user_answer: string | null
-  correct_answer: string | null
-  status: "correct" | "wrong" | "blank"
-}
-
-type SimulationSubmitResponse = {
-  exam_type: string
-  year: number
-  total_questions: number
-  valid_questions: number
-  correct_answers: number
-  wrong_answers: number
-  unanswered_count: number
-  annulled_count: number
-  score_percentage: number
-  results_by_question: SimulationResultItem[]
-}
+const DEFAULT_EXAM_TYPE = "enem";
+const DEFAULT_YEAR = new Date().getFullYear() - 1;
+const DEFAULT_QUESTION_COUNT = 10;
+const SESSION_STORAGE_KEY = "studypro_active_simulation";
 
 export default function SimuladosPage() {
-  const [examTypes, setExamTypes] = useState<ExamType[]>([])
-  const [selectedExam, setSelectedExam] = useState("")
-  const [selectedYear, setSelectedYear] = useState("")
-  const [questionCount, setQuestionCount] = useState(10)
-  const [mode, setMode] = useState<"balanced" | "random">("balanced")
+  const [examType, setExamType] = useState(DEFAULT_EXAM_TYPE);
+  const [year, setYear] = useState<number>(DEFAULT_YEAR);
+  const [questionCount, setQuestionCount] = useState<number>(DEFAULT_QUESTION_COUNT);
+  const [mode, setMode] = useState<SimulationMode>("balanced");
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [seed, setSeed] = useState<string>("");
 
-  const [availableSubjects, setAvailableSubjects] = useState<SubjectConfig[]>([])
-  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([])
+  const [config, setConfig] = useState<SimulationConfigResponse | null>(null);
+  const [generatedSimulation, setGeneratedSimulation] =
+    useState<SimulationGenerationResponse | null>(null);
 
-  const [simulation, setSimulation] = useState<RandomSimulationResponse | null>(null)
-  const [answers, setAnswers] = useState<Array<string | null>>([])
-  const [result, setResult] = useState<SimulationSubmitResponse | null>(null)
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [configError, setConfigError] = useState<string>("");
+  const [generationError, setGenerationError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
-  const [loading, setLoading] = useState(true)
-  const [loadingConfig, setLoadingConfig] = useState(false)
-  const [generating, setGenerating] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-
-  const [configError, setConfigError] = useState<string | null>(null)
-  const [generateError, setGenerateError] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const availableSubjects = useMemo(() => config?.subjects ?? [], [config]);
 
   useEffect(() => {
-    async function loadExamCatalog() {
+    async function loadSimulationConfig() {
+      setIsLoadingConfig(true);
+      setConfigError("");
+      setGeneratedSimulation(null);
+      setSuccessMessage("");
+
       try {
-        setLoading(true)
-        const data = await getExamTypes()
-        setExamTypes(Array.isArray(data.exam_types) ? data.exam_types : [])
+        const response = await fetch(
+          `${API_BASE_URL}/simulados/config/${encodeURIComponent(examType)}/${year}`,
+          {
+            method: "GET",
+            cache: "no-store",
+          }
+        );
+
+        if (!response.ok) {
+          const errorData = await safeReadError(response);
+          throw new Error(errorData || "Não foi possível carregar a configuração do simulado.");
+        }
+
+        const data: SimulationConfigResponse = await response.json();
+        setConfig(data);
+
+        setSelectedSubjects((current) =>
+          current.filter((subject) =>
+            (data.subjects ?? []).some((item) => item.name === subject)
+          )
+        );
+
+        setQuestionCount((current) => {
+          const maxAllowed = Math.max(1, data.valid_questions || data.total_questions || 1);
+          if (current > maxAllowed) {
+            return maxAllowed;
+          }
+          if (current < 1) {
+            return 1;
+          }
+          return current;
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Erro inesperado ao carregar configuração do simulado.";
+        setConfig(null);
+        setConfigError(message);
       } finally {
-        setLoading(false)
+        setIsLoadingConfig(false);
       }
     }
 
-    void loadExamCatalog()
-  }, [])
-
-  const selectedExamData = useMemo(
-    () => examTypes.find((exam) => exam.key === selectedExam) || null,
-    [examTypes, selectedExam],
-  )
-
-  async function loadSubjects(examType: string, year: string) {
-    try {
-      setLoadingConfig(true)
-      setConfigError(null)
-      setAvailableSubjects([])
-      setSelectedSubjects([])
-
-      const response = await fetch(
-        `${API_BASE_URL}/simulados/config/${encodeURIComponent(examType)}/${year}`,
-        {
-          cache: "no-store",
-        },
-      )
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.detail || "Não foi possível carregar as disciplinas.")
-      }
-
-      const data: SimulationConfigResponse = await response.json()
-      const subjects = Array.isArray(data.subjects) ? data.subjects : []
-
-      setAvailableSubjects(subjects)
-      setSelectedSubjects(subjects.map((subject) => subject.name))
-    } catch (error) {
-      setConfigError(
-        error instanceof Error ? error.message : "Erro ao carregar disciplinas do simulado.",
-      )
-    } finally {
-      setLoadingConfig(false)
-    }
-  }
+    loadSimulationConfig();
+  }, [examType, year]);
 
   function toggleSubject(subjectName: string) {
-    setSelectedSubjects((prev) =>
-      prev.includes(subjectName)
-        ? prev.filter((subject) => subject !== subjectName)
-        : [...prev, subjectName],
-    )
+    setSelectedSubjects((current) =>
+      current.includes(subjectName)
+        ? current.filter((subject) => subject !== subjectName)
+        : [...current, subjectName]
+    );
   }
 
-  async function generateSimulation() {
+  async function handleGenerateSimulation() {
+    setIsGenerating(true);
+    setGenerationError("");
+    setSuccessMessage("");
+    setGeneratedSimulation(null);
+
     try {
-      setGenerating(true)
-      setGenerateError(null)
-      setSubmitError(null)
-      setResult(null)
-      setSimulation(null)
-      setAnswers([])
+      const payload = {
+        exam_type: examType,
+        year,
+        question_count: questionCount,
+        subjects: selectedSubjects.length > 0 ? selectedSubjects : null,
+        mode,
+        seed: seed.trim() ? Number(seed) : null,
+      };
 
       const response = await fetch(`${API_BASE_URL}/simulados/random`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          exam_type: selectedExam,
-          year: Number(selectedYear),
-          question_count: Number(questionCount),
-          subjects:
-            selectedSubjects.length > 0 && selectedSubjects.length !== availableSubjects.length
-              ? selectedSubjects
-              : null,
-          mode,
-        }),
-      })
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.detail || "Não foi possível gerar o simulado.")
+        const errorData = await safeReadError(response);
+        throw new Error(errorData || "Não foi possível gerar o simulado.");
       }
 
-      const data: RandomSimulationResponse = await response.json()
+      const data: SimulationGenerationResponse = await response.json();
+      setGeneratedSimulation(data);
 
-      setSimulation(data)
-      setAnswers(Array.from({ length: data.questions.length }, () => null))
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
+      setSuccessMessage("Simulado gerado com sucesso e salvo localmente para continuação.");
     } catch (error) {
-      setGenerateError(error instanceof Error ? error.message : "Erro ao gerar simulado.")
+      const message =
+        error instanceof Error ? error.message : "Erro inesperado ao gerar o simulado.";
+      setGenerationError(message);
     } finally {
-      setGenerating(false)
+      setIsGenerating(false);
     }
   }
 
-  function updateAnswer(index: number, value: string) {
-    setAnswers((prev) => {
-      const next = [...prev]
-      next[index] = next[index] === value ? null : value
-      return next
-    })
-  }
-
-  async function submitSimulation() {
-    if (!simulation) return
-
-    try {
-      setSubmitting(true)
-      setSubmitError(null)
-
-      const response = await fetch(`${API_BASE_URL}/simulados/submit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          exam_type: simulation.exam_type,
-          year: simulation.year,
-          question_numbers: simulation.questions.map((question) => question.number),
-          answers,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.detail || "Não foi possível corrigir o simulado.")
-      }
-
-      const data: SimulationSubmitResponse = await response.json()
-      setResult(data)
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Erro ao corrigir simulado.")
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  function resetSimulation() {
-    setSimulation(null)
-    setResult(null)
-    setAnswers([])
-    setGenerateError(null)
-    setSubmitError(null)
-  }
-
-  const answeredCount = useMemo(
-    () => answers.filter((answer) => answer !== null).length,
-    [answers],
-  )
-
-  const resultMap = useMemo(() => {
-    if (!result) return new Map<number, SimulationResultItem>()
-    return new Map(result.results_by_question.map((item) => [item.question_number, item]))
-  }, [result])
-
-  if (loading) {
-    return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+  const maxQuestionCount = config?.valid_questions || config?.total_questions || 1;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Simulados</h1>
-        <p className="text-sm text-muted-foreground">
-          Monte simulados com questões reais do banco cadastrado, sem incluir anuladas.
-        </p>
-      </div>
+    <main className="min-h-screen bg-neutral-950 text-white">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+        <header className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur">
+          <span className="mb-3 inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+            Simulados
+          </span>
 
-      <Card className="border-border/60 bg-card/80 backdrop-blur">
-        <CardHeader>
-          <CardTitle>Configurar simulado</CardTitle>
-        </CardHeader>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Monte um simulado personalizado
+          </h1>
 
-        <CardContent className="space-y-5">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Prova</label>
-              <select
-                value={selectedExam}
-                onChange={(e) => {
-                  setSelectedExam(e.target.value)
-                  setSelectedYear("")
-                  setAvailableSubjects([])
-                  setSelectedSubjects([])
-                  resetSimulation()
-                }}
-                className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary"
+          <p className="mt-3 max-w-3xl text-sm text-neutral-300 sm:text-base">
+            Escolha prova, ano, quantidade de questões e disciplinas. O sistema usa o
+            banco estruturado e exclui questões anuladas da geração.
+          </p>
+        </header>
+
+        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold">Configuração</h2>
+              <p className="mt-1 text-sm text-neutral-400">
+                Defina os filtros antes de gerar o simulado.
+              </p>
+            </div>
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <FieldBlock label="Tipo de prova">
+                <input
+                  value={examType}
+                  onChange={(event) => setExamType(event.target.value.toLowerCase())}
+                  placeholder="enem"
+                  className={inputClassName}
+                />
+              </FieldBlock>
+
+              <FieldBlock label="Ano">
+                <input
+                  type="number"
+                  value={year}
+                  onChange={(event) => setYear(Number(event.target.value))}
+                  min={1900}
+                  max={2100}
+                  className={inputClassName}
+                />
+              </FieldBlock>
+
+              <FieldBlock label="Quantidade de questões">
+                <input
+                  type="number"
+                  value={questionCount}
+                  onChange={(event) => setQuestionCount(Number(event.target.value))}
+                  min={1}
+                  max={maxQuestionCount}
+                  className={inputClassName}
+                />
+              </FieldBlock>
+
+              <FieldBlock label="Modo de distribuição">
+                <select
+                  value={mode}
+                  onChange={(event) => setMode(event.target.value as SimulationMode)}
+                  className={inputClassName}
+                >
+                  <option value="balanced">Balanceado</option>
+                  <option value="random">Aleatório</option>
+                </select>
+              </FieldBlock>
+
+              <FieldBlock
+                label="Seed opcional"
+                description="Use um número para reproduzir a mesma seleção."
               >
-                <option value="">Escolha a prova</option>
-                {examTypes.map((exam) => (
-                  <option key={exam.key} value={exam.key}>
-                    {exam.label}
-                  </option>
-                ))}
-              </select>
+                <input
+                  type="number"
+                  value={seed}
+                  onChange={(event) => setSeed(event.target.value)}
+                  placeholder="Ex.: 123"
+                  className={inputClassName}
+                />
+              </FieldBlock>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Ano</label>
-              <select
-                value={selectedYear}
-                disabled={!selectedExamData}
-                onChange={(e) => {
-                  const year = e.target.value
-                  setSelectedYear(year)
-                  resetSimulation()
-
-                  if (selectedExam && year) {
-                    void loadSubjects(selectedExam, year)
-                  }
-                }}
-                className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <option value="">Escolha o ano</option>
-                {selectedExamData?.years.map((year) => (
-                  <option key={year.year} value={year.year}>
-                    {year.year}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Quantidade de questões</label>
-              <input
-                type="number"
-                min={1}
-                value={questionCount}
-                onChange={(e) => setQuestionCount(Number(e.target.value))}
-                className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Modo</label>
-              <select
-                value={mode}
-                onChange={(e) => setMode(e.target.value as "balanced" | "random")}
-                className="h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none transition focus:border-primary"
-              >
-                <option value="balanced">Equilibrado por matéria</option>
-                <option value="random">Aleatório geral</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">Disciplinas</p>
-                <p className="text-xs text-muted-foreground">
-                  Se nenhuma disciplina for desmarcada, o sistema usa todas.
-                </p>
+            <div className="mt-6">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-neutral-300">
+                    Disciplinas
+                  </h3>
+                  <p className="mt-1 text-sm text-neutral-400">
+                    Se nada for marcado, o simulado usará todas as disciplinas disponíveis.
+                  </p>
+                </div>
               </div>
 
-              {loadingConfig ? (
-                <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Carregando disciplinas...
+              {isLoadingConfig ? (
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-neutral-300">
+                  Carregando disciplinas e configuração do banco...
                 </div>
-              ) : null}
+              ) : configError ? (
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+                  {configError}
+                </div>
+              ) : availableSubjects.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-neutral-300">
+                  Nenhuma disciplina disponível para esse tipo/ano.
+                </div>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {availableSubjects.map((subject) => {
+                    const isSelected = selectedSubjects.includes(subject.name);
+
+                    return (
+                      <button
+                        key={subject.name}
+                        type="button"
+                        onClick={() => toggleSubject(subject.name)}
+                        className={`rounded-2xl border p-4 text-left transition ${
+                          isSelected
+                            ? "border-emerald-400/50 bg-emerald-400/10"
+                            : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-white">{subject.name}</p>
+                            <p className="mt-1 text-sm text-neutral-400">
+                              {subject.count} questões válidas
+                            </p>
+                          </div>
+                          <span
+                            className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs ${
+                              isSelected
+                                ? "border-emerald-300 bg-emerald-300 text-black"
+                                : "border-white/20 text-transparent"
+                            }`}
+                          >
+                            ✓
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {configError ? (
-              <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                {configError}
+            <div className="mt-8 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleGenerateSimulation}
+                disabled={isGenerating || isLoadingConfig || !!configError}
+                className="inline-flex items-center justify-center rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isGenerating ? "Gerando simulado..." : "Gerar simulado"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedSubjects([]);
+                  setMode("balanced");
+                  setSeed("");
+                  setQuestionCount(DEFAULT_QUESTION_COUNT);
+                  setGeneratedSimulation(null);
+                  setGenerationError("");
+                  setSuccessMessage("");
+                }}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                Limpar filtros
+              </button>
+            </div>
+
+            {generationError ? (
+              <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+                {generationError}
               </div>
             ) : null}
 
-            {availableSubjects.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {availableSubjects.map((subject) => {
-                  const active = selectedSubjects.includes(subject.name)
-
-                  return (
-                    <button
-                      key={subject.name}
-                      type="button"
-                      onClick={() => toggleSubject(subject.name)}
-                      className={`rounded-lg border px-3 py-2 text-sm transition ${
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-foreground hover:border-primary/60"
-                      }`}
-                    >
-                      {subject.name} ({subject.count})
-                    </button>
-                  )
-                })}
+            {successMessage ? (
+              <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+                {successMessage}
               </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-border bg-background/40 px-4 py-6 text-sm text-muted-foreground">
-                Selecione a prova e o ano para carregar as disciplinas disponíveis.
-              </div>
-            )}
+            ) : null}
           </div>
 
-          {generateError ? (
-            <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {generateError}
-            </div>
-          ) : null}
+          <aside className="space-y-6">
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl">
+              <h2 className="text-xl font-semibold">Resumo do banco</h2>
 
-          <button
-            type="button"
-            onClick={() => void generateSimulation()}
-            disabled={
-              !selectedExam ||
-              !selectedYear ||
-              questionCount <= 0 ||
-              loadingConfig ||
-              generating
-            }
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            Gerar simulado
-          </button>
-        </CardContent>
-      </Card>
-
-      {simulation ? (
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <div className="space-y-6">
-            <Card className="border-border/60 bg-card/80 backdrop-blur">
-              <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <CardTitle>{simulation.title}</CardTitle>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    {simulation.generated_question_count} questões geradas • modo{" "}
-                    {simulation.mode === "balanced" ? "equilibrado" : "aleatório"}
-                  </p>
+              {isLoadingConfig ? (
+                <p className="mt-4 text-sm text-neutral-400">Carregando resumo...</p>
+              ) : config ? (
+                <div className="mt-5 space-y-4">
+                  <InfoRow label="Título" value={config.title} />
+                  <InfoRow label="Tipo" value={examType.toUpperCase()} />
+                  <InfoRow label="Ano" value={String(year)} />
+                  <InfoRow
+                    label="Questões válidas"
+                    value={String(config.valid_questions || config.total_questions)}
+                  />
+                  <InfoRow label="Disciplinas" value={String(config.subjects.length)} />
                 </div>
+              ) : (
+                <p className="mt-4 text-sm text-neutral-400">
+                  Selecione um tipo e ano válidos para carregar o banco.
+                </p>
+              )}
+            </section>
 
-                <button
-                  type="button"
-                  onClick={resetSimulation}
-                  className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/60"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Novo simulado
-                </button>
-              </CardHeader>
+            <section className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl">
+              <h2 className="text-xl font-semibold">Último simulado gerado</h2>
 
-              <CardContent className="space-y-4">
-                {simulation.questions.map((question, index) => {
-                  const questionResult = resultMap.get(question.number)
+              {!generatedSimulation ? (
+                <p className="mt-4 text-sm text-neutral-400">
+                  Ainda não há simulado gerado nesta sessão.
+                </p>
+              ) : (
+                <div className="mt-5 space-y-4">
+                  <InfoRow label="ID" value={generatedSimulation.simulation_id} />
+                  <InfoRow label="Prova" value={generatedSimulation.title} />
+                  <InfoRow
+                    label="Quantidade"
+                    value={String(generatedSimulation.generated_question_count)}
+                  />
+                  <InfoRow
+                    label="Modo"
+                    value={
+                      generatedSimulation.mode === "balanced" ? "Balanceado" : "Aleatório"
+                    }
+                  />
+                  <InfoRow
+                    label="Disciplinas usadas"
+                    value={generatedSimulation.subjects_used.join(", ") || "Todas"}
+                  />
 
-                  return (
-                    <div
-                      key={`${question.number}-${index}`}
-                      className="rounded-xl border border-border/60 bg-background/35 p-4"
-                    >
-                      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Questão {question.number}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{question.subject}</p>
-                        </div>
-
-                        {questionResult?.status === "correct" ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-300">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Correta
-                          </span>
-                        ) : null}
-
-                        {questionResult?.status === "wrong" ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1 text-xs font-medium text-rose-300">
-                            <XCircle className="h-3.5 w-3.5" />
-                            Incorreta
-                          </span>
-                        ) : null}
-
-                        {questionResult?.status === "blank" ? (
-                          <span className="inline-flex items-center gap-1 rounded-md border border-slate-500/30 bg-slate-500/10 px-2 py-1 text-xs font-medium text-slate-300">
-                            Em branco
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <p className="mb-4 text-sm leading-6 text-foreground">{question.statement}</p>
-
-                      <div className="space-y-2">
-                        {ALTERNATIVES.map((alternative) => {
-                          const text = question.options?.[alternative] || ""
-                          const selected = answers[index] === alternative
-                          const isCorrect = questionResult?.correct_answer === alternative
-                          const isWrongSelected =
-                            questionResult?.user_answer === alternative &&
-                            questionResult?.status === "wrong"
-
-                          return (
-                            <button
-                              key={alternative}
-                              type="button"
-                              onClick={() => updateAnswer(index, alternative)}
-                              disabled={submitting}
-                              className={`flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left text-sm transition ${
-                                selected
-                                  ? "border-primary bg-primary/15 text-foreground"
-                                  : "border-border bg-background/50 text-foreground hover:border-primary/60"
-                              } ${
-                                result && isCorrect
-                                  ? "border-emerald-500/50 bg-emerald-500/10"
-                                  : ""
-                              } ${
-                                result && isWrongSelected
-                                  ? "border-rose-500/50 bg-rose-500/10"
-                                  : ""
-                              }`}
-                            >
-                              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-current text-xs font-semibold">
-                                {alternative}
-                              </span>
-                              <span>{text}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-
-                      {questionResult ? (
-                        <div className="mt-3 text-xs text-muted-foreground">
-                          Sua resposta:{" "}
-                          <span className="font-medium text-foreground">
-                            {questionResult.user_answer ?? "-"}
-                          </span>
-                          {" • "}
-                          Gabarito:{" "}
-                          <span className="font-medium text-foreground">
-                            {questionResult.correct_answer ?? "-"}
-                          </span>
-                        </div>
-                      ) : null}
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="mb-2 text-sm font-semibold text-neutral-200">
+                      Questões selecionadas
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {generatedSimulation.question_numbers.map((number) => (
+                        <span
+                          key={number}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-neutral-200"
+                        >
+                          {number}
+                        </span>
+                      ))}
                     </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="xl:sticky xl:top-6 xl:self-start">
-            <Card className="border-border/60 bg-card/80 backdrop-blur">
-              <CardHeader>
-                <CardTitle>Resumo do simulado</CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Respondidas
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">{answeredCount}</p>
                   </div>
 
-                  <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                      Em branco
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">
-                      {simulation.questions.length - answeredCount}
-                    </p>
+                  <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+                    O payload foi salvo no <code className="font-mono">sessionStorage</code>{" "}
+                    com a chave{" "}
+                    <code className="font-mono">{SESSION_STORAGE_KEY}</code>.
                   </div>
                 </div>
+              )}
+            </section>
+          </aside>
+        </section>
+      </div>
+    </main>
+  );
+}
 
-                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                    Disciplinas usadas
-                  </p>
-                  <p className="mt-2 text-sm text-foreground">
-                    {simulation.subjects_used.join(", ")}
-                  </p>
-                </div>
+function FieldBlock({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-medium text-neutral-200">{label}</span>
+      {children}
+      {description ? <span className="mt-2 block text-xs text-neutral-400">{description}</span> : null}
+    </label>
+  );
+}
 
-                {submitError ? (
-                  <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                    {submitError}
-                  </div>
-                ) : null}
-
-                {!result ? (
-                  <button
-                    type="button"
-                    onClick={() => void submitSimulation()}
-                    disabled={submitting}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {submitting ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                    Corrigir simulado
-                  </button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                      <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Acertos
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-foreground">
-                          {result.correct_answers}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Erros
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-foreground">
-                          {result.wrong_answers}
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Percentual
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-foreground">
-                          {result.score_percentage.toFixed(1)}%
-                        </p>
-                      </div>
-
-                      <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                        <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                          Em branco
-                        </p>
-                        <p className="mt-2 text-2xl font-semibold text-foreground">
-                          {result.unanswered_count}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={resetSimulation}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-3 text-sm font-medium text-foreground transition hover:border-primary/60"
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                      Gerar outro simulado
-                    </button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      ) : null}
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3 text-sm last:border-b-0 last:pb-0">
+      <span className="text-neutral-400">{label}</span>
+      <span className="max-w-[60%] text-right font-medium text-white">{value}</span>
     </div>
-  )
+  );
+}
+
+const inputClassName =
+  "w-full rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition placeholder:text-neutral-500 focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20";
+
+async function safeReadError(response: Response): Promise<string> {
+  try {
+    const data = await response.json();
+
+    if (typeof data?.detail === "string") {
+      return data.detail;
+    }
+
+    if (Array.isArray(data?.detail)) {
+      return data.detail
+        .map((item: unknown) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object" && "msg" in item) {
+            return String((item as { msg: string }).msg);
+          }
+          return "Erro de validação.";
+        })
+        .join(" | ");
+    }
+
+    return "Erro na requisição.";
+  } catch {
+    return "Erro na requisição.";
+  }
 }
