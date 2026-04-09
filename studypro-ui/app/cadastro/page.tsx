@@ -11,7 +11,7 @@ const API_BASE_URL =
 const AUTH_TOKEN_KEY = "studypro_auth_token";
 const AUTH_USER_KEY = "studypro_auth_user";
 
-export default function LoginPage() {
+export default function CadastroPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -20,18 +20,44 @@ export default function LoginPage() {
     [searchParams]
   );
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSubmitting(true);
     setErrorMessage("");
 
+    if (password !== confirmPassword) {
+      setErrorMessage("As senhas não coincidem.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const registerResponse = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
+
+      if (!registerResponse.ok) {
+        const message = await safeReadError(registerResponse);
+        throw new Error(message || "Não foi possível criar a conta.");
+      }
+
+      const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -42,20 +68,20 @@ export default function LoginPage() {
         }),
       });
 
-      if (!response.ok) {
-        const message = await safeReadError(response);
-        throw new Error(message || "Não foi possível realizar o login.");
+      if (!loginResponse.ok) {
+        const message = await safeReadError(loginResponse);
+        throw new Error(message || "Conta criada, mas o login automático falhou.");
       }
 
-      const data = await response.json();
+      const loginData = await loginResponse.json();
 
-      localStorage.setItem(AUTH_TOKEN_KEY, data.access_token);
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+      localStorage.setItem(AUTH_TOKEN_KEY, loginData.access_token);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(loginData.user));
 
       router.push(redirectTo);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Erro inesperado ao realizar login."
+        error instanceof Error ? error.message : "Erro inesperado ao criar conta."
       );
     } finally {
       setIsSubmitting(false);
@@ -72,39 +98,42 @@ export default function LoginPage() {
             </span>
 
             <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-              Entrar na sua conta
+              Criar conta
             </h1>
 
             <p className="mt-3 max-w-xl text-sm leading-7 text-neutral-300 sm:text-base">
-              Acesse sua conta para liberar o controle de plano, acompanhar limites
-              diários de simulados e preparar a ativação do PRO.
+              Cadastre-se para acompanhar seu uso, guardar a base da monetização e
+              evoluir para recursos do plano PRO.
             </p>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <FeatureCard
-                title="Plano Free"
-                description="Limite diário controlado para validar o produto."
-              />
-              <FeatureCard
-                title="Plano PRO"
-                description="Base preparada para liberar simulados sem limite."
-              />
-              <FeatureCard
-                title="Sessão persistida"
-                description="Token salvo localmente para uso no dashboard."
-              />
+            <div className="mt-8 space-y-4">
+              <BenefitItem text="Conta gratuita com limite diário controlado" />
+              <BenefitItem text="Base pronta para upgrade de plano" />
+              <BenefitItem text="Autenticação conectada ao dashboard de simulados" />
             </div>
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-black/20 p-8 shadow-2xl">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold">Login</h2>
+              <h2 className="text-2xl font-semibold">Cadastro</h2>
               <p className="mt-2 text-sm text-neutral-400">
-                Use seu e-mail e senha cadastrados para continuar.
+                Preencha seus dados para criar sua conta no sistema.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              <FieldBlock label="Nome">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  autoComplete="name"
+                  className={inputClassName}
+                  placeholder="Seu nome"
+                />
+              </FieldBlock>
+
               <FieldBlock label="E-mail">
                 <input
                   type="email"
@@ -123,9 +152,21 @@ export default function LoginPage() {
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   className={inputClassName}
-                  placeholder="Digite sua senha"
+                  placeholder="Mínimo de 6 caracteres"
+                />
+              </FieldBlock>
+
+              <FieldBlock label="Confirmar senha">
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className={inputClassName}
+                  placeholder="Repita sua senha"
                 />
               </FieldBlock>
 
@@ -140,17 +181,17 @@ export default function LoginPage() {
                 disabled={isSubmitting}
                 className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isSubmitting ? "Entrando..." : "Entrar"}
+                {isSubmitting ? "Criando conta..." : "Criar conta"}
               </button>
             </form>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-neutral-300">
-              Ainda não tem conta?{" "}
+              Já possui conta?{" "}
               <Link
-                href={`/cadastro?redirect=${encodeURIComponent(redirectTo)}`}
+                href={`/login?redirect=${encodeURIComponent(redirectTo)}`}
                 className="font-semibold text-emerald-300 hover:text-emerald-200"
               >
-                Criar conta
+                Entrar
               </Link>
             </div>
           </section>
@@ -160,17 +201,11 @@ export default function LoginPage() {
   );
 }
 
-function FeatureCard({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
+function BenefitItem({ text }: { text: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-neutral-400">{description}</p>
+    <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+      <span className="mt-1 inline-block h-2.5 w-2.5 rounded-full bg-emerald-300" />
+      <p className="text-sm leading-6 text-neutral-300">{text}</p>
     </div>
   );
 }
