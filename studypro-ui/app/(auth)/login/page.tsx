@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, Suspense, useMemo, useState } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -12,6 +12,14 @@ const AUTH_TOKEN_KEY = "studypro_auth_token";
 const AUTH_USER_KEY = "studypro_auth_user";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginPageFallback />}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -55,7 +63,9 @@ export default function LoginPage() {
       router.push(redirectTo);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Erro inesperado ao realizar login."
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao realizar login."
       );
     } finally {
       setIsSubmitting(false);
@@ -64,97 +74,129 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-neutral-950 text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-          <section className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl backdrop-blur">
-            <span className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
-              StudyPro
-            </span>
+      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="space-y-6">
+          <Link href="/" className="text-sm font-semibold text-emerald-300">
+            StudyPro
+          </Link>
 
-            <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+          <div className="space-y-4">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
+              Autenticação
+            </p>
+
+            <h1 className="text-4xl font-semibold tracking-tight">
               Entrar na sua conta
             </h1>
 
-            <p className="mt-3 max-w-xl text-sm leading-7 text-neutral-300 sm:text-base">
-              Acesse sua conta para liberar o controle de plano, acompanhar limites
-              diários de simulados e preparar a ativação do PRO.
+            <p className="max-w-xl text-base leading-7 text-neutral-300">
+              Acesse sua conta para liberar o controle de plano, acompanhar
+              limites diários de simulados e preparar a ativação do PRO.
             </p>
+          </div>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              <FeatureCard
-                title="Plano Free"
-                description="Limite diário controlado para validar o produto."
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FeatureCard
+              title="Plano sincronizado"
+              description="Acompanhe o status do seu plano e a ativação do PRO diretamente na sua conta."
+            />
+            <FeatureCard
+              title="Simulados controlados"
+              description="Visualize limites, geração de simulados e acesso liberado conforme seu plano."
+            />
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/20">
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold">Login</h2>
+            <p className="mt-2 text-sm text-neutral-400">
+              Use seu e-mail e senha cadastrados para continuar.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <FieldBlock label="E-mail">
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+                autoComplete="email"
+                className={inputClassName}
+                placeholder="voce@email.com"
               />
-              <FeatureCard
-                title="Plano PRO"
-                description="Base preparada para liberar simulados sem limite."
+            </FieldBlock>
+
+            <FieldBlock label="Senha">
+              <input
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                autoComplete="current-password"
+                className={inputClassName}
+                placeholder="Digite sua senha"
               />
-              <FeatureCard
-                title="Sessão persistida"
-                description="Token salvo localmente para uso no dashboard."
-              />
-            </div>
-          </section>
+            </FieldBlock>
 
-          <section className="rounded-3xl border border-white/10 bg-black/20 p-8 shadow-2xl">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold">Login</h2>
-              <p className="mt-2 text-sm text-neutral-400">
-                Use seu e-mail e senha cadastrados para continuar.
-              </p>
-            </div>
+            {errorMessage ? (
+              <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                {errorMessage}
+              </div>
+            ) : null}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <FieldBlock label="E-mail">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                  autoComplete="email"
-                  className={inputClassName}
-                  placeholder="voce@email.com"
-                />
-              </FieldBlock>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? "Entrando..." : "Entrar"}
+            </button>
+          </form>
 
-              <FieldBlock label="Senha">
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className={inputClassName}
-                  placeholder="Digite sua senha"
-                />
-              </FieldBlock>
+          <p className="mt-6 text-sm text-neutral-400">
+            Ainda não tem conta?{" "}
+            <Link href="/register" className="font-medium text-emerald-300">
+              Criar conta
+            </Link>
+          </p>
+        </section>
+      </div>
+    </main>
+  );
+}
 
-              {errorMessage ? (
-                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-100">
-                  {errorMessage}
-                </div>
-              ) : null}
+function LoginPageFallback() {
+  return (
+    <main className="min-h-screen bg-neutral-950 text-white">
+      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-6 py-12 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="space-y-6">
+          <Link href="/" className="text-sm font-semibold text-emerald-300">
+            StudyPro
+          </Link>
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-black transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isSubmitting ? "Entrando..." : "Entrar"}
-              </button>
-            </form>
+          <div className="space-y-4">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
+              Autenticação
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tight">
+              Entrar na sua conta
+            </h1>
+            <p className="max-w-xl text-base leading-7 text-neutral-300">
+              Carregando página de login...
+            </p>
+          </div>
+        </section>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-neutral-300">
-              Ainda não tem conta?{" "}
-              <Link
-                href={`/cadastro?redirect=${encodeURIComponent(redirectTo)}`}
-                className="font-semibold text-emerald-300 hover:text-emerald-200"
-              >
-                Criar conta
-              </Link>
-            </div>
-          </section>
-        </div>
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/20">
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold">Login</h2>
+            <p className="mt-2 text-sm text-neutral-400">
+              Preparando formulário...
+            </p>
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -168,9 +210,9 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <h3 className="text-sm font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-neutral-400">{description}</p>
+    <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-neutral-300">{description}</p>
     </div>
   );
 }
@@ -183,8 +225,8 @@ function FieldBlock({
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-neutral-200">{label}</span>
+    <label className="block space-y-2">
+      <span className="text-sm font-medium text-neutral-200">{label}</span>
       {children}
     </label>
   );

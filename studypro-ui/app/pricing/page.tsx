@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -41,6 +41,14 @@ type CheckoutResponse = {
 };
 
 export default function PricingPage() {
+  return (
+    <Suspense fallback={<PricingPageFallback />}>
+      <PricingPageContent />
+    </Suspense>
+  );
+}
+
+function PricingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -277,10 +285,7 @@ export default function PricingPage() {
                 label="Usuário"
                 value={user?.name || "Faça login para assinar"}
               />
-              <InfoRow
-                label="E-mail"
-                value={user?.email || "—"}
-              />
+              <InfoRow label="E-mail" value={user?.email || "—"} />
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-neutral-300">
@@ -309,6 +314,26 @@ export default function PricingPage() {
             </div>
           </aside>
         </div>
+      </div>
+    </main>
+  );
+}
+
+function PricingPageFallback() {
+  return (
+    <main className="min-h-screen bg-neutral-950 text-white">
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <section className="rounded-3xl border border-white/10 bg-black/30 p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
+            Monetização
+          </p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight">
+            Ative o plano PRO
+          </h1>
+          <p className="mt-4 max-w-3xl text-base leading-7 text-neutral-300">
+            Carregando informações de pricing...
+          </p>
+        </section>
       </div>
     </main>
   );

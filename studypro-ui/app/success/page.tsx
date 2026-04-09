@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -34,9 +34,22 @@ type AuthMeResponse = {
   };
 };
 
-type SyncStatus = "checking" | "success" | "pending" | "unauthenticated" | "error";
+type SyncStatus =
+  | "checking"
+  | "success"
+  | "pending"
+  | "unauthenticated"
+  | "error";
 
 export default function SuccessPage() {
+  return (
+    <Suspense fallback={<SuccessPageFallback />}>
+      <SuccessPageContent />
+    </Suspense>
+  );
+}
+
+function SuccessPageContent() {
   const searchParams = useSearchParams();
   const sessionId = useMemo(() => searchParams.get("session_id"), [searchParams]);
 
@@ -52,7 +65,9 @@ export default function SuccessPage() {
 
     if (!token) {
       setStatus("unauthenticated");
-      setMessage("Sua sessão não foi encontrada. Faça login novamente para sincronizar o plano.");
+      setMessage(
+        "Sua sessão não foi encontrada. Faça login novamente para sincronizar o plano."
+      );
       return;
     }
 
@@ -127,9 +142,18 @@ export default function SuccessPage() {
 
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="space-y-3 text-sm">
-              <InfoRow label="Status de sincronização" value={renderStatus(status)} />
-              <InfoRow label="Sessão Stripe" value={sessionId || "não informada"} />
-              <InfoRow label="Plano atual" value={user?.plan?.toUpperCase() || "FREE"} />
+              <InfoRow
+                label="Status de sincronização"
+                value={renderStatus(status)}
+              />
+              <InfoRow
+                label="Sessão Stripe"
+                value={sessionId || "não informada"}
+              />
+              <InfoRow
+                label="Plano atual"
+                value={user?.plan?.toUpperCase() || "FREE"}
+              />
               <InfoRow label="Usuário" value={user?.email || "—"} />
             </div>
           </div>
@@ -163,11 +187,33 @@ export default function SuccessPage() {
   );
 }
 
+function SuccessPageFallback() {
+  return (
+    <main className="min-h-screen bg-neutral-950 text-white">
+      <div className="mx-auto max-w-3xl px-6 py-16">
+        <div className="rounded-3xl border border-white/10 bg-black/30 p-8">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-300">
+            Checkout concluído
+          </p>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight">
+            Retorno do Stripe
+          </h1>
+          <p className="mt-4 text-base leading-7 text-neutral-300">
+            Carregando status do pagamento...
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
       <span className="text-neutral-400">{label}</span>
-      <span className="max-w-[60%] text-right font-medium text-white">{value}</span>
+      <span className="max-w-[60%] text-right font-medium text-white">
+        {value}
+      </span>
     </div>
   );
 }
