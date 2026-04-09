@@ -1,9 +1,11 @@
 import hashlib
 import hmac
+import os
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Literal
+from typing import Any, Literal
 
+import stripe
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -15,6 +17,7 @@ from app.analytics import (
 )
 from app.chatbot import process_question
 from app.database import (
+    clear_user_subscription,
     create_auth_token,
     create_table,
     create_user,
@@ -22,11 +25,15 @@ from app.database import (
     get_recent_interactions,
     get_user_auth_by_email,
     get_user_by_id,
+    get_user_by_stripe_customer_id,
     get_user_by_token,
     get_user_usage,
     increment_guest_simulation_usage,
     increment_user_simulation_usage,
+    is_stripe_event_processed,
+    mark_stripe_event_processed,
     revoke_auth_token,
+    store_checkout_session_for_user,
     update_user_plan,
 )
 from app.exams import (
@@ -42,11 +49,21 @@ GUEST_DAILY_SIMULATION_LIMIT = 1
 AUTH_TOKEN_TTL_DAYS = 30
 ALLOWED_PLANS = {"free", "pro"}
 
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "").strip()
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+FRONTEND_BASE_URL = os.getenv(
+    "FRONTEND_BASE_URL", "https://study-chatbot-python-uksv.vercel.app"
+).rstrip("/")
+
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
+
 app = FastAPI(
     title="Study Chatbot API",
-    version="1.1.0",
+    version="1.2.0",
     description=(
-        "API do StudyPro para chat, provas, simulados e base SaaS inicial."
+        "API do StudyPro para chat, provas, simulados e monetização com Stripe."
     ),
 )
 
@@ -163,6 +180,18 @@ class PlanUpdateRequest(BaseModel):
     plan: Literal["free", "pro"]
 
 
+class CheckoutSessionRequest(BaseModel):
+    price_id: str | None = None
+
+    @field_validator("price_id")
+    @classmethod
+    def normalize_price_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+
 def _now_utc() -> datetime:
     return datetime.now(UTC)
 
@@ -218,6 +247,7 @@ def _serialize_user(user: dict) -> dict:
 
 def _build_guest_key(request: Request) -> str:
     forwarded_for = request.headers.get("x-forwarded-for", "").strip()
+
     if forwarded_for:
         first_ip = forwarded_for.split(",")[0].strip()
         if first_ip:
@@ -259,8 +289,7 @@ def _build_plan_status_for_user(user: dict) -> dict:
         }
 
     remaining = max(
-        0,
-        FREE_DAILY_SIMULATION_LIMIT - usage["simulations_generated"],
+        0, FREE_DAILY_SIMULATION_LIMIT - usage["simulations_generated"]
     )
     return {
         "scope": "user",
@@ -278,10 +307,8 @@ def _build_plan_status_for_guest(request: Request) -> dict:
     guest_key = _build_guest_key(request)
     usage = get_guest_usage(guest_key, usage_date)
     remaining = max(
-        0,
-        GUEST_DAILY_SIMULATION_LIMIT - usage["simulations_generated"],
+        0, GUEST_DAILY_SIMULATION_LIMIT - usage["simulations_generated"]
     )
-
     return {
         "scope": "guest",
         "plan": "guest",
@@ -294,8 +321,7 @@ def _build_plan_status_for_guest(request: Request) -> dict:
 
 
 def _enforce_simulation_generation_entitlement(
-    request: Request,
-    authorization: str | None,
+    request: Request, authorization: str | None
 ) -> dict:
     user = _get_current_user(authorization)
 
@@ -330,12 +356,149 @@ def _enforce_simulation_generation_entitlement(
 
     increment_guest_simulation_usage(_build_guest_key(request), _today_str())
     updated_guest_status = _build_plan_status_for_guest(request)
-
     return {
         "auth_scope": "guest",
         "user": None,
         "usage": updated_guest_status,
     }
+
+
+def _ensure_stripe_ready() -> None:
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="STRIPE_SECRET_KEY não configurada no backend.",
+        )
+
+    if not STRIPE_PRICE_ID:
+        raise HTTPException(
+            status_code=500,
+            detail="STRIPE_PRICE_ID não configurada no backend.",
+        )
+
+
+def _get_checkout_price_id(payload: CheckoutSessionRequest | None) -> str:
+    requested_price_id = payload.price_id if payload else None
+
+    if requested_price_id and requested_price_id != STRIPE_PRICE_ID:
+        raise HTTPException(status_code=400, detail="price_id inválido para este ambiente.")
+
+    return requested_price_id or STRIPE_PRICE_ID
+
+
+def _extract_price_id_from_subscription(subscription: Any) -> str | None:
+    items = subscription.get("items", {}).get("data", []) if subscription else []
+    if not items:
+        return None
+
+    price = items[0].get("price") if isinstance(items[0], dict) else None
+    if not isinstance(price, dict):
+        return None
+
+    price_id = price.get("id")
+    return str(price_id) if price_id else None
+
+
+def _extract_user_id_from_checkout_session(session: Any) -> int | None:
+    client_reference_id = session.get("client_reference_id")
+    if client_reference_id:
+        try:
+            return int(client_reference_id)
+        except (TypeError, ValueError):
+            pass
+
+    metadata = session.get("metadata") or {}
+    raw_user_id = metadata.get("user_id")
+    if raw_user_id:
+        try:
+            return int(raw_user_id)
+        except (TypeError, ValueError):
+            return None
+
+    return None
+
+
+def _activate_user_pro_plan(
+    user_id: int,
+    stripe_customer_id: str | None = None,
+    stripe_subscription_id: str | None = None,
+    stripe_price_id: str | None = None,
+    stripe_checkout_session_id: str | None = None,
+) -> dict | None:
+    return update_user_plan(
+        user_id,
+        "pro",
+        stripe_customer_id=stripe_customer_id,
+        stripe_subscription_id=stripe_subscription_id,
+        stripe_price_id=stripe_price_id,
+        stripe_checkout_session_id=stripe_checkout_session_id,
+    )
+
+
+def _sync_user_from_checkout_session(session: Any) -> dict | None:
+    user_id = _extract_user_id_from_checkout_session(session)
+    if user_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Sessão Stripe sem user_id válido em client_reference_id/metadata.",
+        )
+
+    stripe_customer_id = session.get("customer")
+    stripe_subscription_id = session.get("subscription")
+    stripe_price_id = None
+
+    if stripe_subscription_id:
+        subscription = stripe.Subscription.retrieve(stripe_subscription_id)
+        stripe_price_id = _extract_price_id_from_subscription(subscription)
+
+    return _activate_user_pro_plan(
+        user_id=user_id,
+        stripe_customer_id=str(stripe_customer_id) if stripe_customer_id else None,
+        stripe_subscription_id=(
+            str(stripe_subscription_id) if stripe_subscription_id else None
+        ),
+        stripe_price_id=stripe_price_id,
+        stripe_checkout_session_id=str(session.get("id")),
+    )
+
+
+def _sync_user_from_subscription(subscription: Any) -> dict | None:
+    stripe_customer_id = subscription.get("customer")
+    user = None
+
+    metadata = subscription.get("metadata") or {}
+    raw_user_id = metadata.get("user_id")
+    if raw_user_id:
+        try:
+            user = get_user_by_id(int(raw_user_id))
+        except (TypeError, ValueError):
+            user = None
+
+    if not user and stripe_customer_id:
+        user = get_user_by_stripe_customer_id(str(stripe_customer_id))
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="Usuário não encontrado para a assinatura Stripe recebida.",
+        )
+
+    subscription_status = str(subscription.get("status") or "").lower()
+    price_id = _extract_price_id_from_subscription(subscription)
+    subscription_id = subscription.get("id")
+
+    if subscription_status in {"active", "trialing"}:
+        return _activate_user_pro_plan(
+            user_id=user["id"],
+            stripe_customer_id=(str(stripe_customer_id) if stripe_customer_id else None),
+            stripe_subscription_id=(str(subscription_id) if subscription_id else None),
+            stripe_price_id=price_id,
+        )
+
+    if subscription_status in {"canceled", "unpaid", "incomplete_expired"}:
+        return clear_user_subscription(user["id"])
+
+    return get_user_by_id(user["id"])
 
 
 @app.on_event("startup")
@@ -362,7 +525,6 @@ def register(payload: RegisterRequest) -> dict:
         password_salt=password_salt,
         plan="free",
     )
-
     return {
         "message": "Usuário criado com sucesso.",
         "user": user,
@@ -372,7 +534,6 @@ def register(payload: RegisterRequest) -> dict:
 @app.post("/auth/login", tags=["auth"])
 def login(payload: LoginRequest) -> dict:
     user = get_user_auth_by_email(payload.email)
-
     if not user or not bool(user["is_active"]):
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
@@ -386,8 +547,8 @@ def login(payload: LoginRequest) -> dict:
     token = secrets.token_urlsafe(48)
     expires_at = (_now_utc() + timedelta(days=AUTH_TOKEN_TTL_DAYS)).isoformat()
     create_auth_token(user["id"], token, expires_at)
-
     safe_user = get_user_by_id(user["id"])
+
     return {
         "message": "Login realizado com sucesso.",
         "token_type": "Bearer",
@@ -438,13 +599,139 @@ def update_plan(
     }
 
 
+@app.post("/billing/checkout", tags=["billing"])
+def create_checkout_session(
+    payload: CheckoutSessionRequest | None = None,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    _ensure_stripe_ready()
+
+    if user["plan"] == "pro":
+        raise HTTPException(status_code=409, detail="Usuário já possui plano PRO ativo.")
+
+    price_id = _get_checkout_price_id(payload)
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=(
+                f"{FRONTEND_BASE_URL}/success"
+                "?session_id={CHECKOUT_SESSION_ID}"
+            ),
+            cancel_url=f"{FRONTEND_BASE_URL}/pricing?canceled=1",
+            allow_promotion_codes=True,
+            customer_email=user["email"],
+            client_reference_id=str(user["id"]),
+            metadata={
+                "user_id": str(user["id"]),
+                "user_email": user["email"],
+                "target_plan": "pro",
+            },
+            subscription_data={
+                "metadata": {
+                    "user_id": str(user["id"]),
+                    "user_email": user["email"],
+                    "target_plan": "pro",
+                }
+            },
+        )
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao criar sessão de checkout no Stripe: {exc}",
+        ) from exc
+
+    store_checkout_session_for_user(
+        user_id=user["id"],
+        stripe_checkout_session_id=str(session.get("id")),
+        stripe_customer_id=(str(session.get("customer")) if session.get("customer") else None),
+        stripe_price_id=price_id,
+    )
+
+    checkout_url = session.get("url")
+    if not checkout_url:
+        raise HTTPException(
+            status_code=500,
+            detail="Stripe não retornou a URL de checkout.",
+        )
+
+    return {
+        "message": "Sessão de checkout criada com sucesso.",
+        "checkout_session_id": session.get("id"),
+        "checkout_url": checkout_url,
+    }
+
+
+@app.post("/billing/webhook", tags=["billing"])
+async def stripe_webhook(request: Request) -> dict:
+    if not STRIPE_SECRET_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="STRIPE_SECRET_KEY não configurada no backend.",
+        )
+
+    if not STRIPE_WEBHOOK_SECRET:
+        raise HTTPException(
+            status_code=500,
+            detail="STRIPE_WEBHOOK_SECRET não configurada no backend.",
+        )
+
+    payload = await request.body()
+    signature = request.headers.get("stripe-signature")
+
+    if not signature:
+        raise HTTPException(status_code=400, detail="Cabeçalho stripe-signature ausente.")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=signature,
+            secret=STRIPE_WEBHOOK_SECRET,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Payload Stripe inválido.") from exc
+    except stripe.error.SignatureVerificationError as exc:
+        raise HTTPException(status_code=400, detail="Assinatura Stripe inválida.") from exc
+
+    event_id = str(event.get("id"))
+    event_type = str(event.get("type"))
+
+    if is_stripe_event_processed(event_id):
+        return {"received": True, "duplicate": True}
+
+    data_object = event.get("data", {}).get("object", {})
+
+    if event_type == "checkout.session.completed":
+        payment_status = str(data_object.get("payment_status") or "").lower()
+        checkout_status = str(data_object.get("status") or "").lower()
+
+        if checkout_status == "complete" and payment_status in {"paid", "no_payment_required"}:
+            _sync_user_from_checkout_session(data_object)
+
+    elif event_type in {"customer.subscription.created", "customer.subscription.updated"}:
+        _sync_user_from_subscription(data_object)
+
+    elif event_type == "customer.subscription.deleted":
+        _sync_user_from_subscription(data_object)
+
+    elif event_type == "invoice.paid":
+        subscription_id = data_object.get("subscription")
+        if subscription_id:
+            subscription = stripe.Subscription.retrieve(subscription_id)
+            _sync_user_from_subscription(subscription)
+
+    mark_stripe_event_processed(event_id, event_type)
+    return {"received": True, "event_type": event_type}
+
+
 @app.get("/simulados/entitlement", tags=["simulations"])
 def get_simulation_entitlement(
     request: Request,
     authorization: str | None = Header(default=None),
 ) -> dict:
     user = _get_current_user(authorization)
-
     if user:
         return {
             "authenticated": True,
