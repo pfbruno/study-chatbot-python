@@ -1,0 +1,49 @@
+{
+  "exam_type": "enem",
+  "year": 2022,
+  "title": "ENEM 2022",
+  "questions": [
+    {
+      "number": 1,
+      "subject": "Linguagens",
+      "statement": "Questão de teste 1",
+      "options": {
+        "A": "Alternativa A",
+        "B": "Alternativa B",
+        "C": "Alternativa C",
+        "D": "Alternativa D",
+        "E": "Alternativa E"
+      },
+      "answer": "A",
+      "annulled": false
+    },
+    {
+      "number": 2,
+      "subject": "Matemática",
+      "statement": "Questão de teste 2",
+      "options": {
+        "A": "Alternativa A",
+        "B": "Alternativa B",
+        "C": "Alternativa C",
+        "D": "Alternativa D",
+        "E": "Alternativa E"
+      },
+      "answer": "B",
+      "annulled": false
+    },
+    {
+      "number": 3,
+      "subject": "Linguagens",
+      "statement": "Questão anulada",
+      "options": {
+        "A": "Alternativa A",
+        "B": "Alternativa B",
+        "C": "Alternativa C",
+        "D": "Alternativa D",
+        "E": "Alternativa E"
+      },
+      "answer": "C",
+      "annulled": true
+    }
+  ]
+}
