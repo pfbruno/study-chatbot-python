@@ -1,110 +1,177 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { BookOpen, FileText, BarChart3, User, PenTool, Menu, X, LogOut } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  BarChart3,
+  FileText,
+  LogOut,
+  Menu,
+  PenTool,
+  User,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+
+import { cn } from "@/lib/utils";
+
+const AUTH_TOKEN_KEY = "studypro_auth_token";
+const AUTH_USER_KEY = "studypro_auth_user";
+
+type SidebarUser = {
+  id: number;
+  name: string;
+  email: string;
+  plan: "free" | "pro";
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 const navigation = [
   { name: "Provas", href: "/dashboard/provas", icon: FileText },
   { name: "Simulados", href: "/dashboard/simulados", icon: PenTool },
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Perfil", href: "/dashboard/perfil", icon: User },
-]
+];
 
 export function DashboardSidebar() {
-  const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<SidebarUser | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem(AUTH_USER_KEY);
+
+    if (!storedUser) {
+      setUser(null);
+      return;
+    }
+
+    try {
+      setUser(JSON.parse(storedUser) as SidebarUser);
+    } catch {
+      localStorage.removeItem(AUTH_USER_KEY);
+      setUser(null);
+    }
+  }, [pathname]);
+
+  const initials = useMemo(() => {
+    if (!user?.name) return "SP";
+    const parts = user.name.trim().split(/\s+/).filter(Boolean);
+    return parts
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("");
+  }, [user]);
+
+  function handleLogout() {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(AUTH_USER_KEY);
+    setUser(null);
+    router.push("/login");
+  }
 
   return (
     <>
-      {/* Mobile header */}
-      <div className="fixed top-0 left-0 right-0 z-40 flex h-16 items-center justify-between border-b border-border/50 bg-background/80 px-4 backdrop-blur-xl lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <BookOpen className="h-5 w-5 text-primary-foreground" />
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-4 lg:hidden">
+        <Link href="/" className="flex items-center gap-3 text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500 text-white">
+            <span className="text-lg font-semibold">◫</span>
           </div>
-          <span className="text-xl font-semibold">StudyPro</span>
+          <span className="text-2xl font-semibold">StudyPro</span>
         </Link>
-        <button onClick={() => setMobileOpen(!mobileOpen)}>
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+
+        <button
+          type="button"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="rounded-lg border border-white/10 p-2 text-white"
+        >
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {/* Mobile sidebar overlay */}
-      {mobileOpen && (
+      {mobileOpen ? (
         <div
-          className="fixed inset-0 z-30 bg-background/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
-      )}
+      ) : null}
 
-      {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-full w-64 border-r border-border/50 bg-sidebar transition-transform lg:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-black/95 transition-transform lg:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <BookOpen className="h-5 w-5 text-primary-foreground" />
+        <div className="border-b border-white/10 px-6 py-6">
+          <Link href="/" className="flex items-center gap-3 text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500 text-white">
+              <span className="text-lg font-semibold">◫</span>
             </div>
-            <span className="text-xl font-semibold">StudyPro</span>
-          </div>
+            <span className="text-2xl font-semibold">StudyPro</span>
+          </Link>
+        </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 px-4 py-6">
+          <div className="space-y-2">
             {navigation.map((item) => {
-              const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+              const isActive =
+                pathname === item.href ||
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+
+              const Icon = item.icon;
+
               return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                    "flex items-center gap-3 rounded-2xl px-4 py-3 text-base font-medium transition-colors",
                     isActive
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                      ? "bg-blue-500/15 text-white"
+                      : "text-white/75 hover:bg-white/5 hover:text-white"
                   )}
                 >
-                  <item.icon className={cn("h-5 w-5", isActive && "text-sidebar-primary")} />
-                  {item.name}
+                  <Icon size={20} />
+                  <span>{item.name}</span>
                 </Link>
-              )
+              );
             })}
-          </nav>
+          </div>
+        </nav>
 
-          {/* User section */}
-          <div className="border-t border-sidebar-border p-4">
-            <div className="flex items-center gap-3 rounded-lg bg-sidebar-accent/50 px-3 py-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
-                JS
+        <div className="border-t border-white/10 p-4">
+          <div className="rounded-2xl bg-white/5 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-sm font-semibold text-white">
+                {initials}
               </div>
-              <div className="flex-1 truncate">
-                <p className="text-sm font-medium">João Silva</p>
-                <p className="truncate text-xs text-muted-foreground">joao@email.com</p>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">
+                  {user?.name || "Usuário"}
+                </p>
+                <p className="truncate text-xs text-white/60">
+                  {user?.email || "Faça login"}
+                </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="mt-2 w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-white/80 transition hover:text-white"
             >
-              <Link href="/">
-                <LogOut className="h-4 w-4" />
-                Sair
-              </Link>
-            </Button>
+              <LogOut size={16} />
+              Sair
+            </button>
           </div>
         </div>
       </aside>
     </>
-  )
+  );
 }
