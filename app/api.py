@@ -53,7 +53,8 @@ STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "").strip()
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 FRONTEND_BASE_URL = os.getenv(
-    "FRONTEND_BASE_URL", "https://study-chatbot-python-uksv.vercel.app"
+    "FRONTEND_BASE_URL",
+    "https://study-chatbot-python-uksv.vercel.app",
 ).rstrip("/")
 
 if STRIPE_SECRET_KEY:
@@ -62,14 +63,15 @@ if STRIPE_SECRET_KEY:
 app = FastAPI(
     title="Study Chatbot API",
     version="1.2.0",
-    description=(
-        "API do StudyPro para chat, provas, simulados e monetização com Stripe."
-    ),
+    description="API do StudyPro para chat, provas, simulados e monetização com Stripe.",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://study-chatbot-python-uksv.vercel.app",
+        "http://localhost:3000",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -288,9 +290,7 @@ def _build_plan_status_for_user(user: dict) -> dict:
             "can_generate": True,
         }
 
-    remaining = max(
-        0, FREE_DAILY_SIMULATION_LIMIT - usage["simulations_generated"]
-    )
+    remaining = max(0, FREE_DAILY_SIMULATION_LIMIT - usage["simulations_generated"])
     return {
         "scope": "user",
         "plan": "free",
@@ -306,9 +306,7 @@ def _build_plan_status_for_guest(request: Request) -> dict:
     usage_date = _today_str()
     guest_key = _build_guest_key(request)
     usage = get_guest_usage(guest_key, usage_date)
-    remaining = max(
-        0, GUEST_DAILY_SIMULATION_LIMIT - usage["simulations_generated"]
-    )
+    remaining = max(0, GUEST_DAILY_SIMULATION_LIMIT - usage["simulations_generated"])
     return {
         "scope": "guest",
         "plan": "guest",
@@ -321,7 +319,8 @@ def _build_plan_status_for_guest(request: Request) -> dict:
 
 
 def _enforce_simulation_generation_entitlement(
-    request: Request, authorization: str | None
+    request: Request,
+    authorization: str | None,
 ) -> dict:
     user = _get_current_user(authorization)
 
@@ -381,7 +380,10 @@ def _get_checkout_price_id(payload: CheckoutSessionRequest | None) -> str:
     requested_price_id = payload.price_id if payload else None
 
     if requested_price_id and requested_price_id != STRIPE_PRICE_ID:
-        raise HTTPException(status_code=400, detail="price_id inválido para este ambiente.")
+        raise HTTPException(
+            status_code=400,
+            detail="price_id inválido para este ambiente.",
+        )
 
     return requested_price_id or STRIPE_PRICE_ID
 
@@ -454,9 +456,7 @@ def _sync_user_from_checkout_session(session: Any) -> dict | None:
     return _activate_user_pro_plan(
         user_id=user_id,
         stripe_customer_id=str(stripe_customer_id) if stripe_customer_id else None,
-        stripe_subscription_id=(
-            str(stripe_subscription_id) if stripe_subscription_id else None
-        ),
+        stripe_subscription_id=str(stripe_subscription_id) if stripe_subscription_id else None,
         stripe_price_id=stripe_price_id,
         stripe_checkout_session_id=str(session.get("id")),
     )
@@ -490,8 +490,8 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
     if subscription_status in {"active", "trialing"}:
         return _activate_user_pro_plan(
             user_id=user["id"],
-            stripe_customer_id=(str(stripe_customer_id) if stripe_customer_id else None),
-            stripe_subscription_id=(str(subscription_id) if subscription_id else None),
+            stripe_customer_id=str(stripe_customer_id) if stripe_customer_id else None,
+            stripe_subscription_id=str(subscription_id) if subscription_id else None,
             stripe_price_id=price_id,
         )
 
@@ -616,10 +616,7 @@ def create_checkout_session(
         session = stripe.checkout.Session.create(
             mode="subscription",
             line_items=[{"price": price_id, "quantity": 1}],
-            success_url=(
-                f"{FRONTEND_BASE_URL}/success"
-                "?session_id={CHECKOUT_SESSION_ID}"
-            ),
+            success_url=f"{FRONTEND_BASE_URL}/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{FRONTEND_BASE_URL}/pricing?canceled=1",
             allow_promotion_codes=True,
             customer_email=user["email"],
@@ -637,7 +634,7 @@ def create_checkout_session(
                 }
             },
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao criar sessão de checkout no Stripe: {exc}",
@@ -646,7 +643,7 @@ def create_checkout_session(
     store_checkout_session_for_user(
         user_id=user["id"],
         stripe_checkout_session_id=str(session.get("id")),
-        stripe_customer_id=(str(session.get("customer")) if session.get("customer") else None),
+        stripe_customer_id=str(session.get("customer")) if session.get("customer") else None,
         stripe_price_id=price_id,
     )
 
