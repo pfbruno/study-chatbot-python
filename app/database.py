@@ -403,8 +403,20 @@ def get_user_by_token(token: str) -> dict | None:
     conn = connect()
     cursor = conn.cursor()
     cursor.execute(
-        f"""
-        SELECT users.{USER_PUBLIC_FIELDS}
+        """
+        SELECT
+            users.id,
+            users.name,
+            users.email,
+            users.plan,
+            users.is_active,
+            users.created_at,
+            users.updated_at,
+            users.stripe_customer_id,
+            users.stripe_subscription_id,
+            users.stripe_price_id,
+            users.stripe_checkout_session_id,
+            users.plan_updated_at
         FROM auth_tokens
         INNER JOIN users ON users.id = auth_tokens.user_id
         WHERE auth_tokens.token = ?
