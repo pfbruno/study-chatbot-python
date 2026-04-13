@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { saveRecentAttempt } from "@/lib/activity";
 
 const RESULT_KEY = "studypro_last_simulation_result";
 
@@ -31,7 +32,22 @@ export default function ResultadoSimuladoPage() {
         return;
       }
 
-      setData(JSON.parse(raw));
+      const parsed = JSON.parse(raw) as ResultData;
+      setData(parsed);
+
+      saveRecentAttempt({
+        id: `simulado-${parsed.simulation.simulation_id}` ,
+        module: "simulados",
+        title: parsed.simulation.title ?? "Simulado",
+        scorePercentage: parsed.result.score_percentage,
+        correctAnswers: parsed.result.correct_answers,
+        totalQuestions: parsed.result.total_questions,
+        createdAt: new Date().toISOString(),
+        subjects: parsed.result.subjects_summary?.map((item: any) => ({
+          subject: item.subject,
+          accuracyPercentage: item.accuracy_percentage,
+        })) ?? [],
+      });
     } catch {
       setError("Erro ao carregar resultado.");
     }

@@ -21,6 +21,7 @@ import {
   type ExamDetail,
   type ExamSubmissionResponse,
 } from "@/lib/api"
+import { saveRecentAttempt } from "@/lib/activity"
 
 const ALTERNATIVES = ["A", "B", "C", "D", "E"]
 
@@ -84,6 +85,15 @@ export default function ExamYearDetailPage() {
 
       const response = await submitExamAnswers(exam.exam_type, exam.year, answers)
       setResult(response)
+      saveRecentAttempt({
+        id: `prova-${exam.exam_type}-${exam.year}-${Date.now()}` ,
+        module: "provas",
+        title: exam.title,
+        scorePercentage: response.score_percentage,
+        correctAnswers: response.correct_answers,
+        totalQuestions: response.total_questions,
+        createdAt: new Date().toISOString(),
+      })
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Não foi possível corrigir a prova."
