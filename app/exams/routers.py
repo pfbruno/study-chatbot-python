@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Header, HTTPException
 
 from app.database import get_hook_recent_events, get_user_by_token
+from fastapi import APIRouter, HTTPException
+
 from app.exams.schemas import ExamSubmitRequest
 from app.exams.service import (
     get_exam_answer_sheet,
@@ -104,6 +106,9 @@ def submit_exam(
                 },
             )
         return result
+def submit_exam(exam_id: int, payload: ExamSubmitRequest) -> dict:
+    try:
+        return submit_exam_sheet(exam_id, payload.answers)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:

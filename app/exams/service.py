@@ -7,6 +7,7 @@ from app.exams.models import (
     get_exam_analytics_overview,
     list_recent_exam_attempts,
     get_latest_exam_attempt,
+    create_exam_tables,
     get_exam_structure,
     list_exams_structured,
     upsert_exam_structure,
@@ -57,6 +58,7 @@ def submit_exam_sheet(
     user_id: int | None = None,
     time_spent_seconds: float | None = None,
 ) -> dict:
+def submit_exam_sheet(exam_id: int, answers: list[str | None]) -> dict:
     exam = get_exam_details(exam_id)
     answer_key = exam.get("answer_key") or []
 
@@ -80,6 +82,8 @@ def submit_exam_sheet(
         subject_key = _infer_enem_subject(question_number)
         subject_stats.setdefault(subject_key, {"total": 0, "correct": 0, "wrong": 0, "blank": 0})
         subject_stats[subject_key]["total"] += 1
+
+    for index, correct in enumerate(answer_key):
         user_answer = answers[index]
         normalized_user = (
             user_answer.upper().strip() if isinstance(user_answer, str) and user_answer.strip() else None
@@ -107,6 +111,11 @@ def submit_exam_sheet(
                 "correct_answer": normalized_correct,
                 "status": "blank",
                 "subject": subject_key,
+            results_by_question.append({
+                "question_number": index + 1,
+                "user_answer": None,
+                "correct_answer": normalized_correct,
+                "status": "blank",
             })
             continue
 
@@ -124,6 +133,14 @@ def submit_exam_sheet(
             "correct_answer": normalized_correct,
             "status": status,
             "subject": subject_key,
+        else:
+            wrong_answers += 1
+
+        results_by_question.append({
+            "question_number": index + 1,
+            "user_answer": normalized_user,
+            "correct_answer": normalized_correct,
+            "status": status,
         })
 
     valid_questions = len([item for item in answer_key if item is not None])
@@ -160,6 +177,8 @@ def submit_exam_sheet(
 
     return {
         "attempt_id": attempt_id,
+
+    return {
         "exam_id": exam_id,
         "title": exam.get("title"),
         "institution": exam.get("source", "exam").upper(),
@@ -190,3 +209,5 @@ def get_user_exam_analytics(user_id: int) -> dict:
 def get_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict]:
     create_exam_tables()
     return list_recent_exam_attempts(user_id=user_id, limit=limit)
+        "results_by_question": results_by_question,
+    }

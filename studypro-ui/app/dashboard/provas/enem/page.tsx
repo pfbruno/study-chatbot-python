@@ -10,6 +10,9 @@ export default function EnemYearsPage() {
   const [items, setItems] = useState<ExamV2ListItem[]>([])
   const [statuses, setStatuses] = useState<Record<number, string>>({})
 
+export default function EnemYearsPage() {
+  const [items, setItems] = useState<ExamV2ListItem[]>([])
+
   useEffect(() => {
     void listExamsV2("enem").then((data) => setItems(data.items || []))
   }, [])

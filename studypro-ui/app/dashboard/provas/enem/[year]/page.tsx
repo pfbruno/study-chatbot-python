@@ -9,6 +9,7 @@ import { ExamHeader } from "@/components/exams/exam-header"
 import { ExamViewer } from "@/components/exams/exam-viewer"
 import { getExamV2Structure, listExamsV2, submitExamV2AnswersTimed, type ExamSubmissionResponse, type ExamV2ListItem, type ExamV2Structure } from "@/lib/api"
 import { getExamProgress, markExamCompleted, markExamInProgress } from "@/lib/exam-progress"
+import { getExamV2Structure, listExamsV2, submitExamV2Answers, type ExamSubmissionResponse, type ExamV2ListItem, type ExamV2Structure } from "@/lib/api"
 
 export default function EnemYearDetailPage() {
   const params = useParams<{ year: string }>()
@@ -38,6 +39,7 @@ export default function EnemYearDetailPage() {
       if (progress?.status === "in_progress" || progress?.status === "completed") {
         setStartedAt(Date.now())
       }
+      setAnswers(Array.from({ length: details.total_questions }, () => null))
     }
 
     if (!Number.isNaN(year)) void load()
@@ -63,6 +65,7 @@ export default function EnemYearDetailPage() {
     const timeSpentSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000))
     const response = await submitExamV2AnswersTimed(examItem.id, answers, timeSpentSeconds, token)
     markExamCompleted(examItem.id, answers.filter(Boolean).length, totalQuestions, response.score_percentage)
+    const response = await submitExamV2Answers(examItem.id, answers)
     setResult(response)
   }
 

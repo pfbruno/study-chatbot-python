@@ -195,6 +195,7 @@ export type SimulationV2AnalyticsResponse = {
     critical_questions: boolean
     smart_insights: boolean
   }
+  slowest_question?: SimulationV2QuestionAnalytics | null
 }
 
 export type BillingEntitlements = {
@@ -302,6 +303,37 @@ export type HookCriticalQuestionsResponse = {
   most_wrong: SimulationV2QuestionAnalytics[]
   slowest: SimulationV2QuestionAnalytics[]
   hard: SimulationV2QuestionAnalytics[]
+}
+
+export type ExamV2ListItem = {
+  id: number
+  source: string
+  year: number
+  title: string
+  total_questions: number
+  has_answer_key: number
+  official_page_url: string | null
+}
+
+export type ExamV2Structure = {
+  id: number
+  source: string
+  year: number
+  title: string
+  total_questions: number
+  days: Array<{
+    id: number
+    label: string
+    day_order: number
+    booklets: Array<{
+      id: number
+      color: string
+      pdf_url: string | null
+      answer_key_url: string | null
+      official_page_url: string | null
+    }>
+  }>
+  official_page_url: string | null
 }
 
 export function getApiBaseUrl() {

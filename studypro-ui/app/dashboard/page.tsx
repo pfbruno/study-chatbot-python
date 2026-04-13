@@ -3,6 +3,16 @@
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { AlertTriangle, BarChart3, Clock3, Filter, Flame, Lightbulb, Loader2, RefreshCw } from "lucide-react"
+import {
+  AlertTriangle,
+  BarChart3,
+  Clock3,
+  Filter,
+  Flame,
+  Lightbulb,
+  Loader2,
+  RefreshCw,
+} from "lucide-react"
 
 import { AnalyticsCard } from "@/components/dashboard/analytics-card"
 import { InsightsPanel } from "@/components/dashboard/insights-panel"
@@ -12,6 +22,33 @@ import { Progress } from "@/components/ui/progress"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 import { getCombinedSubjectProgress, getRecentAttemptsByModule, type StoredAttempt } from "@/lib/activity"
 import { clearCachePrefix } from "@/lib/simple-cache"
+import {
+  getBillingStatus,
+  getHookCriticalQuestions,
+  getHookDailyGoals,
+  getHookNextAction,
+  getHookStatus,
+  getHookWeeklySummary,
+  getHistory,
+  getSimulationAnalyticsV2,
+  getSimulationsV2,
+  getStats,
+  type BillingEntitlements,
+  type HistoryItem,
+  type HookCriticalQuestionsResponse,
+  type HookDailyGoalsResponse,
+  type HookNextActionResponse,
+  type HookStatusResponse,
+  type HookWeeklySummaryResponse,
+  type SimulationV2AnalyticsResponse,
+  type SimulationV2ListItem,
+  type StatsResponse,
+} from "@/lib/api"
+import {
+  getCombinedSubjectProgress,
+  getRecentAttemptsByModule,
+  type StoredAttempt,
+} from "@/lib/activity"
 
 function formatSeconds(value: number) {
   return `${value.toFixed(1)}s`
@@ -81,11 +118,135 @@ export default function DashboardPage() {
 
   const uniqueSubjects = useMemo(() => {
     const values = simulations.map((item) => item.subject).filter((subject): subject is string => Boolean(subject))
+  const [analytics, setAnalytics] = useState<SimulationV2AnalyticsResponse | null>(null)
+
+  const [recentSimulados, setRecentSimulados] = useState<StoredAttempt[]>([])
+  const [recentProvas, setRecentProvas] = useState<StoredAttempt[]>([])
+  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(null)
+  const [hookStatus, setHookStatus] = useState<HookStatusResponse | null>(null)
+  const [nextAction, setNextAction] = useState<HookNextActionResponse | null>(null)
+  const [dailyGoals, setDailyGoals] = useState<HookDailyGoalsResponse | null>(null)
+  const [weeklySummary, setWeeklySummary] = useState<HookWeeklySummaryResponse | null>(null)
+  const [criticalData, setCriticalData] = useState<HookCriticalQuestionsResponse | null>(null)
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function loadBaseData(refresh = false) {
+    try {
+      if (refresh) setIsRefreshing(true)
+      else setIsLoading(true)
+
+      setError(null)
+
+      const [statsResponse, historyResponse, simulationsResponse] = await Promise.all([
+        getStats(),
+        getHistory(),
+        getSimulationsV2(selectedSubject !== "all" ? selectedSubject : undefined),
+      ])
+
+      const token = localStorage.getItem("studypro_auth_token")
+
+      if (token) {
+        const billing = await getBillingStatus(token)
+        setEntitlements(billing.entitlements)
+
+        const [
+          hookStatusData,
+          nextActionData,
+          dailyGoalsData,
+          weeklySummaryData,
+          criticalDataValue,
+        ] = await Promise.all([
+          getHookStatus(token),
+          getHookNextAction(token),
+          getHookDailyGoals(token),
+          getHookWeeklySummary(token),
+          getHookCriticalQuestions(token),
+        ])
+
+        setHookStatus(hookStatusData)
+        setNextAction(nextActionData)
+        setDailyGoals(dailyGoalsData)
+        setWeeklySummary(weeklySummaryData)
+        setCriticalData(criticalDataValue)
+      } else {
+        setEntitlements({
+          is_pro: false,
+          can_access_advanced_analytics: false,
+          can_access_critical_questions: false,
+          can_access_smart_insights: false,
+          can_generate_advanced_simulations: false,
+          can_compare_simulados_vs_provas: false,
+        })
+        setHookStatus(null)
+        setNextAction(null)
+        setDailyGoals(null)
+        setWeeklySummary(null)
+        setCriticalData(null)
+      }
+
+      setStats(statsResponse)
+      setHistory(Array.isArray(historyResponse) ? historyResponse : [])
+      setSimulations(simulationsResponse.items || [])
+
+      if (simulationsResponse.items?.length) {
+        const exists = simulationsResponse.items.some((item) => item.id === selectedSimulationId)
+        setSelectedSimulationId(
+          exists && selectedSimulationId ? selectedSimulationId : simulationsResponse.items[0].id,
+        )
+      } else {
+        setSelectedSimulationId(null)
+        setAnalytics(null)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível carregar o dashboard.")
+    } finally {
+      setIsLoading(false)
+      setIsRefreshing(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadBaseData()
+    setRecentSimulados(getRecentAttemptsByModule("simulados", 4))
+    setRecentProvas(getRecentAttemptsByModule("provas", 4))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject])
+
+  useEffect(() => {
+    async function loadAnalytics() {
+      if (!selectedSimulationId) {
+        setAnalytics(null)
+        return
+      }
+
+      try {
+        const data = await getSimulationAnalyticsV2(selectedSimulationId, {
+          periodDays,
+          subject: selectedSubject !== "all" ? selectedSubject : undefined,
+        })
+        setAnalytics(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha ao carregar analytics.")
+      }
+    }
+
+    void loadAnalytics()
+  }, [selectedSimulationId, periodDays, selectedSubject])
+
+  const uniqueSubjects = useMemo(() => {
+    const values = simulations
+      .map((item) => item.subject)
+      .filter((subject): subject is string => Boolean(subject))
+
     return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b))
   }, [simulations])
 
   const topDifficulty = useMemo(() => {
     if (!analytics?.questions.length) return "N/A"
+
     const counts = analytics.questions.reduce(
       (acc, question) => {
         acc[question.difficulty] += 1
@@ -93,12 +254,15 @@ export default function DashboardPage() {
       },
       { easy: 0, medium: 0, hard: 0 },
     )
+
     const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1])
     return ordered[0][0]
   }, [analytics])
 
   const criticalQuestions = useMemo(() => {
     if (!entitlements?.can_access_critical_questions || !analytics?.questions.length) return []
+    if (!entitlements?.can_access_critical_questions) return []
+    if (!analytics?.questions?.length) return []
 
     const slowest = [...analytics.questions]
       .sort((a, b) => b.average_time_seconds - a.average_time_seconds)
@@ -146,6 +310,7 @@ export default function DashboardPage() {
 
     const simAvg = avg(recentSimulados)
     const examAvg = avg(recentProvas)
+
     return {
       simAvg,
       examAvg,
@@ -167,6 +332,12 @@ export default function DashboardPage() {
     clearCachePrefix("exam:")
     await Promise.all([refreshTop(), refreshBase()])
     setIsRefreshing(false)
+  if (isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
   }
 
   return (
@@ -178,14 +349,27 @@ export default function DashboardPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard inteligente</h1>
           <p className="text-sm text-white/60">Analytics V2 em tempo real com visão unificada de simulados e provas.</p>
+            Plano {entitlements?.is_pro ? "PRO" : "FREE"}
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard inteligente</h1>
+          <p className="text-sm text-white/60">
+            Analytics V2 em tempo real com visão unificada de simulados e provas.
+          </p>
         </div>
+
         <button
           type="button"
           onClick={() => void handleRefresh()}
           disabled={isRefreshing}
+          onClick={() => void loadBaseData(true)}
+          disabled={isLoading || isRefreshing}
           className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 disabled:opacity-60"
         >
-          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {isRefreshing ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
           Atualizar
         </button>
       </div>
@@ -204,6 +388,11 @@ export default function DashboardPage() {
               <p className="mt-1 text-xs text-white/50">Prioridade {nextAction.priority} · {nextAction.reason}</p>
             </div>
             <Link href={nextAction.cta_href} className="inline-flex rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black">
+            </div>
+            <Link
+              href={nextAction.cta_href}
+              className="inline-flex rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black"
+            >
               {nextAction.cta_label}
             </Link>
           </CardContent>
@@ -211,6 +400,7 @@ export default function DashboardPage() {
       ) : (
         <SkeletonCard title="Seu próximo passo" loading={topLoading} fallback="Sem recomendação neste momento." />
       )}
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <Card className="border-white/10 bg-white/5">
@@ -222,6 +412,16 @@ export default function DashboardPage() {
             <p>Melhor streak: <strong>{hookStatus?.streak.best_streak ?? 0}</strong> dias</p>
             <p className={hookStatus?.streak.at_risk ? "text-amber-300" : "text-emerald-300"}>
               {hookStatus?.streak.at_risk ? "Sua streak está em risco hoje." : "Sua streak está protegida hoje."}
+            <p>
+              Streak atual: <strong>{hookStatus?.streak.current_streak ?? 0}</strong> dias
+            </p>
+            <p>
+              Melhor streak: <strong>{hookStatus?.streak.best_streak ?? 0}</strong> dias
+            </p>
+            <p className={hookStatus?.streak.at_risk ? "text-amber-300" : "text-emerald-300"}>
+              {hookStatus?.streak.at_risk
+                ? "Sua streak está em risco hoje."
+                : "Sua streak está protegida hoje."}
             </p>
           </CardContent>
         </Card>
@@ -235,6 +435,19 @@ export default function DashboardPage() {
             <p>Simulados: {dailyGoals?.progress.simulations ?? 0}/{dailyGoals?.targets.simulations ?? 0}</p>
             <p>Minutos: {dailyGoals?.progress.minutes ?? 0}/{dailyGoals?.targets.minutes ?? 0}</p>
             <p>Revisão concluída: {dailyGoals?.progress.review_completed ? "Sim" : "Não"}</p>
+            <p>
+              Questões: {dailyGoals?.progress.questions ?? 0}/{dailyGoals?.targets.questions ?? 0}
+            </p>
+            <p>
+              Simulados: {dailyGoals?.progress.simulations ?? 0}/
+              {dailyGoals?.targets.simulations ?? 0}
+            </p>
+            <p>
+              Minutos: {dailyGoals?.progress.minutes ?? 0}/{dailyGoals?.targets.minutes ?? 0}
+            </p>
+            <p>
+              Revisão concluída: {dailyGoals?.progress.review_completed ? "Sim" : "Não"}
+            </p>
             <Progress value={(dailyGoals?.completion_ratio ?? 0) * 100} className="h-2" />
           </CardContent>
         </Card>
@@ -248,6 +461,11 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
           <select value={selectedSubject} onChange={(event) => setSelectedSubject(event.target.value)} className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white">
+          <select
+            value={selectedSubject}
+            onChange={(event) => setSelectedSubject(event.target.value)}
+            className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white"
+          >
             <option value="all">Todas as disciplinas</option>
             {uniqueSubjects.map((subject) => (
               <option key={subject} value={subject}>{subject}</option>
@@ -261,6 +479,30 @@ export default function DashboardPage() {
           </select>
 
           <select value={periodDays} onChange={(event) => setPeriodDays(Number(event.target.value))} className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white">
+          <select
+            value={selectedSimulationId ?? ""}
+            onChange={(event) => {
+              const value = event.target.value
+              setSelectedSimulationId(value ? Number(value) : null)
+            }}
+            className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white"
+          >
+            {simulations.length === 0 ? (
+              <option value="">Sem simulados V2</option>
+            ) : (
+              simulations.map((simulation) => (
+                <option key={simulation.id} value={simulation.id}>
+                  {simulation.title} ({simulation.year})
+                </option>
+              ))
+            )}
+          </select>
+
+          <select
+            value={periodDays}
+            onChange={(event) => setPeriodDays(Number(event.target.value))}
+            className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white"
+          >
             <option value={7}>Últimos 7 dias</option>
             <option value={30}>Últimos 30 dias</option>
             <option value={90}>Últimos 90 dias</option>
@@ -280,12 +522,48 @@ export default function DashboardPage() {
         <AnalyticsCard title="Tempo médio" value={analytics ? formatSeconds(analytics.average_time_seconds) : analyticsLoading ? "..." : "-"} subtitle="por questão" />
         <AnalyticsCard title="Alternativa mais marcada" value={analytics?.most_marked_option?.option ?? (analyticsLoading ? "..." : "N/A")} subtitle={analytics?.most_marked_option ? `${analytics.most_marked_option.count} marcações` : undefined} />
         <AnalyticsCard title="Dificuldade" value={analyticsLoading ? "..." : topDifficulty} subtitle="predominante" />
+      {error ? (
+        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <AnalyticsCard
+          title="Taxa de acerto"
+          value={analytics ? formatPercent(analytics.accuracy_rate) : "-"}
+          subtitle="card principal"
+        />
+        <AnalyticsCard
+          title="Taxa de erro"
+          value={analytics ? formatPercent(analytics.error_rate) : "-"}
+        />
+        <AnalyticsCard
+          title="Tempo médio"
+          value={analytics ? formatSeconds(analytics.average_time_seconds) : "-"}
+          subtitle="por questão"
+        />
+        <AnalyticsCard
+          title="Alternativa mais marcada"
+          value={analytics?.most_marked_option?.option ?? "N/A"}
+          subtitle={
+            analytics?.most_marked_option
+              ? `${analytics.most_marked_option.count} marcações`
+              : undefined
+          }
+        />
+        <AnalyticsCard title="Dificuldade" value={topDifficulty} subtitle="predominante" />
       </div>
 
       {!entitlements?.can_access_advanced_analytics ? (
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           Disponível no Pro: desbloqueie analytics avançado, insights premium e questões críticas completas.
           <Link href="/pricing" className="ml-2 font-semibold text-amber-200 underline">Fazer upgrade</Link>
+          Disponível no Pro: desbloqueie analytics avançado, insights premium e questões críticas
+          completas.
+          <Link href="/pricing" className="ml-2 font-semibold text-amber-200 underline">
+            Fazer upgrade
+          </Link>
         </div>
       ) : null}
 
@@ -293,6 +571,19 @@ export default function DashboardPage() {
         <Card className="border-white/10 bg-white/5">
           <CardHeader><CardTitle className="text-base text-white">Gráfico central de desempenho</CardTitle></CardHeader>
           <CardContent>{analytics ? <PerformanceChart accuracyRate={analytics.accuracy_rate} errorRate={analytics.error_rate} /> : <p className="text-sm text-white/60">Sem dados para o gráfico.</p>}</CardContent>
+          <CardHeader>
+            <CardTitle className="text-base text-white">Gráfico central de desempenho</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics ? (
+              <PerformanceChart
+                accuracyRate={analytics.accuracy_rate}
+                errorRate={analytics.error_rate}
+              />
+            ) : (
+              <p className="text-sm text-white/60">Sem dados para o gráfico.</p>
+            )}
+          </CardContent>
         </Card>
 
         <Card className="border-white/10 bg-white/5">
@@ -303,6 +594,135 @@ export default function DashboardPage() {
             {entitlements?.can_access_smart_insights ? <InsightsPanel analytics={analytics} /> : <p className="rounded-xl border border-white/10 bg-black/20 p-3">Desbloqueie insights inteligentes no Pro.</p>}
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">{comparison.message}</div>
             {criticalQuestions[0] ? <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">{criticalQuestions[0].label}: {criticalQuestions[0].detail}</div> : null}
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <Lightbulb className="h-4 w-4 text-primary" /> Insights inteligentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-white/70">
+            {entitlements?.can_access_smart_insights ? (
+              <InsightsPanel analytics={analytics} />
+            ) : (
+              <p className="rounded-xl border border-white/10 bg-black/20 p-3">
+                Desbloqueie insights inteligentes no Pro.
+              </p>
+            )}
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              {comparison.message}
+            </div>
+            {criticalQuestions[0] ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+                {criticalQuestions[0].label}: {criticalQuestions[0].detail}
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <Card className="border-white/10 bg-white/5">
+          <CardHeader>
+            <CardTitle className="text-base text-white">Simulados recentes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentSimulados.length === 0 ? (
+              <p className="text-sm text-white/60">Sem tentativas de simulados salvas.</p>
+            ) : (
+              recentSimulados.map((item) => (
+                <AttemptRow
+                  key={item.id}
+                  title={item.title}
+                  score={item.scorePercentage}
+                  detail={`${item.correctAnswers}/${item.totalQuestions} acertos`}
+                />
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/5">
+          <CardHeader>
+            <CardTitle className="text-base text-white">Provas recentes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentProvas.length === 0 ? (
+              <p className="text-sm text-white/60">Sem tentativas de provas salvas.</p>
+            ) : (
+              recentProvas.map((item) => (
+                <AttemptRow
+                  key={item.id}
+                  title={item.title}
+                  score={item.scorePercentage}
+                  detail={`${item.correctAnswers}/${item.totalQuestions} acertos`}
+                />
+              ))
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <Card className="border-white/10 bg-white/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <AlertTriangle className="h-4 w-4 text-red-300" /> Questões críticas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-white/80">
+            {!entitlements?.can_access_critical_questions ? (
+              <p className="text-white/60">Veja suas questões críticas completas com o Pro.</p>
+            ) : (criticalData?.most_wrong?.length ?? 0) > 0 ? (
+              criticalData!.most_wrong.map((item) => (
+                <div
+                  key={`mw-${item.question_number}`}
+                  className="rounded-xl border border-white/10 bg-black/20 p-3"
+                >
+                  <p className="font-medium">Mais errada · Questão {item.question_number}</p>
+                  <p className="text-white/60">Acerto: {formatPercent(item.correct_rate)}</p>
+                </div>
+              ))
+            ) : criticalQuestions.length === 0 ? (
+              <p className="text-white/60">
+                Sem dados suficientes para identificar questões críticas.
+              </p>
+            ) : (
+              criticalQuestions.map((item) => (
+                <div
+                  key={`${item.label}-${item.detail}`}
+                  className="rounded-xl border border-white/10 bg-black/20 p-3"
+                >
+                  <p className="font-medium">{item.label}</p>
+                  <p className="text-white/60">{item.detail}</p>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <BarChart3 className="h-4 w-4 text-primary" /> Comparativo e progresso
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm text-white/80">
+            <p>
+              Simulados: {comparison.simAvg.toFixed(1)}% · Provas: {comparison.examAvg.toFixed(1)}%
+            </p>
+            <div className="grid gap-3">
+              {combinedProgress.length === 0 ? (
+                <p className="text-white/60">Sem progresso por disciplina ainda.</p>
+              ) : (
+                combinedProgress.slice(0, 5).map((item) => (
+                  <div key={item.subject}>
+                    <div className="mb-1 flex items-center justify-between text-xs">
+                      <span>{item.subject}</span>
+                      <span>{item.averageScore}%</span>
+                    </div>
+                    <Progress value={item.averageScore} className="h-2" />
+                  </div>
+                ))
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -335,6 +755,21 @@ export default function DashboardPage() {
                 <div key={`mw-${item.question_number}`} className="rounded-xl border border-white/10 bg-black/20 p-3">
                   <p className="font-medium">Mais errada · Questão {item.question_number}</p>
                   <p className="text-white/60">Acerto: {formatPercent(item.correct_rate)}</p>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <Clock3 className="h-4 w-4 text-primary" /> Desempenho recente
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentPerformance.length === 0 ? (
+              <p className="text-sm text-white/60">Sem dados recentes.</p>
+            ) : (
+              recentPerformance.map((item) => (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+                  <p className="text-sm font-medium text-white">{item.title}</p>
+                  <p className="mt-1 text-xs text-white/60">
+                    {item.category} · {item.createdAt}
+                  </p>
                 </div>
               ))
             ) : (
@@ -371,12 +806,27 @@ export default function DashboardPage() {
 
         <Card className="border-white/10 bg-white/5">
           <CardHeader><CardTitle className="flex items-center gap-2 text-base text-white"><Flame className="h-4 w-4 text-orange-300" /> Contexto geral</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base text-white">
+              <Flame className="h-4 w-4 text-orange-300" /> Contexto geral
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-2 text-sm text-white/70">
             <p>Total de perguntas analisadas: {stats?.total_questions ?? 0}</p>
             <p>Categoria mais frequente: {stats?.most_frequent_category ?? "N/A"}</p>
             <p>Simulados v2 carregados: {simulations.length}</p>
             <p>Tentativas consideradas no período: {analytics?.attempts_count ?? 0}</p>
             <p className="pt-2 text-xs text-white/50">Módulos: <Link href="/dashboard/simulados" className="text-primary">Simulados</Link> · <Link href="/dashboard/provas" className="text-primary">Provas</Link></p>
+            <p className="pt-2 text-xs text-white/50">
+              Módulos:{" "}
+              <Link href="/dashboard/simulados" className="text-primary">
+                Simulados
+              </Link>{" "}
+              ·{" "}
+              <Link href="/dashboard/provas" className="text-primary">
+                Provas
+              </Link>
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -392,6 +842,27 @@ export default function DashboardPage() {
               <Link href={mission.cta_href} className="text-primary underline">Executar</Link>
             </div>
           ))}
+        <CardHeader>
+          <CardTitle className="text-base text-white">Insights prioritários</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <InsightText text={comparison.message} />
+          <InsightText
+            text={
+              combinedProgress[0]
+                ? `Disciplina ${
+                    combinedProgress[combinedProgress.length - 1]?.subject ?? "N/A"
+                  } precisa de revisão urgente.`
+                : "Sem disciplina crítica detectada ainda."
+            }
+          />
+          <InsightText
+            text={
+              analytics?.slowest_question
+                ? "Seu tempo em questões difíceis está alto."
+                : "Resolva mais simulados para detectar gargalos de tempo."
+            }
+          />
         </CardContent>
       </Card>
 
@@ -472,6 +943,33 @@ function AttemptRow({ title, score, detail }: { title: string; score: number; de
       <p className="text-sm font-medium text-white">{title}</p>
       <p className="mt-1 text-xs text-white/60">{detail}</p>
       <p className="mt-1 text-xs text-primary">{score.toFixed(1)}%</p>
+        <CardHeader>
+          <CardTitle className="text-base text-white">Resumo semanal</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2 text-sm text-white/80 md:grid-cols-2">
+          <p>Questões respondidas: {weeklySummary?.summary.total_questions ?? 0}</p>
+          <p>Simulados: {weeklySummary?.summary.simulations_completed ?? 0}</p>
+          <p>Provas: {weeklySummary?.summary.exams_completed ?? 0}</p>
+          <p>Taxa média: {weeklySummary?.summary.average_accuracy ?? 0}%</p>
+          <p>Melhor disciplina: {weeklySummary?.summary.best_subject ?? "—"}</p>
+          <p>Pior disciplina: {weeklySummary?.summary.worst_subject ?? "—"}</p>
+          <p>Tempo médio: {weeklySummary?.summary.average_time_minutes ?? 0} min</p>
+          <p>Streak da semana: {weeklySummary?.summary.week_streak ?? 0}</p>
+          <p className="md:col-span-2">
+            Recomendação:{" "}
+            {weeklySummary?.summary.recommendation ??
+              "Complete atividades para gerar recomendações."}
+          </p>
+          {weeklySummary?.premium_locked ? (
+            <p className="md:col-span-2 text-amber-300">
+              {weeklySummary.premium_message}{" "}
+              <Link href="/pricing" className="underline">
+                Desbloquear Pro
+              </Link>
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -486,5 +984,20 @@ function SkeletonCard({ title, loading, fallback }: { title: string; loading: bo
       <CardHeader><CardTitle className="text-base text-white">{title}</CardTitle></CardHeader>
       <CardContent><p className="text-sm text-white/60">{loading ? "Carregando..." : fallback}</p></CardContent>
     </Card>
+function AttemptRow({ title, score, detail }: { title: string; score: number; detail: string }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+      <p className="text-sm font-medium text-white">{title}</p>
+      <p className="mt-1 text-xs text-white/60">{detail}</p>
+      <p className="mt-1 text-xs text-primary">{score.toFixed(1)}%</p>
+    </div>
+  )
+}
+
+function InsightText({ text }: { text: string }) {
+  return (
+    <p className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-white/80">
+      {text}
+    </p>
   )
 }
