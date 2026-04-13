@@ -1,16 +1,17 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { useParams } from "next/navigation"
+import {
+  getExamV2Structure,
+  listExamsV2,
+  submitExamV2AnswersTimed,
+  type ExamSubmissionResponse
+} from "@/lib/api"
 
-import { AnswerSheet } from "@/components/exams/answer-sheet"
-import { CorrectionButton } from "@/components/exams/correction-button"
-import { ExamHeader } from "@/components/exams/exam-header"
-import { ExamViewer } from "@/components/exams/exam-viewer"
-import { getExamV2Structure, listExamsV2, submitExamV2AnswersTimed, type ExamSubmissionResponse, type ExamV2ListItem, type ExamV2Structure } from "@/lib/api"
-import { getExamProgress, markExamCompleted, markExamInProgress } from "@/lib/exam-progress"
-import { getExamV2Structure, listExamsV2, submitExamV2Answers, type ExamSubmissionResponse, type ExamV2ListItem, type ExamV2Structure } from "@/lib/api"
-
+import {
+  getExamProgress,
+  markExamCompleted,
+  markExamInProgress
+} from "@/lib/exam-progress"
 export default function EnemYearDetailPage() {
   const params = useParams<{ year: string }>()
   const year = Number(params.year)
@@ -63,10 +64,20 @@ export default function EnemYearDetailPage() {
     if (!examItem) return
     const token = localStorage.getItem("studypro_auth_token")
     const timeSpentSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000))
-    const response = await submitExamV2AnswersTimed(examItem.id, answers, timeSpentSeconds, token)
-    markExamCompleted(examItem.id, answers.filter(Boolean).length, totalQuestions, response.score_percentage)
-    const response = await submitExamV2Answers(examItem.id, answers)
-    setResult(response)
+    const response = await submitExamV2AnswersTimed(
+    examItem.id,
+    answers,
+    timeSpentSeconds
+)
+
+markExamCompleted(
+  examItem.id,
+  answers.filter(Boolean).length,
+  totalQuestions,
+  response.score
+)
+
+setResult(response)
   }
 
   if (!examItem || !structure) {
