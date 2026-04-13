@@ -436,61 +436,49 @@ export default function DashboardPage() {
 </div>
 
       <Card className="border-white/10 bg-white/5">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base text-white">
-            <Filter className="h-4 w-4 text-primary" /> Filtros
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3">
-          <select value={selectedSubject} onChange={(event) => setSelectedSubject(event.target.value)} className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white">
-          <select
-            value={selectedSubject}
-            onChange={(event) => setSelectedSubject(event.target.value)}
-            className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white"
-          >
-            <option value="all">Todas as disciplinas</option>
-            {uniqueSubjects.map((subject) => (
-              <option key={subject} value={subject}>{subject}</option>
-            ))}
-          </select>
+  <CardHeader>
+    <CardTitle className="text-base text-white">Filtros</CardTitle>
+  </CardHeader>
+  <CardContent className="grid gap-4 md:grid-cols-3">
+    <select
+      value={selectedSubject}
+      onChange={(e) => setSelectedSubject(e.target.value)}
+      className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+    >
+      <option value="all">Todas as disciplinas</option>
+      {subjects.map((subject) => (
+        <option key={subject} value={subject}>
+          {subject}
+        </option>
+      ))}
+    </select>
 
-          <select value={selectedSimulationId ?? ""} onChange={(event) => setSelectedSimulationId(Number(event.target.value))} className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white">
-            {simulations.length === 0 ? <option value="">Sem simulados V2</option> : simulations.map((simulation) => (
-              <option key={simulation.id} value={simulation.id}>{simulation.title} ({simulation.year})</option>
-            ))}
-          </select>
+    <select
+      value={selectedSimulationId ?? ""}
+      onChange={(e) =>
+        setSelectedSimulationId(e.target.value ? Number(e.target.value) : null)
+      }
+      className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+    >
+      <option value="">Todos os simulados</option>
+      {simulations.map((simulation) => (
+        <option key={simulation.id} value={simulation.id}>
+          {simulation.title}
+        </option>
+      ))}
+    </select>
 
-          <select value={periodDays} onChange={(event) => setPeriodDays(Number(event.target.value))} className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white">
-          <select
-            value={selectedSimulationId ?? ""}
-            onChange={(event) => {
-              const value = event.target.value
-              setSelectedSimulationId(value ? Number(value) : null)
-            }}
-            className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white"
-          >
-            {simulations.length === 0 ? (
-              <option value="">Sem simulados V2</option>
-            ) : (
-              simulations.map((simulation) => (
-                <option key={simulation.id} value={simulation.id}>
-                  {simulation.title} ({simulation.year})
-                </option>
-              ))
-            )}
-          </select>
-
-          <select
-            value={periodDays}
-            onChange={(event) => setPeriodDays(Number(event.target.value))}
-            className="rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-white"
-          >
-            <option value={7}>Últimos 7 dias</option>
-            <option value={30}>Últimos 30 dias</option>
-            <option value={90}>Últimos 90 dias</option>
-          </select>
-        </CardContent>
-      </Card>
+    <select
+      value={periodDays}
+      onChange={(e) => setPeriodDays(Number(e.target.value))}
+      className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none"
+    >
+      <option value={7}>Últimos 7 dias</option>
+      <option value={30}>Últimos 30 dias</option>
+      <option value={90}>Últimos 90 dias</option>
+    </select>
+  </CardContent>
+</Card>
 
       {baseError ? <SectionError message={baseError} /> : null}
       {analyticsError ? <SectionError message={analyticsError} /> : null}
