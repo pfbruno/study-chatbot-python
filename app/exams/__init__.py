@@ -167,3 +167,11 @@ def submit_exam_answers(exam_type: str, year: int, answers: list[str | None]) ->
         "score_percentage": score_percentage,
         "results_by_question": results_by_question,
     }
+# Novo módulo estruturado (v2)
+from app.exams.service import (  # noqa: E402
+    get_exam_answer_sheet as get_exam_answer_sheet_v2,
+    get_exam_details as get_exam_details_v2,
+    import_enem_year,
+    list_exams as list_exams_v2,
+    submit_exam_sheet as submit_exam_sheet_v2,
+)

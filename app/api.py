@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import json
 import os
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -25,6 +26,9 @@ from app.database import (
     create_user,
     get_guest_usage,
     get_recent_interactions,
+    get_hook_daily_goal,
+    get_hook_recent_events,
+    get_hook_streak_stats,
     get_simulation_analytics_v2,
     get_user_auth_by_email,
     get_user_by_id,
@@ -36,6 +40,8 @@ from app.database import (
     is_stripe_event_processed,
     list_simulations_v2,
     mark_stripe_event_processed,
+    mark_hook_review_goal_completed,
+    record_hook_activity_event,
     rate_simulation_v2,
     revoke_auth_token,
     store_checkout_session_for_user,
@@ -46,6 +52,8 @@ from app.exams import (
     list_exam_types,
     submit_exam_answers,
 )
+from app.exams.routers import router as exams_v2_router
+from app.exams.models import create_exam_tables
 from app.question_bank import get_question_bank_metadata
 from app.simulations import generate_random_simulation, submit_random_simulation
 
@@ -81,6 +89,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(exams_v2_router, prefix="/v2")
 
 
 class QuestionInput(BaseModel):
@@ -269,9 +279,58 @@ def _serialize_user(user: dict) -> dict:
         "name": user["name"],
         "email": user["email"],
         "plan": user["plan"],
+        "subscription_status": user.get("subscription_status", "inactive"),
+        "current_period_end": user.get("current_period_end"),
         "is_active": bool(user["is_active"]),
         "created_at": user["created_at"],
         "updated_at": user["updated_at"],
+    }
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=UTC)
+        return parsed
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_pro_user(user: dict) -> bool:
+    if user.get("plan") != "pro":
+        return False
+
+    subscription_status = str(user.get("subscription_status") or "").lower()
+    if subscription_status in {"active", "trialing"}:
+        return True
+
+    current_period_end = _parse_iso_datetime(user.get("current_period_end"))
+    return bool(current_period_end and current_period_end > _now_utc())
+
+
+def _build_entitlements_for_user(user: dict) -> dict:
+    is_pro = _is_pro_user(user)
+    return {
+        "is_pro": is_pro,
+        "can_access_advanced_analytics": is_pro,
+        "can_access_critical_questions": is_pro,
+        "can_access_smart_insights": is_pro,
+        "can_generate_advanced_simulations": is_pro,
+        "can_compare_simulados_vs_provas": is_pro,
+    }
+
+
+def _build_hook_status(user: dict) -> dict:
+    streak = get_hook_streak_stats(user["id"])
+    daily_goal = get_hook_daily_goal(user["id"])
+    entitlements = _build_entitlements_for_user(user)
+    return {
+        "streak": streak,
+        "daily_goal": daily_goal,
+        "entitlements": entitlements,
     }
 
 
@@ -307,7 +366,7 @@ def _build_plan_status_for_user(user: dict) -> dict:
     usage_date = _today_str()
     usage = get_user_usage(user["id"], usage_date)
 
-    if user["plan"] == "pro":
+    if _is_pro_user(user):
         return {
             "scope": "user",
             "plan": "pro",
@@ -454,10 +513,14 @@ def _activate_user_pro_plan(
     stripe_subscription_id: str | None = None,
     stripe_price_id: str | None = None,
     stripe_checkout_session_id: str | None = None,
+    subscription_status: str = "active",
+    current_period_end: str | None = None,
 ) -> dict | None:
     return update_user_plan(
         user_id,
         "pro",
+        subscription_status=subscription_status,
+        current_period_end=current_period_end,
         stripe_customer_id=stripe_customer_id,
         stripe_subscription_id=stripe_subscription_id,
         stripe_price_id=stripe_price_id,
@@ -476,10 +539,16 @@ def _sync_user_from_checkout_session(session: Any) -> dict | None:
     stripe_customer_id = session.get("customer")
     stripe_subscription_id = session.get("subscription")
     stripe_price_id = None
+    current_period_end_iso = None
 
     if stripe_subscription_id:
         subscription = stripe.Subscription.retrieve(stripe_subscription_id)
         stripe_price_id = _extract_price_id_from_subscription(subscription)
+        current_period_end = subscription.get("current_period_end")
+        if current_period_end:
+            current_period_end_iso = datetime.fromtimestamp(
+                int(current_period_end), tz=UTC
+            ).isoformat()
 
     return _activate_user_pro_plan(
         user_id=user_id,
@@ -487,6 +556,8 @@ def _sync_user_from_checkout_session(session: Any) -> dict | None:
         stripe_subscription_id=str(stripe_subscription_id) if stripe_subscription_id else None,
         stripe_price_id=stripe_price_id,
         stripe_checkout_session_id=str(session.get("id")),
+        subscription_status="active",
+        current_period_end=current_period_end_iso,
     )
 
 
@@ -514,6 +585,12 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
     subscription_status = str(subscription.get("status") or "").lower()
     price_id = _extract_price_id_from_subscription(subscription)
     subscription_id = subscription.get("id")
+    current_period_end = subscription.get("current_period_end")
+    current_period_end_iso = (
+        datetime.fromtimestamp(int(current_period_end), tz=UTC).isoformat()
+        if current_period_end
+        else None
+    )
 
     if subscription_status in {"active", "trialing"}:
         return _activate_user_pro_plan(
@@ -521,6 +598,8 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
             stripe_customer_id=str(stripe_customer_id) if stripe_customer_id else None,
             stripe_subscription_id=str(subscription_id) if subscription_id else None,
             stripe_price_id=price_id,
+            subscription_status=subscription_status,
+            current_period_end=current_period_end_iso,
         )
 
     if subscription_status in {"canceled", "unpaid", "incomplete_expired"}:
@@ -532,6 +611,7 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
 @app.on_event("startup")
 def startup_event() -> None:
     create_table()
+    create_exam_tables()
 
 
 @app.get("/", tags=["health"])
@@ -584,6 +664,7 @@ def login(payload: LoginRequest) -> dict:
         "expires_at": expires_at,
         "user": safe_user,
         "usage": _build_plan_status_for_user(safe_user) if safe_user else None,
+        "entitlements": _build_entitlements_for_user(safe_user) if safe_user else None,
     }
 
 
@@ -593,6 +674,7 @@ def auth_me(authorization: str | None = Header(default=None)) -> dict:
     return {
         "user": _serialize_user(user),
         "usage": _build_plan_status_for_user(user),
+        "entitlements": _build_entitlements_for_user(user),
     }
 
 
@@ -616,7 +698,13 @@ def update_plan(
     if payload.plan not in ALLOWED_PLANS:
         raise HTTPException(status_code=400, detail="Plano inválido.")
 
-    updated_user = update_user_plan(user["id"], payload.plan)
+    subscription_status = "active" if payload.plan == "pro" else "inactive"
+    updated_user = update_user_plan(
+        user["id"],
+        payload.plan,
+        subscription_status=subscription_status,
+        current_period_end=None,
+    )
     if not updated_user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
 
@@ -624,6 +712,17 @@ def update_plan(
         "message": "Plano atualizado com sucesso.",
         "user": updated_user,
         "usage": _build_plan_status_for_user(updated_user),
+        "entitlements": _build_entitlements_for_user(updated_user),
+    }
+
+
+@app.get("/billing/status", tags=["billing"])
+def get_billing_status(authorization: str | None = Header(default=None)) -> dict:
+    user = _get_current_user_or_401(authorization)
+    return {
+        "user": _serialize_user(user),
+        "usage": _build_plan_status_for_user(user),
+        "entitlements": _build_entitlements_for_user(user),
     }
 
 
@@ -635,7 +734,7 @@ def create_checkout_session(
     user = _get_current_user_or_401(authorization)
     _ensure_stripe_ready()
 
-    if user["plan"] == "pro":
+    if _is_pro_user(user):
         raise HTTPException(status_code=409, detail="Usuário já possui plano PRO ativo.")
 
     price_id = _get_checkout_price_id(payload)
@@ -762,12 +861,21 @@ def get_simulation_entitlement(
             "authenticated": True,
             "user": _serialize_user(user),
             "usage": _build_plan_status_for_user(user),
+            "entitlements": _build_entitlements_for_user(user),
         }
 
     return {
         "authenticated": False,
         "user": None,
         "usage": _build_plan_status_for_guest(request),
+        "entitlements": {
+            "is_pro": False,
+            "can_access_advanced_analytics": False,
+            "can_access_critical_questions": False,
+            "can_access_smart_insights": False,
+            "can_generate_advanced_simulations": False,
+            "can_compare_simulados_vs_provas": False,
+        },
     }
 
 
@@ -822,9 +930,27 @@ def get_exam(exam_type: str, year: int) -> dict:
 
 
 @app.post("/exams/{exam_type}/{year}/submit", tags=["exams"])
-def submit_exam(exam_type: str, year: int, submission: ExamSubmission) -> dict:
+def submit_exam(
+    exam_type: str,
+    year: int,
+    submission: ExamSubmission,
+    authorization: str | None = Header(default=None),
+) -> dict:
     try:
-        return submit_exam_answers(exam_type, year, submission.answers)
+        result = submit_exam_answers(exam_type, year, submission.answers)
+        user = _get_current_user(authorization)
+        if user:
+            record_hook_activity_event(
+                user_id=user["id"],
+                event_type="exam_completed",
+                subject=exam_type.upper(),
+                score_percentage=float(result.get("score_percentage", 0.0)),
+                metadata={
+                    "questions_answered": int(result.get("total_questions", 0)),
+                    "minutes_studied": int(result.get("total_questions", 0) * 2),
+                },
+            )
+        return result
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
@@ -872,14 +998,30 @@ def create_random_simulation(
 
 
 @app.post("/simulados/submit", tags=["simulations"])
-def submit_simulation(payload: RandomSimulationSubmission) -> dict:
+def submit_simulation(
+    payload: RandomSimulationSubmission,
+    authorization: str | None = Header(default=None),
+) -> dict:
     try:
-        return submit_random_simulation(
+        result = submit_random_simulation(
             exam_type=payload.exam_type,
             year=payload.year,
             question_numbers=payload.question_numbers,
             answers=payload.answers,
         )
+        user = _get_current_user(authorization)
+        if user:
+            record_hook_activity_event(
+                user_id=user["id"],
+                event_type="simulation_completed",
+                subject=result.get("title"),
+                score_percentage=float(result.get("score_percentage", 0.0)),
+                metadata={
+                    "questions_answered": int(result.get("total_questions", 0)),
+                    "minutes_studied": int(result.get("total_questions", 0) * 2),
+                },
+            )
+        return result
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
@@ -897,6 +1039,15 @@ def create_advanced_simulation(
     authorization: str | None = Header(default=None),
 ) -> dict:
     user = _get_current_user_or_401(authorization)
+    entitlements = _build_entitlements_for_user(user)
+    if (
+        not entitlements["can_generate_advanced_simulations"]
+        and payload.question_count > 30
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Disponível no PRO: simulados avançados com mais de 30 questões.",
+        )
     created = create_simulation_v2(
         owner_user_id=user["id"],
         title=payload.title.strip(),
@@ -939,6 +1090,16 @@ def submit_advanced_simulation_attempt(
     )
     if not created:
         raise HTTPException(status_code=404, detail="Simulado não encontrado.")
+    record_hook_activity_event(
+        user_id=user["id"],
+        event_type="simulation_completed",
+        score_percentage=float(created["accuracy_rate"] * 100),
+        time_spent_seconds=float(created["average_time_seconds"] * len(payload.answers)),
+        metadata={
+            "questions_answered": len(payload.answers),
+            "minutes_studied": int((created["average_time_seconds"] * len(payload.answers)) / 60),
+        },
+    )
     return {"message": "Tentativa registrada com sucesso.", "attempt": created}
 
 
@@ -947,6 +1108,7 @@ def get_advanced_simulation_analytics(
     simulation_id: int,
     period_days: int | None = None,
     subject: str | None = None,
+    authorization: str | None = Header(default=None),
 ) -> dict:
     analytics = get_simulation_analytics_v2(
         simulation_id=simulation_id,
@@ -955,4 +1117,288 @@ def get_advanced_simulation_analytics(
     )
     if not analytics:
         raise HTTPException(status_code=404, detail="Simulado não encontrado.")
-    return analytics
+    user = _get_current_user(authorization)
+    if not user:
+        return {
+            **analytics,
+            "premium_locked": True,
+            "premium_message": "Disponível no Pro: analytics avançado completo.",
+            "allowed_features": {
+                "advanced_analytics": False,
+                "critical_questions": False,
+                "smart_insights": False,
+            },
+            "questions": [],
+        }
+
+    entitlements = _build_entitlements_for_user(user)
+    if entitlements["can_access_advanced_analytics"]:
+        return {
+            **analytics,
+            "premium_locked": False,
+            "allowed_features": {
+                "advanced_analytics": True,
+                "critical_questions": True,
+                "smart_insights": True,
+            },
+        }
+
+    return {
+        **analytics,
+        "premium_locked": True,
+        "premium_message": "Disponível no Pro: analytics avançado completo.",
+        "allowed_features": {
+            "advanced_analytics": False,
+            "critical_questions": False,
+            "smart_insights": False,
+        },
+        "questions": analytics.get("questions", [])[:3],
+    }
+
+
+def _build_critical_questions_for_user(
+    user: dict,
+    period_days: int = 30,
+) -> dict:
+    simulations = list_simulations_v2()
+    if not simulations:
+        return {
+            "source_simulation_id": None,
+            "most_wrong": [],
+            "slowest": [],
+            "hard": [],
+        }
+
+    simulation_id = int(simulations[0]["id"])
+    analytics = get_simulation_analytics_v2(
+        simulation_id=simulation_id,
+        period_days=period_days,
+        subject=None,
+    )
+    if not analytics:
+        return {
+            "source_simulation_id": simulation_id,
+            "most_wrong": [],
+            "slowest": [],
+            "hard": [],
+        }
+
+    questions = analytics.get("questions", [])
+    most_wrong = sorted(questions, key=lambda item: item["correct_rate"])[:6]
+    slowest = sorted(
+        questions, key=lambda item: item["average_time_seconds"], reverse=True
+    )[:6]
+    hard = [item for item in questions if item["difficulty"] == "hard"][:6]
+    return {
+        "source_simulation_id": simulation_id,
+        "most_wrong": most_wrong,
+        "slowest": slowest,
+        "hard": hard,
+    }
+
+
+@app.get("/v2/hook/status", tags=["hook"])
+def get_hook_status(authorization: str | None = Header(default=None)) -> dict:
+    user = _get_current_user_or_401(authorization)
+    return {
+        "user": _serialize_user(user),
+        **_build_hook_status(user),
+    }
+
+
+@app.get("/v2/hook/daily-goals", tags=["hook"])
+def get_hook_daily_goals(authorization: str | None = Header(default=None)) -> dict:
+    user = _get_current_user_or_401(authorization)
+    goal = get_hook_daily_goal(user["id"])
+    progress = {
+        "questions": min(goal["progress_questions"], goal["target_questions"]),
+        "simulations": min(goal["progress_simulations"], goal["target_simulations"]),
+        "exams": min(goal["progress_exams"], goal["target_exams"]),
+        "minutes": min(goal["progress_minutes"], goal["target_minutes"]),
+        "review_completed": bool(goal["progress_review_completed"]),
+    }
+    completion_ratio = (
+        (
+            progress["questions"] / max(1, goal["target_questions"])
+            + progress["simulations"] / max(1, goal["target_simulations"])
+            + progress["minutes"] / max(1, goal["target_minutes"])
+            + (1.0 if progress["review_completed"] else 0.0)
+        )
+        / 4
+    )
+    return {
+        "goal_date": goal["goal_date"],
+        "targets": {
+            "questions": goal["target_questions"],
+            "simulations": goal["target_simulations"],
+            "exams": goal["target_exams"],
+            "minutes": goal["target_minutes"],
+        },
+        "progress": progress,
+        "completion_ratio": round(completion_ratio, 4),
+    }
+
+
+@app.post("/v2/hook/mini-action/complete", tags=["hook"])
+def complete_hook_mini_action(
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    mark_hook_review_goal_completed(user["id"])
+    record_hook_activity_event(
+        user_id=user["id"],
+        event_type="mini_action_completed",
+        metadata={"questions_answered": 3, "minutes_studied": 8},
+    )
+    return {"message": "Mini ação concluída e progresso atualizado."}
+
+
+@app.get("/v2/hook/critical-questions", tags=["hook"])
+def get_hook_critical_questions(
+    authorization: str | None = Header(default=None),
+    period_days: int = 30,
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    entitlements = _build_entitlements_for_user(user)
+    critical = _build_critical_questions_for_user(user, period_days=period_days)
+    if entitlements["can_access_critical_questions"]:
+        return {"premium_locked": False, **critical}
+    return {
+        "premium_locked": True,
+        "premium_message": "Disponível no Pro: questões críticas completas.",
+        "source_simulation_id": critical["source_simulation_id"],
+        "most_wrong": critical["most_wrong"][:2],
+        "slowest": critical["slowest"][:2],
+        "hard": critical["hard"][:2],
+    }
+
+
+@app.get("/v2/hook/weekly-summary", tags=["hook"])
+def get_hook_weekly_summary(
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    events = get_hook_recent_events(user["id"], days=7)
+    entitlements = _build_entitlements_for_user(user)
+    streak = get_hook_streak_stats(user["id"])
+
+    total_questions = sum(
+        int(
+            (
+                event.get("metadata_json")
+                and json.loads(event["metadata_json"]).get("questions_answered", 0)
+            )
+            or 0
+        )
+        for event in events
+    )
+    simulations = sum(1 for event in events if event["event_type"] == "simulation_completed")
+    exams = sum(1 for event in events if event["event_type"] == "exam_completed")
+    scores = [float(event["score_percentage"]) for event in events if event["score_percentage"] is not None]
+    avg_score = sum(scores) / len(scores) if scores else 0.0
+    subjects: dict[str, list[float]] = {}
+    for event in events:
+        subject = (event.get("subject") or "").strip()
+        if not subject or event["score_percentage"] is None:
+            continue
+        subjects.setdefault(subject, []).append(float(event["score_percentage"]))
+
+    ranked_subjects = sorted(
+        (
+            (subject, sum(values) / len(values))
+            for subject, values in subjects.items()
+        ),
+        key=lambda item: item[1],
+    )
+    worst_subject = ranked_subjects[0][0] if ranked_subjects else None
+    best_subject = ranked_subjects[-1][0] if ranked_subjects else None
+    minutes = sum(
+        int(
+            (
+                event.get("metadata_json")
+                and json.loads(event["metadata_json"]).get("minutes_studied", 0)
+            )
+            or 0
+        )
+        for event in events
+    )
+
+    recommendation = (
+        f"Priorize revisão de {worst_subject} com mini ação diária."
+        if worst_subject
+        else "Conclua pelo menos um simulado e uma prova para personalizar seu plano."
+    )
+
+    if not entitlements["can_compare_simulados_vs_provas"]:
+        return {
+            "premium_locked": True,
+            "summary": {
+                "total_questions": total_questions,
+                "simulations_completed": simulations,
+                "exams_completed": exams,
+                "average_accuracy": round(avg_score, 1),
+                "week_streak": streak["current_streak"],
+                "recommendation": recommendation,
+            },
+            "premium_message": "Disponível no Pro: resumo semanal completo.",
+        }
+
+    return {
+        "premium_locked": False,
+        "summary": {
+            "total_questions": total_questions,
+            "simulations_completed": simulations,
+            "exams_completed": exams,
+            "average_accuracy": round(avg_score, 1),
+            "best_subject": best_subject,
+            "worst_subject": worst_subject,
+            "average_time_minutes": minutes,
+            "week_streak": streak["current_streak"],
+            "recommendation": recommendation,
+        },
+    }
+
+
+@app.get("/v2/hook/next-action", tags=["hook"])
+def get_hook_next_action(authorization: str | None = Header(default=None)) -> dict:
+    user = _get_current_user_or_401(authorization)
+    entitlements = _build_entitlements_for_user(user)
+    streak = get_hook_streak_stats(user["id"])
+    goal = get_hook_daily_goal(user["id"])
+    critical = _build_critical_questions_for_user(user, period_days=14)
+
+    if streak["at_risk"]:
+        return {
+            "title": "Mantenha sua streak hoje",
+            "description": "Sua sequência está em risco. Faça uma mini ação para não perder consistência.",
+            "cta_label": "Concluir mini ação",
+            "cta_href": "/dashboard",
+            "action_key": "mini_action",
+        }
+
+    if goal["progress_questions"] < goal["target_questions"]:
+        return {
+            "title": "Concluir meta diária de questões",
+            "description": f"Faltam {goal['target_questions'] - goal['progress_questions']} questões para bater sua meta.",
+            "cta_label": "Continuar meu plano",
+            "cta_href": "/dashboard/simulados/resolver",
+            "action_key": "daily_goal",
+        }
+
+    if entitlements["can_access_critical_questions"] and critical["most_wrong"]:
+        item = critical["most_wrong"][0]
+        return {
+            "title": "Revisar questões críticas",
+            "description": f"Questão {item['question_number']} apresenta baixa taxa de acerto e deve ser revisada.",
+            "cta_label": "Revisar questões críticas",
+            "cta_href": "/dashboard",
+            "action_key": "critical_review",
+        }
+
+    return {
+        "title": "Fazer mini simulado recomendado",
+        "description": "Conclua um mini simulado para atualizar seu plano inteligente.",
+        "cta_label": "Fazer mini simulado",
+        "cta_href": "/dashboard/simulados",
+        "action_key": "mini_simulado",
+    }

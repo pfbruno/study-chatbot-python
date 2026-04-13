@@ -170,6 +170,9 @@ export default function ResolverSimuladoPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(localStorage.getItem("studypro_auth_token")
+            ? { Authorization: `Bearer ${localStorage.getItem("studypro_auth_token")}` }
+            : {}),
         },
         body: JSON.stringify(payload),
       });

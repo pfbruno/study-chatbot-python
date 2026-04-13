@@ -172,6 +172,120 @@ export type SimulationV2AnalyticsResponse = {
   error_rate: number
   most_marked_option: { option: string; count: number } | null
   questions: SimulationV2QuestionAnalytics[]
+  premium_locked?: boolean
+  premium_message?: string
+  allowed_features?: {
+    advanced_analytics: boolean
+    critical_questions: boolean
+    smart_insights: boolean
+  }
+}
+
+export type BillingEntitlements = {
+  is_pro: boolean
+  can_access_advanced_analytics: boolean
+  can_access_critical_questions: boolean
+  can_access_smart_insights: boolean
+  can_generate_advanced_simulations: boolean
+  can_compare_simulados_vs_provas: boolean
+}
+
+export type BillingStatusResponse = {
+  user: {
+    id: number
+    name: string
+    email: string
+    plan: "free" | "pro"
+    subscription_status: string
+    current_period_end: string | null
+    is_active: boolean
+    created_at: string
+    updated_at: string
+  }
+  usage: {
+    scope: "user"
+    plan: "free" | "pro"
+    usage_date: string
+    simulations_generated_today: number
+    daily_limit: number | null
+    remaining_today: number | null
+    can_generate: boolean
+  }
+  entitlements: BillingEntitlements
+}
+
+export type HookStatusResponse = {
+  user: BillingStatusResponse["user"]
+  streak: {
+    current_streak: number
+    best_streak: number
+    last_activity_date: string | null
+    at_risk: boolean
+  }
+  daily_goal: {
+    goal_date: string
+    target_questions: number
+    target_simulations: number
+    target_exams: number
+    target_minutes: number
+    progress_questions: number
+    progress_simulations: number
+    progress_exams: number
+    progress_minutes: number
+    progress_review_completed: number
+  }
+  entitlements: BillingEntitlements
+}
+
+export type HookNextActionResponse = {
+  title: string
+  description: string
+  cta_label: string
+  cta_href: string
+  action_key: string
+}
+
+export type HookDailyGoalsResponse = {
+  goal_date: string
+  targets: {
+    questions: number
+    simulations: number
+    exams: number
+    minutes: number
+  }
+  progress: {
+    questions: number
+    simulations: number
+    exams: number
+    minutes: number
+    review_completed: boolean
+  }
+  completion_ratio: number
+}
+
+export type HookWeeklySummaryResponse = {
+  premium_locked: boolean
+  summary: {
+    total_questions: number
+    simulations_completed: number
+    exams_completed: number
+    average_accuracy: number
+    best_subject?: string | null
+    worst_subject?: string | null
+    average_time_minutes?: number
+    week_streak: number
+    recommendation: string
+  }
+  premium_message?: string
+}
+
+export type HookCriticalQuestionsResponse = {
+  premium_locked: boolean
+  premium_message?: string
+  source_simulation_id: number | null
+  most_wrong: SimulationV2QuestionAnalytics[]
+  slowest: SimulationV2QuestionAnalytics[]
+  hard: SimulationV2QuestionAnalytics[]
 }
 
 export function getApiBaseUrl() {
@@ -190,12 +304,14 @@ export async function submitExamAnswers(
   examType: string,
   year: number,
   answers: Array<string | null>,
+  token?: string,
 ) {
   return apiFetch<ExamSubmissionResponse>(
     `/exams/${encodeURIComponent(examType)}/${year}/submit`,
     {
       method: "POST",
       body: JSON.stringify({ answers }),
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     },
   )
 }
@@ -233,4 +349,96 @@ export async function getSimulationAnalyticsV2(
   return apiFetch<SimulationV2AnalyticsResponse>(
     `/v2/simulados/${simulationId}/analytics${suffix}`,
   )
+}
+
+export async function getBillingStatus(token: string) {
+  return apiFetch<BillingStatusResponse>("/billing/status", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  })
+}
+
+export async function getHookStatus(token: string) {
+  return apiFetch<HookStatusResponse>("/v2/hook/status", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export async function getHookNextAction(token: string) {
+  return apiFetch<HookNextActionResponse>("/v2/hook/next-action", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export async function getHookDailyGoals(token: string) {
+  return apiFetch<HookDailyGoalsResponse>("/v2/hook/daily-goals", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export async function getHookWeeklySummary(token: string) {
+  return apiFetch<HookWeeklySummaryResponse>("/v2/hook/weekly-summary", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export async function getHookCriticalQuestions(token: string) {
+  return apiFetch<HookCriticalQuestionsResponse>("/v2/hook/critical-questions", {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export async function completeHookMiniAction(token: string) {
+  return apiFetch<{ message: string }>("/v2/hook/mini-action/complete", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  })
+}
+
+export type ExamV2ListItem = {
+  id: number
+  source: string
+  year: number
+  title: string
+  total_questions: number
+  has_answer_key: number
+  official_page_url: string | null
+}
+
+export type ExamV2Structure = {
+  id: number
+  source: string
+  year: number
+  title: string
+  total_questions: number
+  days: Array<{
+    id: number
+    label: string
+    day_order: number
+    booklets: Array<{
+      id: number
+      color: string
+      pdf_url: string | null
+      answer_key_url: string | null
+      official_page_url: string | null
+    }>
+  }>
+  official_page_url: string | null
+}
+
+export async function listExamsV2(source?: string) {
+  const suffix = source ? `?source=${encodeURIComponent(source)}` : ""
+  return apiFetch<{ items: ExamV2ListItem[] }>(`/v2/exams${suffix}`)
+}
+
+export async function getExamV2Structure(examId: number) {
+  return apiFetch<ExamV2Structure>(`/v2/exams/${examId}/structure`)
+}
+
+export async function submitExamV2Answers(examId: number, answers: Array<string | null>) {
+  return apiFetch<ExamSubmissionResponse>(`/v2/exams/${examId}/submit`, {
+    method: "POST",
+    body: JSON.stringify({ answers }),
+  })
 }
