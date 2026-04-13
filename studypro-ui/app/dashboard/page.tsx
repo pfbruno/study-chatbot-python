@@ -557,25 +557,21 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-white"><Lightbulb className="h-4 w-4 text-primary" /> Insights inteligentes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-white/70">
-            {entitlements?.can_access_smart_insights ? <InsightsPanel analytics={analytics} /> : <p className="rounded-xl border border-white/10 bg-black/20 p-3">Desbloqueie insights inteligentes no Pro.</p>}
-            <div className="rounded-xl border border-white/10 bg-black/20 p-3">{comparison.message}</div>
-            {criticalQuestions[0] ? <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">{criticalQuestions[0].label}: {criticalQuestions[0].detail}</div> : null}
-            <CardTitle className="flex items-center gap-2 text-base text-white">
-              <Lightbulb className="h-4 w-4 text-primary" /> Insights inteligentes
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-white/70">
-            {entitlements?.can_access_smart_insights ? (
-              <InsightsPanel analytics={analytics} />
-            ) : (
-              <p className="rounded-xl border border-white/10 bg-black/20 p-3">
-                Desbloqueie insights inteligentes no Pro.
-              </p>
-            )}
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2 text-base text-white">
+      <Lightbulb className="h-4 w-4 text-primary" /> Insights inteligentes
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="space-y-3 text-sm text-white/70">
+    {entitlements?.can_access_smart_insights ? (
+      <InsightsPanel analytics={analytics} />
+    ) : (
+      <p className="rounded-xl border border-white/10 bg-black/20 p-3">
+        Desbloqueie insights inteligentes no Pro.
+      </p>
+    )}
+  </CardContent>
+</Card>
             <div className="rounded-xl border border-white/10 bg-black/20 p-3">
               {comparison.message}
             </div>
