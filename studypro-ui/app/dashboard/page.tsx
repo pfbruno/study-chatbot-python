@@ -489,6 +489,14 @@ export default function DashboardPage() {
                 Desbloqueie insights inteligentes no Pro.
               </p>
             )}
+            <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+              {comparison.message}
+            </div>
+            {criticalQuestions[0] ? (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3">
+                {criticalQuestions[0].label}: {criticalQuestions[0].detail}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       </div>

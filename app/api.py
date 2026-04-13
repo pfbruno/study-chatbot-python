@@ -52,6 +52,8 @@ from app.exams import (
     list_exam_types,
     submit_exam_answers,
 )
+from app.exams.routers import router as exams_v2_router
+from app.exams.models import create_exam_tables
 from app.question_bank import get_question_bank_metadata
 from app.simulations import generate_random_simulation, submit_random_simulation
 
@@ -87,6 +89,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(exams_v2_router, prefix="/v2")
 
 
 class QuestionInput(BaseModel):
@@ -607,6 +611,7 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
 @app.on_event("startup")
 def startup_event() -> None:
     create_table()
+    create_exam_tables()
 
 
 @app.get("/", tags=["health"])
