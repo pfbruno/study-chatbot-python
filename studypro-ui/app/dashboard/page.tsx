@@ -341,66 +341,57 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 text-white">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="mb-2 inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
-            {topLoading ? "Plano ..." : `Plano ${entitlements?.is_pro ? "PRO" : "FREE"}`}
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard inteligente</h1>
-          <p className="text-sm text-white/60">Analytics V2 em tempo real com visão unificada de simulados e provas.</p>
-            Plano {entitlements?.is_pro ? "PRO" : "FREE"}
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard inteligente</h1>
-          <p className="text-sm text-white/60">
-            Analytics V2 em tempo real com visão unificada de simulados e provas.
-          </p>
+  <div className="space-y-6 text-white">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <div className="mb-2 inline-flex rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white/80">
+          {topLoading ? "Plano ..." : `Plano ${entitlements?.is_pro ? "PRO" : "FREE"}`}
         </div>
-
-        <button
-          type="button"
-          onClick={() => void handleRefresh()}
-          disabled={isRefreshing}
-          onClick={() => void loadBaseData(true)}
-          disabled={isLoading || isRefreshing}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 disabled:opacity-60"
-        >
-          {isRefreshing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Atualizar
-        </button>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard inteligente</h1>
+        <p className="text-sm text-white/60">
+          Analytics V2 em tempo real com visão unificada de simulados e provas.
+        </p>
       </div>
 
-      {topError ? <SectionError message={topError} /> : null}
+      <button
+        type="button"
+        onClick={() => void handleRefresh()}
+        disabled={isRefreshing}
+        className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 disabled:opacity-60"
+      >
+        {isRefreshing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <RefreshCw className="h-4 w-4" />
+        )}
+        Atualizar
+      </button>
+    </div>
 
-      {nextAction ? (
-        <Card className="border-primary/40 bg-gradient-to-r from-primary/20 to-emerald-500/10">
-          <CardHeader>
-            <CardTitle className="text-xl text-white">Seu próximo passo</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-lg font-semibold text-white">{nextAction.title}</p>
-              <p className="text-sm text-white/70">{nextAction.description}</p>
-              <p className="mt-1 text-xs text-white/50">Prioridade {nextAction.priority} · {nextAction.reason}</p>
-            </div>
-            <Link href={nextAction.cta_href} className="inline-flex rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black">
-            </div>
-            <Link
-              href={nextAction.cta_href}
-              className="inline-flex rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black"
-            >
-              {nextAction.cta_label}
-            </Link>
-          </CardContent>
-        </Card>
-      ) : (
-        <SkeletonCard title="Seu próximo passo" loading={topLoading} fallback="Sem recomendação neste momento." />
-      )}
-      ) : null}
+    {topError ? <SectionError message={topError} /> : null}
+
+    {nextAction ? (
+      <Card className="border-primary/40 bg-gradient-to-r from-primary/20 to-emerald-500/10">
+        <CardHeader>
+          <CardTitle className="text-xl text-white">Seu próximo passo</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-lg font-semibold text-white">{nextAction.title}</p>
+            <p className="text-sm text-white/70">{nextAction.description}</p>
+            <p className="mt-1 text-xs text-white/50">
+              Prioridade {nextAction.priority} · {nextAction.reason}
+            </p>
+          </div>
+          <Link
+            href={nextAction.cta_href}
+            className="inline-flex rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black"
+          >
+            {nextAction.cta_label}
+          </Link>
+        </CardContent>
+      </Card>
+    ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <Card className="border-white/10 bg-white/5">
