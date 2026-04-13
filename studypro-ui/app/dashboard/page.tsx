@@ -394,55 +394,46 @@ export default function DashboardPage() {
     ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <Card className="border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="text-base text-white">Streak de estudo</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-white/80">
-            <p>Streak atual: <strong>{hookStatus?.streak.current_streak ?? 0}</strong> dias</p>
-            <p>Melhor streak: <strong>{hookStatus?.streak.best_streak ?? 0}</strong> dias</p>
-            <p className={hookStatus?.streak.at_risk ? "text-amber-300" : "text-emerald-300"}>
-              {hookStatus?.streak.at_risk ? "Sua streak está em risco hoje." : "Sua streak está protegida hoje."}
-            <p>
-              Streak atual: <strong>{hookStatus?.streak.current_streak ?? 0}</strong> dias
-            </p>
-            <p>
-              Melhor streak: <strong>{hookStatus?.streak.best_streak ?? 0}</strong> dias
-            </p>
-            <p className={hookStatus?.streak.at_risk ? "text-amber-300" : "text-emerald-300"}>
-              {hookStatus?.streak.at_risk
-                ? "Sua streak está em risco hoje."
-                : "Sua streak está protegida hoje."}
-            </p>
-          </CardContent>
-        </Card>
+  <Card className="border-white/10 bg-white/5">
+    <CardHeader>
+      <CardTitle className="text-base text-white">Streak de estudo</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-2 text-sm text-white/80">
+      <p>
+        Streak atual: <strong>{hookStatus?.streak.current_streak ?? 0}</strong> dias
+      </p>
+      <p>
+        Melhor streak: <strong>{hookStatus?.streak.best_streak ?? 0}</strong> dias
+      </p>
+      <p className={hookStatus?.streak.at_risk ? "text-amber-300" : "text-emerald-300"}>
+        {hookStatus?.streak.at_risk
+          ? "Sua streak está em risco hoje."
+          : "Sua streak está protegida hoje."}
+      </p>
+    </CardContent>
+  </Card>
 
-        <Card className="border-white/10 bg-white/5">
-          <CardHeader>
-            <CardTitle className="text-base text-white">Metas diárias</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-white/80">
-            <p>Questões: {dailyGoals?.progress.questions ?? 0}/{dailyGoals?.targets.questions ?? 0}</p>
-            <p>Simulados: {dailyGoals?.progress.simulations ?? 0}/{dailyGoals?.targets.simulations ?? 0}</p>
-            <p>Minutos: {dailyGoals?.progress.minutes ?? 0}/{dailyGoals?.targets.minutes ?? 0}</p>
-            <p>Revisão concluída: {dailyGoals?.progress.review_completed ? "Sim" : "Não"}</p>
-            <p>
-              Questões: {dailyGoals?.progress.questions ?? 0}/{dailyGoals?.targets.questions ?? 0}
-            </p>
-            <p>
-              Simulados: {dailyGoals?.progress.simulations ?? 0}/
-              {dailyGoals?.targets.simulations ?? 0}
-            </p>
-            <p>
-              Minutos: {dailyGoals?.progress.minutes ?? 0}/{dailyGoals?.targets.minutes ?? 0}
-            </p>
-            <p>
-              Revisão concluída: {dailyGoals?.progress.review_completed ? "Sim" : "Não"}
-            </p>
-            <Progress value={(dailyGoals?.completion_ratio ?? 0) * 100} className="h-2" />
-          </CardContent>
-        </Card>
-      </div>
+  <Card className="border-white/10 bg-white/5">
+    <CardHeader>
+      <CardTitle className="text-base text-white">Metas diárias</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-3 text-sm text-white/80">
+      <p>
+        Questões: {dailyGoals?.progress.questions ?? 0}/{dailyGoals?.targets.questions ?? 0}
+      </p>
+      <p>
+        Simulados: {dailyGoals?.progress.simulations ?? 0}/{dailyGoals?.targets.simulations ?? 0}
+      </p>
+      <p>
+        Minutos: {dailyGoals?.progress.minutes ?? 0}/{dailyGoals?.targets.minutes ?? 0}
+      </p>
+      <p>
+        Revisão concluída: {dailyGoals?.progress.review_completed ? "Sim" : "Não"}
+      </p>
+      <Progress value={(dailyGoals?.completion_ratio ?? 0) * 100} className="h-2" />
+    </CardContent>
+  </Card>
+</div>
 
       <Card className="border-white/10 bg-white/5">
         <CardHeader>
