@@ -455,6 +455,7 @@ export default function DashboardPage() {
     </CardContent>
   </Card>
 
+ <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
   <Card className="border-white/10 bg-white/5">
     <CardHeader>
       <CardTitle className="flex items-center gap-2 text-base text-white">
@@ -479,30 +480,30 @@ export default function DashboardPage() {
         )}
       </div>
     </CardContent>
-</Card>
-</div>
+  </Card>
 
-<Card className="border-white/10 bg-white/5">
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2 text-base text-white">
-      <Clock3 className="h-4 w-4 text-primary" /> Desempenho recente
-    </CardTitle>
-  </CardHeader>
-  <CardContent className="space-y-3">
-    {recentPerformance.length === 0 ? (
-      <p className="text-sm text-white/60">Sem dados recentes.</p>
-    ) : (
-      recentPerformance.map((item) => (
-        <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
-          <p className="text-sm font-medium text-white">{item.title}</p>
-          <p className="mt-1 text-xs text-white/60">
-            {item.category} · {item.createdAt}
-          </p>
-        </div>
-      ))
-    )}
-  </CardContent>
-</Card>
+  <Card className="border-white/10 bg-white/5">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2 text-base text-white">
+        <Clock3 className="h-4 w-4 text-primary" /> Desempenho recente
+      </CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-3">
+      {recentPerformance.length === 0 ? (
+        <p className="text-sm text-white/60">Sem dados recentes.</p>
+      ) : (
+        recentPerformance.map((item) => (
+          <div key={item.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <p className="text-sm font-medium text-white">{item.title}</p>
+            <p className="mt-1 text-xs text-white/60">
+              {item.category} · {item.createdAt}
+            </p>
+          </div>
+        ))
+      )}
+    </CardContent>
+  </Card>
+</div>
       
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
