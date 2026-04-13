@@ -3,10 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-  "https://study-chatbot-python.onrender.com";
+import { getBillingStatus } from "@/lib/api";
 
 const AUTH_TOKEN_KEY = "studypro_auth_token";
 const AUTH_USER_KEY = "studypro_auth_user";
@@ -19,19 +16,6 @@ type AuthUser = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
-};
-
-type AuthMeResponse = {
-  user: AuthUser;
-  usage: {
-    scope: "user";
-    plan: "free" | "pro";
-    usage_date: string;
-    simulations_generated_today: number;
-    daily_limit: number | null;
-    remaining_today: number | null;
-    can_generate: boolean;
-  };
 };
 
 type SyncStatus =
@@ -77,20 +61,7 @@ function SuccessPageContent() {
 
     try {
       for (let attempt = 1; attempt <= 8; attempt += 1) {
-        const response = await fetch(`${API_BASE_URL}/auth/me`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          const error = await safeReadError(response);
-          throw new Error(error || "Não foi possível sincronizar sua conta.");
-        }
-
-        const data: AuthMeResponse = await response.json();
+        const data = await getBillingStatus(token);
         setUser(data.user);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
 
@@ -237,30 +208,4 @@ function renderStatus(status: SyncStatus): string {
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function safeReadError(response: Response): Promise<string> {
-  try {
-    const data = await response.json();
-
-    if (typeof data?.detail === "string") {
-      return data.detail;
-    }
-
-    if (Array.isArray(data?.detail)) {
-      return data.detail
-        .map((item: unknown) => {
-          if (typeof item === "string") return item;
-          if (item && typeof item === "object" && "msg" in item) {
-            return String((item as { msg: string }).msg);
-          }
-          return "Erro de validação.";
-        })
-        .join(" | ");
-    }
-
-    return "Erro na requisição.";
-  } catch {
-    return "Erro na requisição.";
-  }
 }
