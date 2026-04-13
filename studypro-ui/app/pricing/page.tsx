@@ -314,6 +314,27 @@ function PricingPageContent() {
             </div>
           </aside>
         </div>
+
+        <section className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-8">
+          <h3 className="text-xl font-semibold">Comparativo Free vs Pro</h3>
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-neutral-400">
+                  <th className="py-3 pr-4 font-medium">Recurso</th>
+                  <th className="py-3 pr-4 font-medium">Free</th>
+                  <th className="py-3 font-medium text-emerald-300">Pro</th>
+                </tr>
+              </thead>
+              <tbody>
+                <PlanRow feature="Geração diária de simulados" free="Limitada" pro="Ilimitada" />
+                <PlanRow feature="Fluxo de cobrança Stripe" free="Não" pro="Sim" />
+                <PlanRow feature="Sincronização automática de plano" free="Básica" pro="Completa" />
+                <PlanRow feature="Acesso contínuo a simulados" free="Parcial" pro="Total" />
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </main>
   );
@@ -344,6 +365,24 @@ function FeatureItem({ text }: { text: string }) {
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-neutral-200">
       {text}
     </div>
+  );
+}
+
+function PlanRow({
+  feature,
+  free,
+  pro,
+}: {
+  feature: string;
+  free: string;
+  pro: string;
+}) {
+  return (
+    <tr className="border-b border-white/5">
+      <td className="py-3 pr-4 text-neutral-100">{feature}</td>
+      <td className="py-3 pr-4 text-neutral-400">{free}</td>
+      <td className="py-3 font-medium text-emerald-200">{pro}</td>
+    </tr>
   );
 }
 

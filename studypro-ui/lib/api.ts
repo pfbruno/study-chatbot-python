@@ -139,6 +139,41 @@ export type HistoryItem = {
   created_at: string
 }
 
+export type SimulationV2ListItem = {
+  id: number
+  owner_user_id: number
+  title: string
+  exam_type: string
+  year: number
+  subject: string | null
+  question_count: number
+  rating_avg: number
+  rating_count: number
+}
+
+export type SimulationV2ListResponse = {
+  items: SimulationV2ListItem[]
+}
+
+export type SimulationV2QuestionAnalytics = {
+  question_number: number
+  average_time_seconds: number
+  correct_rate: number
+  difficulty: "easy" | "medium" | "hard"
+}
+
+export type SimulationV2AnalyticsResponse = {
+  simulation_id: number
+  subject: string | null
+  period_days: number | null
+  attempts_count: number
+  average_time_seconds: number
+  accuracy_rate: number
+  error_rate: number
+  most_marked_option: { option: string; count: number } | null
+  questions: SimulationV2QuestionAnalytics[]
+}
+
 export function getApiBaseUrl() {
   return API_BASE_URL
 }
@@ -178,4 +213,24 @@ export async function getStats() {
 
 export async function getHistory() {
   return apiFetch<HistoryItem[]>("/history")
+}
+
+export async function getSimulationsV2(subject?: string) {
+  const params = new URLSearchParams()
+  if (subject) params.set("subject", subject)
+  const suffix = params.toString() ? `?${params.toString()}` : ""
+  return apiFetch<SimulationV2ListResponse>(`/v2/simulados${suffix}`)
+}
+
+export async function getSimulationAnalyticsV2(
+  simulationId: number,
+  options: { periodDays?: number; subject?: string } = {},
+) {
+  const params = new URLSearchParams()
+  if (options.periodDays) params.set("period_days", String(options.periodDays))
+  if (options.subject) params.set("subject", options.subject)
+  const suffix = params.toString() ? `?${params.toString()}` : ""
+  return apiFetch<SimulationV2AnalyticsResponse>(
+    `/v2/simulados/${simulationId}/analytics${suffix}`,
+  )
 }
