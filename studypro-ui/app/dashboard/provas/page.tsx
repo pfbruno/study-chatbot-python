@@ -47,6 +47,9 @@ export default function ProvasPage() {
         <p className="text-muted-foreground">
           Escolha uma instituição para visualizar as provas disponíveis
         </p>
+        <Link href="/dashboard/provas/enem" className="mt-3 inline-flex rounded-lg border border-primary/40 bg-primary/10 px-3 py-1 text-sm text-primary">
+          Explorer ENEM (V2)
+        </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
