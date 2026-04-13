@@ -19,10 +19,13 @@ from app.chatbot import process_question
 from app.database import (
     clear_user_subscription,
     create_auth_token,
+    create_simulation_attempt_v2,
+    create_simulation_v2,
     create_table,
     create_user,
     get_guest_usage,
     get_recent_interactions,
+    get_simulation_analytics_v2,
     get_user_auth_by_email,
     get_user_by_id,
     get_user_by_stripe_customer_id,
@@ -31,7 +34,9 @@ from app.database import (
     increment_guest_simulation_usage,
     increment_user_simulation_usage,
     is_stripe_event_processed,
+    list_simulations_v2,
     mark_stripe_event_processed,
+    rate_simulation_v2,
     revoke_auth_token,
     store_checkout_session_for_user,
     update_user_plan,
@@ -192,6 +197,29 @@ class CheckoutSessionRequest(BaseModel):
             return None
         normalized = value.strip()
         return normalized or None
+
+
+class SimulationV2CreateRequest(BaseModel):
+    title: str = Field(..., min_length=3, max_length=120)
+    exam_type: str = Field(..., min_length=1)
+    year: int = Field(..., ge=1900, le=2100)
+    subject: str | None = Field(default=None, max_length=120)
+    question_count: int = Field(..., gt=0, le=300)
+
+
+class SimulationV2RatingRequest(BaseModel):
+    rating: int = Field(..., ge=1, le=5)
+
+
+class SimulationV2AttemptAnswerInput(BaseModel):
+    question_number: int = Field(..., ge=1)
+    selected_option: str | None = Field(default=None, max_length=8)
+    is_correct: bool
+    time_spent_seconds: float = Field(..., gt=0)
+
+
+class SimulationV2AttemptRequest(BaseModel):
+    answers: list[SimulationV2AttemptAnswerInput] = Field(..., min_length=1)
 
 
 def _now_utc() -> datetime:
@@ -856,3 +884,75 @@ def submit_simulation(payload: RandomSimulationSubmission) -> dict:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/v2/simulados", tags=["simulations-v2"])
+def list_advanced_simulations(subject: str | None = None) -> dict:
+    return {"items": list_simulations_v2(subject=subject)}
+
+
+@app.post("/v2/simulados", tags=["simulations-v2"])
+def create_advanced_simulation(
+    payload: SimulationV2CreateRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    created = create_simulation_v2(
+        owner_user_id=user["id"],
+        title=payload.title.strip(),
+        exam_type=payload.exam_type.strip().lower(),
+        year=payload.year,
+        subject=payload.subject.strip() if payload.subject else None,
+        question_count=payload.question_count,
+    )
+    return {"message": "Simulado criado com sucesso.", "item": created}
+
+
+@app.post("/v2/simulados/{simulation_id}/rating", tags=["simulations-v2"])
+def rate_advanced_simulation(
+    simulation_id: int,
+    payload: SimulationV2RatingRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    updated = rate_simulation_v2(
+        simulation_id=simulation_id,
+        user_id=user["id"],
+        rating=payload.rating,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Simulado não encontrado.")
+    return {"message": "Avaliação registrada com sucesso.", "item": updated}
+
+
+@app.post("/v2/simulados/{simulation_id}/attempts", tags=["simulations-v2"])
+def submit_advanced_simulation_attempt(
+    simulation_id: int,
+    payload: SimulationV2AttemptRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    created = create_simulation_attempt_v2(
+        simulation_id=simulation_id,
+        user_id=user["id"],
+        answers=[answer.model_dump() for answer in payload.answers],
+    )
+    if not created:
+        raise HTTPException(status_code=404, detail="Simulado não encontrado.")
+    return {"message": "Tentativa registrada com sucesso.", "attempt": created}
+
+
+@app.get("/v2/simulados/{simulation_id}/analytics", tags=["simulations-v2"])
+def get_advanced_simulation_analytics(
+    simulation_id: int,
+    period_days: int | None = None,
+    subject: str | None = None,
+) -> dict:
+    analytics = get_simulation_analytics_v2(
+        simulation_id=simulation_id,
+        period_days=period_days,
+        subject=subject,
+    )
+    if not analytics:
+        raise HTTPException(status_code=404, detail="Simulado não encontrado.")
+    return analytics

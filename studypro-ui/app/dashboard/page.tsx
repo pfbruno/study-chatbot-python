@@ -1,81 +1,69 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import {
-  BarChart3,
-  BookOpen,
-  Clock3,
-  Loader2,
-  MessageSquareText,
-  RefreshCw,
-  TrendingUp,
-} from "lucide-react"
+import { BarChart3, Filter, Lightbulb, Loader2, RefreshCw } from "lucide-react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getHistory, getStats, type HistoryItem, type StatsResponse } from "@/lib/api"
+import {
+  getHistory,
+  getSimulationAnalyticsV2,
+  getSimulationsV2,
+  getStats,
+  type HistoryItem,
+  type SimulationV2AnalyticsResponse,
+  type SimulationV2ListItem,
+  type StatsResponse,
+} from "@/lib/api"
+import { AnalyticsCard } from "@/components/dashboard/analytics-card"
+import { PerformanceChart } from "@/components/dashboard/performance-chart"
+import { InsightsPanel } from "@/components/dashboard/insights-panel"
 
-function formatDate(dateString: string) {
-  const date = new Date(dateString)
-
-  if (Number.isNaN(date.getTime())) {
-    return "Data indisponível"
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date)
+function formatSeconds(value: number) {
+  return `${value.toFixed(1)}s`
 }
 
-function normalizeStats(data: StatsResponse | null) {
-  if (!data) {
-    return {
-      totalQuestions: 0,
-      categoryCount: 0,
-      mostFrequentCategory: "Nenhuma ainda",
-      questionsByCategory: {} as Record<string, number>,
-    }
-  }
-
-  const questionsByCategory =
-    data.questions_by_category && typeof data.questions_by_category === "object"
-      ? data.questions_by_category
-      : {}
-
-  return {
-    totalQuestions: Number(data.total_questions ?? 0),
-    categoryCount: Object.keys(questionsByCategory).length,
-    mostFrequentCategory: data.most_frequent_category || "Nenhuma ainda",
-    questionsByCategory,
-  }
+function formatPercent(value: number) {
+  return `${(value * 100).toFixed(1)}%`
 }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<StatsResponse | null>(null)
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [simulations, setSimulations] = useState<SimulationV2ListItem[]>([])
+  const [selectedSimulationId, setSelectedSimulationId] = useState<number | null>(null)
+  const [selectedSubject, setSelectedSubject] = useState<string>("all")
+  const [periodDays, setPeriodDays] = useState<number>(30)
+  const [analytics, setAnalytics] = useState<SimulationV2AnalyticsResponse | null>(null)
+
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function loadDashboardData(showRefreshState = false) {
+  async function loadBaseData(refresh = false) {
     try {
-      if (showRefreshState) {
-        setIsRefreshing(true)
-      } else {
-        setIsLoading(true)
-      }
-
+      if (refresh) setIsRefreshing(true)
+      else setIsLoading(true)
       setError(null)
 
-      const [statsResponse, historyResponse] = await Promise.all([getStats(), getHistory()])
+      const [statsResponse, historyResponse, simulationsResponse] = await Promise.all([
+        getStats(),
+        getHistory(),
+        getSimulationsV2(selectedSubject !== "all" ? selectedSubject : undefined),
+      ])
 
       setStats(statsResponse)
       setHistory(Array.isArray(historyResponse) ? historyResponse : [])
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Não foi possível carregar os dados do dashboard."
+      setSimulations(simulationsResponse.items || [])
 
-      setError(message)
+      if (simulationsResponse.items?.length) {
+        const exists = simulationsResponse.items.some((item) => item.id === selectedSimulationId)
+        setSelectedSimulationId(exists && selectedSimulationId ? selectedSimulationId : simulationsResponse.items[0].id)
+      } else {
+        setSelectedSimulationId(null)
+        setAnalytics(null)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível carregar o dashboard.")
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -83,194 +71,193 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    void loadDashboardData()
-  }, [])
+    void loadBaseData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubject])
 
-  const normalizedStats = useMemo(() => normalizeStats(stats), [stats])
+  useEffect(() => {
+    async function loadAnalytics() {
+      if (!selectedSimulationId) {
+        setAnalytics(null)
+        return
+      }
+      try {
+        const data = await getSimulationAnalyticsV2(selectedSimulationId, {
+          periodDays,
+          subject: selectedSubject !== "all" ? selectedSubject : undefined,
+        })
+        setAnalytics(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Falha ao carregar analytics.")
+      }
+    }
 
-  const categoryEntries = useMemo(() => {
-    const entries = Object.entries(normalizedStats.questionsByCategory)
+    void loadAnalytics()
+  }, [selectedSimulationId, periodDays, selectedSubject])
 
-    return entries.sort((a, b) => b[1] - a[1])
-  }, [normalizedStats.questionsByCategory])
+  const recentPerformance = useMemo(() => {
+    return history.slice(-5).reverse().map((item) => ({
+      id: item.id,
+      title: item.question,
+      category: item.category,
+      createdAt: new Date(item.created_at).toLocaleDateString("pt-BR"),
+    }))
+  }, [history])
 
-  const maxCategoryValue = categoryEntries.length > 0 ? categoryEntries[0][1] : 0
+  const uniqueSubjects = useMemo(() => {
+    const values = simulations
+      .map((item) => item.subject)
+      .filter((subject): subject is string => Boolean(subject))
+    return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b))
+  }, [simulations])
 
-  const recentActivity = useMemo(() => history.slice(0, 6), [history])
-
-  const summaryCards = [
-    {
-      title: "Perguntas analisadas",
-      value: String(normalizedStats.totalQuestions),
-      description: "Total processado pela IA",
-      icon: MessageSquareText,
-    },
-    {
-      title: "Categorias mapeadas",
-      value: String(normalizedStats.categoryCount),
-      description: "Assuntos identificados no histórico",
-      icon: BookOpen,
-    },
-    {
-      title: "Categoria principal",
-      value: normalizedStats.mostFrequentCategory,
-      description: "Tema mais recorrente",
-      icon: TrendingUp,
-    },
-    {
-      title: "Registros recentes",
-      value: String(recentActivity.length),
-      description: "Últimas interações exibidas",
-      icon: Clock3,
-    },
-  ]
+  const topDifficulty = useMemo(() => {
+    if (!analytics?.questions.length) return "N/A"
+    const counts = analytics.questions.reduce(
+      (acc, question) => {
+        acc[question.difficulty] += 1
+        return acc
+      },
+      { easy: 0, medium: 0, hard: 0 },
+    )
+    const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    return ordered[0][0]
+  }, [analytics])
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Acompanhe estatísticas reais do seu estudo e o histórico recente de uso da plataforma.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Analytics reais por simulado com filtros por disciplina e período.</p>
         </div>
-
         <button
           type="button"
-          onClick={() => void loadDashboardData(true)}
+          onClick={() => void loadBaseData(true)}
           disabled={isLoading || isRefreshing}
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm hover:bg-accent disabled:opacity-60"
         >
-          {isRefreshing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          Atualizar dados
+          {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Atualizar
         </button>
       </div>
 
-      {error ? (
-        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </div>
-      ) : null}
+      <Card className="border-border/60 bg-card/80">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Filter className="h-4 w-4 text-primary" /> Filtros
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <select
+            value={selectedSubject}
+            onChange={(event) => setSelectedSubject(event.target.value)}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value="all">Todas as disciplinas</option>
+            {uniqueSubjects.map((subject) => (
+              <option key={subject} value={subject}>
+                {subject}
+              </option>
+            ))}
+          </select>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map((card) => {
-          const Icon = card.icon
+          <select
+            value={selectedSimulationId ?? ""}
+            onChange={(event) => setSelectedSimulationId(Number(event.target.value))}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          >
+            {simulations.length === 0 ? (
+              <option value="">Sem simulados V2</option>
+            ) : (
+              simulations.map((simulation) => (
+                <option key={simulation.id} value={simulation.id}>
+                  {simulation.title} ({simulation.year})
+                </option>
+              ))
+            )}
+          </select>
 
-          return (
-            <Card key={card.title} className="border-border/60 bg-card/80 backdrop-blur">
-              <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-3">
-                <div className="space-y-1">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {card.title}
-                  </CardTitle>
-                  <div className="text-2xl font-semibold tracking-tight text-foreground">
-                    {isLoading ? "..." : card.value}
-                  </div>
-                </div>
+          <select
+            value={periodDays}
+            onChange={(event) => setPeriodDays(Number(event.target.value))}
+            className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+          >
+            <option value={7}>Últimos 7 dias</option>
+            <option value={30}>Últimos 30 dias</option>
+            <option value={90}>Últimos 90 dias</option>
+          </select>
+        </CardContent>
+      </Card>
 
-                <div className="rounded-lg border border-border/60 bg-background/60 p-2">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
-              </CardHeader>
+      {error ? <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</div> : null}
 
-              <CardContent>
-                <p className="text-xs text-muted-foreground">{card.description}</p>
-              </CardContent>
-            </Card>
-          )
-        })}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <AnalyticsCard title="Tempo médio" value={analytics ? formatSeconds(analytics.average_time_seconds) : "-"} subtitle="por simulado" />
+        <AnalyticsCard title="Taxa de acerto" value={analytics ? formatPercent(analytics.accuracy_rate) : "-"} />
+        <AnalyticsCard title="Taxa de erro" value={analytics ? formatPercent(analytics.error_rate) : "-"} />
+        <AnalyticsCard
+          title="Alternativa mais marcada"
+          value={analytics?.most_marked_option?.option ?? "N/A"}
+          subtitle={analytics?.most_marked_option ? `${analytics.most_marked_option.count} marcações` : undefined}
+        />
+        <AnalyticsCard title="Dificuldade predominante" value={topDifficulty} subtitle="baseada em acertos por questão" />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="border-border/60 bg-card/80 backdrop-blur">
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <Card className="border-border/60 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-base">Gráfico de acerto/erro</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {analytics ? <PerformanceChart accuracyRate={analytics.accuracy_rate} errorRate={analytics.error_rate} /> : <p className="text-sm text-muted-foreground">Sem dados para o gráfico.</p>}
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-card/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              Distribuição por categoria
+              <Lightbulb className="h-4 w-4 text-primary" /> Insights
             </CardTitle>
           </CardHeader>
-
           <CardContent>
-            {isLoading ? (
-              <div className="flex min-h-[280px] items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : categoryEntries.length === 0 ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
-                Ainda não há categorias suficientes para exibir.
-              </div>
+            <InsightsPanel analytics={analytics} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <Card className="border-border/60 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-base">Desempenho recente</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {recentPerformance.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem dados recentes.</p>
             ) : (
-              <div className="space-y-4">
-                {categoryEntries.map(([category, value]) => {
-                  const percentage =
-                    maxCategoryValue > 0 ? Math.max((value / maxCategoryValue) * 100, 8) : 0
-
-                  return (
-                    <div key={category} className="space-y-2">
-                      <div className="flex items-center justify-between gap-3 text-sm">
-                        <span className="font-medium text-foreground">{category}</span>
-                        <span className="text-muted-foreground">{value}</span>
-                      </div>
-
-                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              recentPerformance.map((item) => (
+                <div key={item.id} className="rounded-xl border border-border/60 bg-background/50 p-3">
+                  <p className="text-sm font-medium">{item.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {item.category} · {item.createdAt}
+                  </p>
+                </div>
+              ))
             )}
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-card/80 backdrop-blur">
+        <Card className="border-border/60 bg-card/80">
           <CardHeader>
-            <CardTitle className="text-base">Atividade recente</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <BarChart3 className="h-4 w-4 text-primary" /> Contexto geral
+            </CardTitle>
           </CardHeader>
-
-          <CardContent>
-            {isLoading ? (
-              <div className="flex min-h-[280px] items-center justify-center">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : recentActivity.length === 0 ? (
-              <div className="flex min-h-[280px] items-center justify-center rounded-xl border border-dashed border-border text-sm text-muted-foreground">
-                Nenhuma atividade recente encontrada.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {recentActivity.map((item) => (
-                  <div
-                    key={item.id}
-                    className="rounded-xl border border-border/60 bg-background/40 p-4"
-                  >
-                    <div className="mb-2 flex items-start justify-between gap-3">
-                      <span className="rounded-md border border-border/60 bg-muted/50 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        {item.category}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatDate(item.created_at)}
-                      </span>
-                    </div>
-
-                    <p className="line-clamp-2 text-sm font-medium text-foreground">
-                      {item.question}
-                    </p>
-
-                    <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                      {item.response}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>Total de perguntas analisadas: {stats?.total_questions ?? 0}</p>
+            <p>Categoria mais frequente: {stats?.most_frequent_category ?? "N/A"}</p>
+            <p>Simulados v2 carregados: {simulations.length}</p>
+            <p>Tentativas consideradas no período: {analytics?.attempts_count ?? 0}</p>
           </CardContent>
         </Card>
       </div>
