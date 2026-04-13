@@ -174,37 +174,34 @@ export default function DashboardPage() {
 
  const criticalQuestions = useMemo(() => {
   if (!entitlements?.can_access_critical_questions) return []
-  if (!analytics?.questions.length) return []
+  if (!analytics?.questions?.length) return []
+
+  const slowest = [...analytics.questions]
+    .sort((a, b) => b.average_time_seconds - a.average_time_seconds)
+    .slice(0, 3)
+    .map((question) => ({
+      label: `Questão ${question.question_number} mais demorada`,
+      detail: `${formatSeconds(question.average_time_seconds)} em média`,
+    }))
+
+  const hardest = analytics.questions
+    .filter((question) => question.difficulty === "hard")
+    .slice(0, 3)
+    .map((question) => ({
+      label: `Questão ${question.question_number} hard`,
+      detail: `taxa de acerto ${formatPercent(question.correct_rate)}`,
+    }))
+
+  const mostWrong = [...analytics.questions]
+    .sort((a, b) => a.correct_rate - b.correct_rate)
+    .slice(0, 3)
+    .map((question) => ({
+      label: `Questão ${question.question_number} mais errada`,
+      detail: `${formatPercent(question.correct_rate)} de acerto`,
+    }))
 
   return [...mostWrong, ...slowest, ...hardest].slice(0, 6)
 }, [analytics, entitlements?.can_access_critical_questions])
-
-    const slowest = [...analytics.questions]
-      .sort((a, b) => b.average_time_seconds - a.average_time_seconds)
-      .slice(0, 3)
-      .map((question) => ({
-        label: `Questão ${question.question_number} mais demorada`,
-        detail: `${formatSeconds(question.average_time_seconds)} em média`,
-      }))
-
-    const hardest = analytics.questions
-      .filter((question) => question.difficulty === "hard")
-      .slice(0, 3)
-      .map((question) => ({
-        label: `Questão ${question.question_number} hard`,
-        detail: `taxa de acerto ${formatPercent(question.correct_rate)}`,
-      }))
-
-    const mostWrong = [...analytics.questions]
-      .sort((a, b) => a.correct_rate - b.correct_rate)
-      .slice(0, 3)
-      .map((question) => ({
-        label: `Questão ${question.question_number} mais errada`,
-        detail: `${formatPercent(question.correct_rate)} de acerto`,
-      }))
-
-    return [...mostWrong, ...slowest, ...hardest].slice(0, 6)
-  }, [analytics, entitlements?.can_access_critical_questions])
 
   const recentPerformance = useMemo(() => {
     return history.slice(-5).reverse().map((item) => ({
