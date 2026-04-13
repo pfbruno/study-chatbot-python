@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
+import { getBillingStatus, type BillingEntitlements } from "@/lib/api";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -16,22 +17,11 @@ type AuthUser = {
   name: string;
   email: string;
   plan: "free" | "pro";
+  subscription_status?: string;
+  current_period_end?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-};
-
-type AuthMeResponse = {
-  user: AuthUser;
-  usage: {
-    scope: "user";
-    plan: "free" | "pro";
-    usage_date: string;
-    simulations_generated_today: number;
-    daily_limit: number | null;
-    remaining_today: number | null;
-    can_generate: boolean;
-  };
 };
 
 type CheckoutResponse = {
@@ -57,6 +47,7 @@ function PricingPageContent() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(null);
 
   const canceled = useMemo(
     () => searchParams.get("canceled") === "1",
@@ -89,21 +80,9 @@ function PricingPageContent() {
       setErrorMessage("");
 
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/me`, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          const message = await safeReadError(response);
-          throw new Error(message || "Não foi possível carregar os dados da conta.");
-        }
-
-        const data: AuthMeResponse = await response.json();
+        const data = await getBillingStatus(authToken);
         setUser(data.user);
+        setEntitlements(data.entitlements);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
       } catch (error) {
         setErrorMessage(
@@ -282,10 +261,22 @@ function PricingPageContent() {
                 value={user?.plan ? user.plan.toUpperCase() : "FREE"}
               />
               <InfoRow
+                label="Assinatura"
+                value={user?.subscription_status?.toUpperCase() || "INACTIVE"}
+              />
+              <InfoRow
                 label="Usuário"
                 value={user?.name || "Faça login para assinar"}
               />
               <InfoRow label="E-mail" value={user?.email || "—"} />
+              <InfoRow
+                label="Analytics avançado"
+                value={
+                  entitlements?.can_access_advanced_analytics
+                    ? "Liberado"
+                    : "Disponível no PRO"
+                }
+              />
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-neutral-300">

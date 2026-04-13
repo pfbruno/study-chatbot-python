@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import json
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -12,6 +13,8 @@ id,
 name,
 email,
 plan,
+subscription_status,
+current_period_end,
 is_active,
 created_at,
 updated_at,
@@ -29,6 +32,8 @@ email,
 password_hash,
 password_salt,
 plan,
+subscription_status,
+current_period_end,
 is_active,
 created_at,
 updated_at,
@@ -41,6 +46,8 @@ plan_updated_at
 
 
 STRIPE_USER_COLUMNS: dict[str, str] = {
+    "subscription_status": "TEXT NOT NULL DEFAULT 'inactive'",
+    "current_period_end": "TEXT",
     "stripe_customer_id": "TEXT",
     "stripe_subscription_id": "TEXT",
     "stripe_price_id": "TEXT",
@@ -100,6 +107,8 @@ def create_table() -> None:
             password_hash TEXT NOT NULL,
             password_salt TEXT NOT NULL,
             plan TEXT NOT NULL DEFAULT 'free',
+            subscription_status TEXT NOT NULL DEFAULT 'inactive',
+            current_period_end TEXT,
             is_active INTEGER NOT NULL DEFAULT 1,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
@@ -227,6 +236,45 @@ def create_table() -> None:
         """
     )
 
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS hook_activity_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            event_type TEXT NOT NULL,
+            subject TEXT,
+            score_percentage REAL,
+            time_spent_seconds REAL,
+            metadata_json TEXT,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+        """
+    )
+
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS hook_daily_goals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            goal_date TEXT NOT NULL,
+            target_questions INTEGER NOT NULL DEFAULT 10,
+            target_simulations INTEGER NOT NULL DEFAULT 1,
+            target_exams INTEGER NOT NULL DEFAULT 1,
+            target_minutes INTEGER NOT NULL DEFAULT 30,
+            progress_questions INTEGER NOT NULL DEFAULT 0,
+            progress_simulations INTEGER NOT NULL DEFAULT 0,
+            progress_exams INTEGER NOT NULL DEFAULT 0,
+            progress_minutes INTEGER NOT NULL DEFAULT 0,
+            progress_review_completed INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(user_id, goal_date),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+        """
+    )
+
     conn.commit()
     conn.close()
 
@@ -296,12 +344,13 @@ def create_user(
             password_hash,
             password_salt,
             plan,
+            subscription_status,
             is_active,
             created_at,
             updated_at,
             plan_updated_at
         )
-        VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, 'inactive', 1, ?, ?, ?)
         """,
         (name, email, password_hash, password_salt, plan, now, now, now),
     )
@@ -347,6 +396,8 @@ def get_user_by_stripe_customer_id(stripe_customer_id: str) -> dict | None:
 def update_user_plan(
     user_id: int,
     plan: str,
+    subscription_status: str | None = None,
+    current_period_end: str | None = None,
     stripe_customer_id: str | None = None,
     stripe_subscription_id: str | None = None,
     stripe_price_id: str | None = None,
@@ -359,6 +410,8 @@ def update_user_plan(
         """
         UPDATE users
         SET plan = ?,
+            subscription_status = COALESCE(?, subscription_status),
+            current_period_end = COALESCE(?, current_period_end),
             updated_at = ?,
             plan_updated_at = ?,
             stripe_customer_id = COALESCE(?, stripe_customer_id),
@@ -369,6 +422,8 @@ def update_user_plan(
         """,
         (
             plan,
+            subscription_status,
+            current_period_end,
             now,
             now,
             stripe_customer_id,
@@ -420,6 +475,8 @@ def clear_user_subscription(user_id: int) -> dict | None:
         """
         UPDATE users
         SET plan = 'free',
+            subscription_status = 'inactive',
+            current_period_end = NULL,
             updated_at = ?,
             plan_updated_at = ?,
             stripe_subscription_id = NULL
@@ -1011,4 +1068,217 @@ def get_simulation_analytics_v2(
             else None
         ),
         "questions": per_question,
+    }
+
+
+def record_hook_activity_event(
+    user_id: int,
+    event_type: str,
+    subject: str | None = None,
+    score_percentage: float | None = None,
+    time_spent_seconds: float | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    now = _now_iso()
+    goal_date = datetime.now(UTC).date().isoformat()
+
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO hook_activity_events (
+            user_id,
+            event_type,
+            subject,
+            score_percentage,
+            time_spent_seconds,
+            metadata_json,
+            created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            event_type,
+            subject,
+            score_percentage,
+            time_spent_seconds,
+            json.dumps(metadata or {}),
+            now,
+        ),
+    )
+
+    cursor.execute(
+        """
+        INSERT INTO hook_daily_goals (
+            user_id,
+            goal_date,
+            created_at,
+            updated_at
+        )
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(user_id, goal_date) DO NOTHING
+        """,
+        (user_id, goal_date, now, now),
+    )
+
+    progress_questions = int((metadata or {}).get("questions_answered", 0))
+    progress_minutes = int((metadata or {}).get("minutes_studied", 0))
+    progress_simulations = 1 if event_type == "simulation_completed" else 0
+    progress_exams = 1 if event_type == "exam_completed" else 0
+    progress_review = 1 if event_type == "mini_action_completed" else 0
+
+    cursor.execute(
+        """
+        UPDATE hook_daily_goals
+        SET progress_questions = progress_questions + ?,
+            progress_minutes = progress_minutes + ?,
+            progress_simulations = progress_simulations + ?,
+            progress_exams = progress_exams + ?,
+            progress_review_completed = CASE
+                WHEN ? = 1 THEN 1
+                ELSE progress_review_completed
+            END,
+            updated_at = ?
+        WHERE user_id = ? AND goal_date = ?
+        """,
+        (
+            progress_questions,
+            progress_minutes,
+            progress_simulations,
+            progress_exams,
+            progress_review,
+            now,
+            user_id,
+            goal_date,
+        ),
+    )
+
+    conn.commit()
+    conn.close()
+
+
+def mark_hook_review_goal_completed(user_id: int) -> None:
+    now = _now_iso()
+    goal_date = datetime.now(UTC).date().isoformat()
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO hook_daily_goals (user_id, goal_date, created_at, updated_at, progress_review_completed)
+        VALUES (?, ?, ?, ?, 1)
+        ON CONFLICT(user_id, goal_date) DO UPDATE SET
+            progress_review_completed = 1,
+            updated_at = excluded.updated_at
+        """,
+        (user_id, goal_date, now, now),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_hook_daily_goal(user_id: int, goal_date: str | None = None) -> dict:
+    target_date = goal_date or datetime.now(UTC).date().isoformat()
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT *
+        FROM hook_daily_goals
+        WHERE user_id = ? AND goal_date = ?
+        """,
+        (user_id, target_date),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+
+    return {
+        "user_id": user_id,
+        "goal_date": target_date,
+        "target_questions": 10,
+        "target_simulations": 1,
+        "target_exams": 1,
+        "target_minutes": 30,
+        "progress_questions": 0,
+        "progress_simulations": 0,
+        "progress_exams": 0,
+        "progress_minutes": 0,
+        "progress_review_completed": 0,
+    }
+
+
+def get_hook_recent_events(user_id: int, days: int = 7) -> list[dict]:
+    cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT *
+        FROM hook_activity_events
+        WHERE user_id = ? AND created_at >= ?
+        ORDER BY created_at DESC
+        """,
+        (user_id, cutoff),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_hook_streak_stats(user_id: int) -> dict:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT DISTINCT substr(created_at, 1, 10) AS activity_date
+        FROM hook_activity_events
+        WHERE user_id = ?
+        ORDER BY activity_date DESC
+        """,
+        (user_id,),
+    )
+    dates = [row["activity_date"] for row in cursor.fetchall()]
+    conn.close()
+
+    if not dates:
+        return {
+            "current_streak": 0,
+            "best_streak": 0,
+            "last_activity_date": None,
+            "at_risk": True,
+        }
+
+    parsed = [datetime.fromisoformat(value).date() for value in dates]
+    today = datetime.now(UTC).date()
+
+    current_streak = 0
+    cursor_date = today
+    date_set = set(parsed)
+    while cursor_date in date_set:
+        current_streak += 1
+        cursor_date -= timedelta(days=1)
+
+    if current_streak == 0 and (today - parsed[0]).days <= 1:
+        current_streak = 1
+
+    best_streak = 0
+    running = 0
+    previous = None
+    for day in sorted(date_set):
+        if previous and (day - previous).days == 1:
+            running += 1
+        else:
+            running = 1
+        best_streak = max(best_streak, running)
+        previous = day
+
+    last_activity_date = parsed[0].isoformat()
+    at_risk = (today - parsed[0]).days >= 1
+    return {
+        "current_streak": current_streak,
+        "best_streak": best_streak,
+        "last_activity_date": last_activity_date,
+        "at_risk": at_risk,
     }

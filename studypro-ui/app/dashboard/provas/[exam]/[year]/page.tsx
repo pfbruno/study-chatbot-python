@@ -83,7 +83,14 @@ export default function ExamYearDetailPage() {
       setSubmitting(true)
       setSubmitError(null)
 
-      const response = await submitExamAnswers(exam.exam_type, exam.year, answers)
+      const response = await submitExamAnswers(
+        exam.exam_type,
+        exam.year,
+        answers,
+        typeof window !== "undefined"
+          ? localStorage.getItem("studypro_auth_token") ?? undefined
+          : undefined,
+      )
       setResult(response)
       saveRecentAttempt({
         id: `prova-${exam.exam_type}-${exam.year}-${Date.now()}` ,
