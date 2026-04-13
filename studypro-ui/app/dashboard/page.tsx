@@ -479,7 +479,7 @@ export default function DashboardPage() {
         )}
       </div>
     </CardContent>
-  </Card>
+ </Card>
 </div>
               <Clock3 className="h-4 w-4 text-primary" /> Desempenho recente
             </CardTitle>
@@ -497,7 +497,7 @@ export default function DashboardPage() {
             )}
           </CardContent>
         </Card>
-
+      
         <Card className="border-white/10 bg-white/5">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base text-white">
