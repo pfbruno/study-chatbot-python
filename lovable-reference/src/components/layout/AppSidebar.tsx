@@ -37,6 +37,7 @@ const mainItems = [
   { title: "Chat IA", url: "/app/chat", icon: MessageSquare },
   { title: "Área de Estudo", url: "/app/estudo", icon: Brain },
   { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
+  { title: "Painel Professor", url: "/app/professor", icon: BookOpen },
 ];
 
 const socialItems = [
