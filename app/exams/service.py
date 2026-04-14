@@ -58,7 +58,12 @@ def submit_exam_sheet(
     user_id: int | None = None,
     time_spent_seconds: float | None = None,
 ) -> dict:
-def submit_exam_sheet(exam_id: int, answers: list[str | None]) -> dict:
+def submit_exam_sheet(
+    exam_id: int,
+    answers: list[str | None],
+    user_id: int | None = None,
+    time_spent_seconds: float | None = None,
+) -> dict:
     exam = get_exam_details(exam_id)
     answer_key = exam.get("answer_key") or []
 
@@ -74,77 +79,80 @@ def submit_exam_sheet(exam_id: int, answers: list[str | None]) -> dict:
     wrong_answers = 0
     unanswered_count = 0
     annulled_count = 0
-    results_by_question: list[dict] = []
-    subject_stats: dict[str, dict[str, int]] = {}
+
+    results_by_question = []
+    subject_stats = {}
 
     for index, correct in enumerate(answer_key):
         question_number = index + 1
-        subject_key = _infer_enem_subject(question_number)
-        subject_stats.setdefault(subject_key, {"total": 0, "correct": 0, "wrong": 0, "blank": 0})
-        subject_stats[subject_key]["total"] += 1
+        subject = _infer_enem_subject(question_number)
 
-    for index, correct in enumerate(answer_key):
+        subject_stats.setdefault(subject, {
+            "total": 0,
+            "correct": 0,
+            "wrong": 0,
+            "blank": 0,
+        })
+
+        subject_stats[subject]["total"] += 1
+
         user_answer = answers[index]
+
         normalized_user = (
-            user_answer.upper().strip() if isinstance(user_answer, str) and user_answer.strip() else None
+            user_answer.upper().strip()
+            if isinstance(user_answer, str) and user_answer.strip()
+            else None
         )
+
         normalized_correct = (
-            correct.upper().strip() if isinstance(correct, str) and correct.strip() else None
+            correct.upper().strip()
+            if isinstance(correct, str) and correct.strip()
+            else None
         )
 
         if normalized_correct is None:
             annulled_count += 1
             results_by_question.append({
-                "question_number": index + 1,
+                "question_number": question_number,
                 "user_answer": normalized_user,
                 "correct_answer": None,
                 "status": "annulled",
+                "subject": subject,
             })
             continue
 
         if normalized_user is None:
             unanswered_count += 1
-            subject_stats[subject_key]["blank"] += 1
+            subject_stats[subject]["blank"] += 1
             results_by_question.append({
                 "question_number": question_number,
                 "user_answer": None,
                 "correct_answer": normalized_correct,
                 "status": "blank",
-                "subject": subject_key,
-            results_by_question.append({
-                "question_number": index + 1,
-                "user_answer": None,
-                "correct_answer": normalized_correct,
-                "status": "blank",
+                "subject": subject,
             })
             continue
 
-        status = "correct" if normalized_user == normalized_correct else "wrong"
-        if status == "correct":
+        if normalized_user == normalized_correct:
             correct_answers += 1
-            subject_stats[subject_key]["correct"] += 1
+            subject_stats[subject]["correct"] += 1
+            status = "correct"
         else:
             wrong_answers += 1
-            subject_stats[subject_key]["wrong"] += 1
+            subject_stats[subject]["wrong"] += 1
+            status = "wrong"
 
         results_by_question.append({
             "question_number": question_number,
             "user_answer": normalized_user,
             "correct_answer": normalized_correct,
             "status": status,
-            "subject": subject_key,
-        else:
-            wrong_answers += 1
-
-        results_by_question.append({
-            "question_number": index + 1,
-            "user_answer": normalized_user,
-            "correct_answer": normalized_correct,
-            "status": status,
+            "subject": subject,
         })
 
     valid_questions = len([item for item in answer_key if item is not None])
     score_percentage = round((correct_answers / valid_questions) * 100, 2) if valid_questions else 0.0
+
     subject_breakdown = [
         {
             "subject": subject,
@@ -154,12 +162,14 @@ def submit_exam_sheet(exam_id: int, answers: list[str | None]) -> dict:
             "blank": values["blank"],
             "total": values["total"],
         }
-        for subject, values in sorted(subject_stats.items(), key=lambda item: item[0])
+        for subject, values in subject_stats.items()
     ]
+
     wrong_questions = [
         item for item in results_by_question if item["status"] == "wrong"
     ]
-    attempt_id: int | None = None
+
+    attempt_id = None
     if user_id:
         attempt_id = create_exam_attempt(
             exam_id=exam_id,
@@ -177,8 +187,6 @@ def submit_exam_sheet(exam_id: int, answers: list[str | None]) -> dict:
 
     return {
         "attempt_id": attempt_id,
-
-    return {
         "exam_id": exam_id,
         "title": exam.get("title"),
         "institution": exam.get("source", "exam").upper(),
