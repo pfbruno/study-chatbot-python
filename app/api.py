@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 import json
+import logging
 import os
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -54,7 +55,9 @@ from app.exams import (
 )
 from app.exams.routers import router as exams_v2_router
 from app.exams.models import create_exam_tables
+from app.observability import timing_middleware
 from app.question_bank import get_question_bank_metadata
+from app.recommendations.routers import router as recommendations_v2_router
 from app.simulations import generate_random_simulation, submit_random_simulation
 
 FREE_DAILY_SIMULATION_LIMIT = 3
@@ -72,6 +75,8 @@ FRONTEND_BASE_URL = os.getenv(
 
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
+
+LOGGER = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Study Chatbot API",
@@ -91,6 +96,8 @@ app.add_middleware(
 )
 
 app.include_router(exams_v2_router, prefix="/v2")
+app.include_router(recommendations_v2_router)
+app.middleware("http")(timing_middleware)
 
 
 class QuestionInput(BaseModel):
@@ -641,6 +648,7 @@ def register(payload: RegisterRequest) -> dict:
 
 @app.post("/auth/login", tags=["auth"])
 def login(payload: LoginRequest) -> dict:
+    LOGGER.info("auth.login.attempt", extra={"email": payload.email})
     user = get_user_auth_by_email(payload.email)
     if not user or not bool(user["is_active"]):
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
@@ -821,8 +829,10 @@ async def stripe_webhook(request: Request) -> dict:
 
     event_id = str(event.get("id"))
     event_type = str(event.get("type"))
+    LOGGER.info("stripe.webhook.received", extra={"event_id": event_id, "event_type": event_type})
 
     if is_stripe_event_processed(event_id):
+        LOGGER.info("stripe.webhook.duplicate", extra={"event_id": event_id, "event_type": event_type})
         return {"received": True, "duplicate": True}
 
     data_object = event.get("data", {}).get("object", {})
@@ -847,6 +857,7 @@ async def stripe_webhook(request: Request) -> dict:
             _sync_user_from_subscription(subscription)
 
     mark_stripe_event_processed(event_id, event_type)
+    LOGGER.info("stripe.webhook.processed", extra={"event_id": event_id, "event_type": event_type})
     return {"received": True, "event_type": event_type}
 
 
@@ -1197,6 +1208,27 @@ def _build_critical_questions_for_user(
     }
 
 
+def _build_exam_review_hint(user_id: int) -> dict | None:
+    events = get_hook_recent_events(user_id, days=21)
+    exam_events = [event for event in events if event.get("event_type") == "exam_completed"]
+    if not exam_events:
+        return None
+    worst_exam = min(
+        (event for event in exam_events if event.get("score_percentage") is not None),
+        key=lambda item: float(item["score_percentage"]),
+        default=None,
+    )
+    if not worst_exam:
+        return None
+    metadata = json.loads(worst_exam.get("metadata_json") or "{}")
+    wrong_count = int(metadata.get("wrong_questions_count", 0))
+    return {
+        "score": float(worst_exam["score_percentage"]),
+        "wrong_questions_count": wrong_count,
+        "exam_id": metadata.get("exam_id"),
+    }
+
+
 @app.get("/v2/hook/status", tags=["hook"])
 def get_hook_status(authorization: str | None = Header(default=None)) -> dict:
     user = _get_current_user_or_401(authorization)
@@ -1366,6 +1398,7 @@ def get_hook_next_action(authorization: str | None = Header(default=None)) -> di
     streak = get_hook_streak_stats(user["id"])
     goal = get_hook_daily_goal(user["id"])
     critical = _build_critical_questions_for_user(user, period_days=14)
+    exam_review_hint = _build_exam_review_hint(user["id"])
 
     if streak["at_risk"]:
         return {
@@ -1393,6 +1426,17 @@ def get_hook_next_action(authorization: str | None = Header(default=None)) -> di
             "cta_label": "Revisar questões críticas",
             "cta_href": "/dashboard",
             "action_key": "critical_review",
+        }
+
+    if exam_review_hint and exam_review_hint["score"] < 60:
+        exam_id = exam_review_hint.get("exam_id")
+        cta_href = f"/dashboard/provas/enem/{datetime.now(UTC).year}" if not exam_id else "/dashboard/provas/enem"
+        return {
+            "title": "Revisar sua prova recente",
+            "description": f"Seu último desempenho em prova ficou em {exam_review_hint['score']:.1f}% com {exam_review_hint['wrong_questions_count']} erros.",
+            "cta_label": "Revisar prova",
+            "cta_href": cta_href,
+            "action_key": "exam_review",
         }
 
     return {

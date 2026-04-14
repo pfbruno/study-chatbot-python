@@ -275,8 +275,32 @@ def create_table() -> None:
         """
     )
 
+    _create_indexes(cursor)
+
     conn.commit()
     conn.close()
+
+
+def _create_indexes(cursor: sqlite3.Cursor) -> None:
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_interactions_created_at ON interactions(created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_plan ON users(plan)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_users_subscription_status ON users(subscription_status)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_auth_tokens_user_id ON auth_tokens(user_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_auth_tokens_expires_at ON auth_tokens(expires_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_simulations_owner_created ON simulations_v2(owner_user_id, created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_simulations_subject ON simulations_v2(subject)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_simulations_exam_year ON simulations_v2(exam_type, year)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_simulation_attempts_sim_submitted ON simulation_attempts_v2(simulation_id, submitted_at)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_simulation_attempts_user_submitted ON simulation_attempts_v2(user_id, submitted_at)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_simulation_answers_attempt_question ON simulation_attempt_answers_v2(attempt_id, question_number)"
+    )
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_hook_events_user_created ON hook_activity_events(user_id, created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_hook_events_event_type ON hook_activity_events(event_type)")
 
 
 def save_interaction(question: str, category: str, response: str) -> None:
@@ -818,38 +842,9 @@ def rate_simulation_v2(simulation_id: int, user_id: int, rating: int) -> dict | 
 
 
 def list_simulations_v2(subject: str | None = None) -> list[dict]:
-    conn = connect()
-    cursor = conn.cursor()
-    query = """
-        SELECT
-            simulations_v2.id,
-            simulations_v2.owner_user_id,
-            simulations_v2.title,
-            simulations_v2.exam_type,
-            simulations_v2.year,
-            simulations_v2.subject,
-            simulations_v2.question_count,
-            simulations_v2.created_at,
-            simulations_v2.updated_at,
-            COALESCE(AVG(simulation_ratings_v2.rating), 0) AS rating_avg,
-            COALESCE(COUNT(simulation_ratings_v2.id), 0) AS rating_count
-        FROM simulations_v2
-        LEFT JOIN simulation_ratings_v2
-            ON simulation_ratings_v2.simulation_id = simulations_v2.id
-    """
-    params: tuple[Any, ...] = ()
-    if subject:
-        query += " WHERE LOWER(simulations_v2.subject) = LOWER(?) "
-        params = (subject,)
+    from app.repositories_simulation import list_simulations_v2_repo
 
-    query += """
-        GROUP BY simulations_v2.id
-        ORDER BY rating_avg DESC, rating_count DESC, simulations_v2.created_at DESC
-    """
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
-    conn.close()
-    return [dict(row) for row in rows]
+    return list_simulations_v2_repo(subject=subject)
 
 
 def create_simulation_attempt_v2(
@@ -945,115 +940,70 @@ def get_simulation_analytics_v2(
     period_days: int | None = None,
     subject: str | None = None,
 ) -> dict | None:
+    from app.repositories_simulation import get_simulation_analytics_v2_repo
+
+    return get_simulation_analytics_v2_repo(
+        simulation_id=simulation_id,
+        period_days=period_days,
+        subject=subject,
+    )
+
+
+def record_hook_activity_event(
+    user_id: int,
+    event_type: str,
+    subject: str | None = None,
+    score_percentage: float | None = None,
+    time_spent_seconds: float | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    from app.repositories_hook import record_hook_activity_event_repo
+
+    record_hook_activity_event_repo(
+        user_id=user_id,
+        event_type=event_type,
+        subject=subject,
+        score_percentage=score_percentage,
+        time_spent_seconds=time_spent_seconds,
+        metadata=metadata,
+    )
+
+
+def mark_hook_review_goal_completed(user_id: int) -> None:
+    now = _now_iso()
+    goal_date = datetime.now(UTC).date().isoformat()
     conn = connect()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, subject FROM simulations_v2 WHERE id = ?",
-        (simulation_id,),
-    )
-    simulation = cursor.fetchone()
-    if not simulation:
-        conn.close()
-        return None
-
-    simulation_subject = (simulation["subject"] or "").strip()
-    if subject and simulation_subject.lower() != subject.strip().lower():
-        conn.close()
-        return None
-
-    period_cutoff: str | None = None
-    if period_days is not None and period_days > 0:
-        period_cutoff = (datetime.now(UTC) - timedelta(days=period_days)).isoformat()
-
-    where_clause = "WHERE simulation_id = ?"
-    attempt_params: list[Any] = [simulation_id]
-    if period_cutoff:
-        where_clause += " AND submitted_at >= ?"
-        attempt_params.append(period_cutoff)
-
-    cursor.execute(
-        f"""
-        SELECT
-            COUNT(*) AS attempts_count,
-            COALESCE(AVG(average_time_seconds), 0) AS average_time_seconds,
-            COALESCE(AVG(accuracy_rate), 0) AS accuracy_rate,
-            COALESCE(AVG(error_rate), 0) AS error_rate
-        FROM simulation_attempts_v2
-        {where_clause}
+        """
+        INSERT INTO hook_daily_goals (user_id, goal_date, created_at, updated_at, progress_review_completed)
+        VALUES (?, ?, ?, ?, 1)
+        ON CONFLICT(user_id, goal_date) DO UPDATE SET
+            progress_review_completed = 1,
+            updated_at = excluded.updated_at
         """,
-        tuple(attempt_params),
+        (user_id, goal_date, now, now),
     )
-    summary = dict(cursor.fetchone())
-
-    answer_where = """
-        WHERE simulation_attempts_v2.simulation_id = ?
-          AND selected_option IS NOT NULL
-          AND selected_option != ''
-    """
-    answer_params: list[Any] = [simulation_id]
-    if period_cutoff:
-        answer_where += " AND simulation_attempts_v2.submitted_at >= ?"
-        answer_params.append(period_cutoff)
-
-    cursor.execute(
-        f"""
-        SELECT
-            selected_option,
-            COUNT(*) AS marked_count
-        FROM simulation_attempt_answers_v2
-        INNER JOIN simulation_attempts_v2
-            ON simulation_attempts_v2.id = simulation_attempt_answers_v2.attempt_id
-        {answer_where}
-        GROUP BY selected_option
-        ORDER BY marked_count DESC
-        LIMIT 1
-        """,
-        tuple(answer_params),
-    )
-    top_option = cursor.fetchone()
-
-    question_where = "WHERE simulation_attempts_v2.simulation_id = ?"
-    question_params: list[Any] = [simulation_id]
-    if period_cutoff:
-        question_where += " AND simulation_attempts_v2.submitted_at >= ?"
-        question_params.append(period_cutoff)
-
-    cursor.execute(
-        f"""
-        SELECT
-            question_number,
-            COALESCE(AVG(time_spent_seconds), 0) AS average_time_seconds,
-            COALESCE(AVG(is_correct), 0) AS correct_rate
-        FROM simulation_attempt_answers_v2
-        INNER JOIN simulation_attempts_v2
-            ON simulation_attempts_v2.id = simulation_attempt_answers_v2.attempt_id
-        {question_where}
-        GROUP BY question_number
-        ORDER BY question_number ASC
-        """,
-        tuple(question_params),
-    )
-    per_question_rows = cursor.fetchall()
+    conn.commit()
     conn.close()
 
-    per_question: list[dict] = []
-    for row in per_question_rows:
-        correct_rate = float(row["correct_rate"])
-        if correct_rate >= 0.75:
-            difficulty = "easy"
-        elif correct_rate >= 0.45:
-            difficulty = "medium"
-        else:
-            difficulty = "hard"
-        per_question.append(
-            {
-                "question_number": int(row["question_number"]),
-                "average_time_seconds": float(row["average_time_seconds"]),
-                "correct_rate": correct_rate,
-                "difficulty": difficulty,
-            }
-        )
 
+def get_hook_daily_goal(user_id: int, goal_date: str | None = None) -> dict:
+    from app.repositories_hook import get_hook_daily_goal_repo
+
+    return get_hook_daily_goal_repo(user_id=user_id, goal_date=goal_date)
+
+
+def get_hook_recent_events(user_id: int, days: int = 7) -> list[dict]:
+    from app.repositories_hook import get_hook_recent_events_repo
+
+    return get_hook_recent_events_repo(user_id=user_id, days=days)
+
+
+def get_hook_streak_stats(user_id: int) -> dict:
+    from app.repositories_hook import get_hook_streak_stats_repo
+
+    return get_hook_streak_stats_repo(user_id=user_id)
     return {
         "simulation_id": simulation_id,
         "subject": simulation_subject or None,

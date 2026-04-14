@@ -33,3 +33,4 @@ class ExamAnswerSheetResponse(BaseModel):
 
 class ExamSubmitRequest(BaseModel):
     answers: list[str | None]
+    time_spent_seconds: float | None = None

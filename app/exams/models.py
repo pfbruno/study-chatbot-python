@@ -73,6 +73,32 @@ def create_exam_tables() -> None:
         )
         """
     )
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS exam_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            exam_id INTEGER NOT NULL,
+            user_id INTEGER,
+            submitted_at TEXT NOT NULL,
+            score_percentage REAL NOT NULL,
+            correct_answers INTEGER NOT NULL,
+            wrong_answers INTEGER NOT NULL,
+            unanswered_count INTEGER NOT NULL,
+            total_questions INTEGER NOT NULL,
+            time_spent_seconds REAL,
+            answers_json TEXT NOT NULL,
+            subject_breakdown_json TEXT NOT NULL,
+            wrong_questions_json TEXT NOT NULL,
+            FOREIGN KEY (exam_id) REFERENCES exams_catalog(id) ON DELETE CASCADE
+        )
+        """
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_exam_attempts_exam_submitted ON exam_attempts(exam_id, submitted_at)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_exam_attempts_user_submitted ON exam_attempts(user_id, submitted_at)"
+    )
     conn.commit()
     conn.close()
 
@@ -204,3 +230,158 @@ def get_exam_structure(exam_id: int) -> dict[str, Any] | None:
     exam_dict["days"] = days
     conn.close()
     return exam_dict
+
+
+def create_exam_attempt(
+    exam_id: int,
+    user_id: int | None,
+    score_percentage: float,
+    correct_answers: int,
+    wrong_answers: int,
+    unanswered_count: int,
+    total_questions: int,
+    answers: list[str | None],
+    subject_breakdown: list[dict[str, Any]],
+    wrong_questions: list[dict[str, Any]],
+    time_spent_seconds: float | None = None,
+) -> int:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO exam_attempts (
+            exam_id,
+            user_id,
+            submitted_at,
+            score_percentage,
+            correct_answers,
+            wrong_answers,
+            unanswered_count,
+            total_questions,
+            time_spent_seconds,
+            answers_json,
+            subject_breakdown_json,
+            wrong_questions_json
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            exam_id,
+            user_id,
+            _now_iso(),
+            score_percentage,
+            correct_answers,
+            wrong_answers,
+            unanswered_count,
+            total_questions,
+            time_spent_seconds,
+            json.dumps(answers),
+            json.dumps(subject_breakdown),
+            json.dumps(wrong_questions),
+        ),
+    )
+    attempt_id = int(cursor.lastrowid)
+    conn.commit()
+    conn.close()
+    return attempt_id
+
+
+def get_latest_exam_attempt(exam_id: int, user_id: int) -> dict[str, Any] | None:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT *
+        FROM exam_attempts
+        WHERE exam_id = ? AND user_id = ?
+        ORDER BY submitted_at DESC
+        LIMIT 1
+        """,
+        (exam_id, user_id),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if not row:
+        return None
+    data = dict(row)
+    data["answers"] = json.loads(data.pop("answers_json"))
+    data["subject_breakdown"] = json.loads(data.pop("subject_breakdown_json"))
+    data["wrong_questions"] = json.loads(data.pop("wrong_questions_json"))
+    return data
+
+
+def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT
+            COUNT(*) as attempts_count,
+            COALESCE(AVG(score_percentage), 0) as average_score,
+            COALESCE(AVG(correct_answers * 1.0 / NULLIF(total_questions, 0)), 0) as average_accuracy,
+            COALESCE(AVG(wrong_answers * 1.0 / NULLIF(total_questions, 0)), 0) as average_error_rate,
+            COALESCE(AVG(time_spent_seconds), 0) as average_time_spent_seconds
+        FROM exam_attempts
+        WHERE user_id = ?
+        """,
+        (user_id,),
+    )
+    summary = dict(cursor.fetchone())
+
+    cursor.execute(
+        """
+        SELECT exam_id, score_percentage
+        FROM exam_attempts
+        WHERE user_id = ?
+        ORDER BY score_percentage DESC
+        LIMIT 1
+        """,
+        (user_id,),
+    )
+    best = cursor.fetchone()
+    cursor.execute(
+        """
+        SELECT exam_id, score_percentage
+        FROM exam_attempts
+        WHERE user_id = ?
+        ORDER BY score_percentage ASC
+        LIMIT 1
+        """,
+        (user_id,),
+    )
+    worst = cursor.fetchone()
+    conn.close()
+    return {
+        "attempts_count": int(summary["attempts_count"]),
+        "average_score": round(float(summary["average_score"]), 2),
+        "average_accuracy": round(float(summary["average_accuracy"]) * 100, 2),
+        "average_error_rate": round(float(summary["average_error_rate"]) * 100, 2),
+        "average_time_spent_seconds": round(float(summary["average_time_spent_seconds"]), 2),
+        "best_exam": dict(best) if best else None,
+        "worst_exam": dict(worst) if worst else None,
+    }
+
+
+def list_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict[str, Any]]:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT exam_attempts.*, exams_catalog.title, exams_catalog.source, exams_catalog.year
+        FROM exam_attempts
+        INNER JOIN exams_catalog ON exams_catalog.id = exam_attempts.exam_id
+        WHERE exam_attempts.user_id = ?
+        ORDER BY exam_attempts.submitted_at DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    )
+    rows = []
+    for row in cursor.fetchall():
+        item = dict(row)
+        item["subject_breakdown"] = json.loads(item.pop("subject_breakdown_json"))
+        item["wrong_questions"] = json.loads(item.pop("wrong_questions_json"))
+        item["answers"] = json.loads(item.pop("answers_json"))
+        rows.append(item)
+    conn.close()
+    return rows

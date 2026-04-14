@@ -1,28 +1,45 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getExamYears } from "@/lib/api";
 
-import { listExamsV2, type ExamV2ListItem } from "@/lib/api"
-
-export default function EnemYearsPage() {
-  const [items, setItems] = useState<ExamV2ListItem[]>([])
+export default function EnemPage() {
+  const [years, setYears] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void listExamsV2("enem").then((data) => setItems(data.items || []))
-  }, [])
+    async function load() {
+      try {
+        const data = await getExamYears();
+        setYears(data.years || []);
+      } catch {
+        setYears([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  if (loading) return <div className="p-6">Carregando...</div>;
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-white">ENEM por ano</h1>
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {items.map((item) => (
-          <Link key={item.id} href={`/dashboard/provas/enem/${item.year}`} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-            <p className="text-xl font-semibold">{item.year}</p>
-            <p className="text-sm text-white/60">{item.total_questions} questões</p>
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Provas ENEM</h1>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {years.map((year) => (
+          <Link
+            key={year}
+            href={`/dashboard/provas/enem/${year}`}
+            className="bg-white p-4 rounded-xl shadow hover:bg-gray-100"
+          >
+            {year}
           </Link>
         ))}
       </div>
     </div>
-  )
+  );
 }
