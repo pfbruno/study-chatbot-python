@@ -210,5 +210,3 @@ def get_user_exam_analytics(user_id: int) -> dict:
 def get_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict]:
     create_exam_tables()
     return list_recent_exam_attempts(user_id=user_id, limit=limit)
-        "results_by_question": results_by_question,
-    }
