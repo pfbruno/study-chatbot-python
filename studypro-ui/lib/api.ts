@@ -47,19 +47,24 @@ export async function login(email: string, password: string) {
   });
 }
 
-export async function register(data: any) {
-  return request("/auth/register", {
-    method: "POST",
-    body: data,
-  });
-}
-
 /* ===========================
    USER
 =========================== */
 
 export async function getMe(token: string) {
   return request("/users/me", { token });
+}
+
+/* ===========================
+   BILLING (FIX CRÍTICO)
+=========================== */
+
+export type BillingEntitlements = {
+  plan: "free" | "premium";
+};
+
+export async function getBillingStatus(token?: string) {
+  return request("/billing/status", { token });
 }
 
 /* ===========================
@@ -71,8 +76,17 @@ export async function getDashboardData(token: string) {
 }
 
 /* ===========================
-   EXAMS
+   EXAMS (FIX CRÍTICO)
 =========================== */
+
+export type ExamType = {
+  id: string;
+  name: string;
+};
+
+export async function getExamTypes() {
+  return request("/exams");
+}
 
 export async function getExamYears() {
   return request("/exams/enem");
@@ -80,4 +94,22 @@ export async function getExamYears() {
 
 export async function getExamByYear(year: string) {
   return request(`/exams/enem/${year}`);
+}
+
+export async function getExamByTypeAndYear(
+  type: string,
+  year: string
+) {
+  return request(`/exams/${type}/${year}`);
+}
+
+export async function submitExamAnswers(
+  type: string,
+  year: string,
+  answers: any
+) {
+  return request(`/exams/${type}/${year}/submit`, {
+    method: "POST",
+    body: answers,
+  });
 }
