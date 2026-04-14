@@ -26,10 +26,10 @@ from app.database import (
     create_table,
     create_user,
     get_guest_usage,
-    get_recent_interactions,
     get_hook_daily_goal,
     get_hook_recent_events,
     get_hook_streak_stats,
+    get_recent_interactions,
     get_simulation_analytics_v2,
     get_user_auth_by_email,
     get_user_by_id,
@@ -40,10 +40,10 @@ from app.database import (
     increment_user_simulation_usage,
     is_stripe_event_processed,
     list_simulations_v2,
-    mark_stripe_event_processed,
     mark_hook_review_goal_completed,
-    record_hook_activity_event,
+    mark_stripe_event_processed,
     rate_simulation_v2,
+    record_hook_activity_event,
     revoke_auth_token,
     store_checkout_session_for_user,
     update_user_plan,
@@ -53,8 +53,12 @@ from app.exams import (
     list_exam_types,
     submit_exam_answers,
 )
-from app.exams.routers import router as exams_v2_router
 from app.exams.models import create_exam_tables
+from app.exams.routers import router as exams_v2_router
+from app.exams.service import (
+    get_recent_exam_attempts,
+    get_user_exam_analytics,
+)
 from app.observability import timing_middleware
 from app.question_bank import get_question_bank_metadata
 from app.recommendations.routers import router as recommendations_v2_router
@@ -68,6 +72,7 @@ ALLOWED_PLANS = {"free", "pro"}
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
 STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID", "").strip()
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
+
 FRONTEND_BASE_URL = os.getenv(
     "FRONTEND_BASE_URL",
     "https://study-chatbot-python-uksv.vercel.app",
@@ -80,16 +85,19 @@ LOGGER = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Study Chatbot API",
-    version="1.2.0",
+    version="1.3.0",
     description="API do StudyPro para chat, provas, simulados e monetização com Stripe.",
 )
 
+allowed_origins = [
+    FRONTEND_BASE_URL,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://study-chatbot-python-uksv.vercel.app",
-        "http://localhost:3000",
-    ],
+    allow_origins=list(dict.fromkeys(allowed_origins)),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -280,23 +288,10 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
     return token or None
 
 
-def _serialize_user(user: dict) -> dict:
-    return {
-        "id": user["id"],
-        "name": user["name"],
-        "email": user["email"],
-        "plan": user["plan"],
-        "subscription_status": user.get("subscription_status", "inactive"),
-        "current_period_end": user.get("current_period_end"),
-        "is_active": bool(user["is_active"]),
-        "created_at": user["created_at"],
-        "updated_at": user["updated_at"],
-    }
-
-
 def _parse_iso_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
+
     try:
         parsed = datetime.fromisoformat(value)
         if parsed.tzinfo is None:
@@ -306,12 +301,40 @@ def _parse_iso_datetime(value: str | None) -> datetime | None:
         return None
 
 
+def _serialize_user(user: dict) -> dict:
+    return {
+        "id": user["id"],
+        "name": user["name"],
+        "email": user["email"],
+        "plan": user.get("plan", "free"),
+        "subscription_status": user.get("subscription_status", "inactive"),
+        "current_period_end": user.get("current_period_end"),
+        "is_active": bool(user.get("is_active", 1)),
+        "created_at": user.get("created_at"),
+        "updated_at": user.get("updated_at"),
+    }
+
+
+def _get_current_user(authorization: str | None) -> dict | None:
+    token = _extract_bearer_token(authorization)
+    if not token:
+        return None
+    return get_user_by_token(token)
+
+
+def _get_current_user_or_401(authorization: str | None) -> dict:
+    user = _get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado.")
+    return user
+
+
 def _is_pro_user(user: dict) -> bool:
-    if user.get("plan") != "pro":
+    if str(user.get("plan") or "").lower() != "pro":
         return False
 
     subscription_status = str(user.get("subscription_status") or "").lower()
-    if subscription_status in {"active", "trialing"}:
+    if subscription_status in {"active", "trialing", "past_due"}:
         return True
 
     current_period_end = _parse_iso_datetime(user.get("current_period_end"))
@@ -321,6 +344,7 @@ def _is_pro_user(user: dict) -> bool:
 def _build_entitlements_for_user(user: dict) -> dict:
     is_pro = _is_pro_user(user)
     return {
+        "plan": "pro" if is_pro else "free",
         "is_pro": is_pro,
         "can_access_advanced_analytics": is_pro,
         "can_access_critical_questions": is_pro,
@@ -355,20 +379,6 @@ def _build_guest_key(request: Request) -> str:
     return "guest:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _get_current_user(authorization: str | None) -> dict | None:
-    token = _extract_bearer_token(authorization)
-    if not token:
-        return None
-    return get_user_by_token(token)
-
-
-def _get_current_user_or_401(authorization: str | None) -> dict:
-    user = _get_current_user(authorization)
-    if not user:
-        raise HTTPException(status_code=401, detail="Token inválido ou expirado.")
-    return user
-
-
 def _build_plan_status_for_user(user: dict) -> dict:
     usage_date = _today_str()
     usage = get_user_usage(user["id"], usage_date)
@@ -401,6 +411,7 @@ def _build_plan_status_for_guest(request: Request) -> dict:
     guest_key = _build_guest_key(request)
     usage = get_guest_usage(guest_key, usage_date)
     remaining = max(0, GUEST_DAILY_SIMULATION_LIMIT - usage["simulations_generated"])
+
     return {
         "scope": "guest",
         "plan": "guest",
@@ -554,13 +565,16 @@ def _sync_user_from_checkout_session(session: Any) -> dict | None:
         current_period_end = subscription.get("current_period_end")
         if current_period_end:
             current_period_end_iso = datetime.fromtimestamp(
-                int(current_period_end), tz=UTC
+                int(current_period_end),
+                tz=UTC,
             ).isoformat()
 
     return _activate_user_pro_plan(
         user_id=user_id,
         stripe_customer_id=str(stripe_customer_id) if stripe_customer_id else None,
-        stripe_subscription_id=str(stripe_subscription_id) if stripe_subscription_id else None,
+        stripe_subscription_id=str(stripe_subscription_id)
+        if stripe_subscription_id
+        else None,
         stripe_price_id=stripe_price_id,
         stripe_checkout_session_id=str(session.get("id")),
         subscription_status="active",
@@ -599,7 +613,7 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
         else None
     )
 
-    if subscription_status in {"active", "trialing"}:
+    if subscription_status in {"active", "trialing", "past_due"}:
         return _activate_user_pro_plan(
             user_id=user["id"],
             stripe_customer_id=str(stripe_customer_id) if stripe_customer_id else None,
@@ -615,20 +629,72 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
     return get_user_by_id(user["id"])
 
 
+def _build_dashboard_payload(user: dict) -> dict:
+    analytics = get_user_exam_analytics(user["id"])
+    recent_attempts = get_recent_exam_attempts(user["id"], limit=5)
+
+    questions = int(sum(int(item.get("total_questions", 0)) for item in recent_attempts))
+    correct = int(sum(int(item.get("correct_answers", 0)) for item in recent_attempts))
+    wrong = int(sum(int(item.get("wrong_answers", 0)) for item in recent_attempts))
+
+    average_score = float(analytics.get("average_score", 0.0))
+    attempts_count = int(analytics.get("attempts_count", 0))
+
+    if attempts_count == 0:
+        insights = (
+            "Você ainda não possui tentativas registradas. "
+            "Resolva uma prova ou simulado para começar a gerar insights."
+        )
+    elif average_score >= 70:
+        insights = (
+            f"Bom desempenho até agora: média de {average_score:.1f}%. "
+            "Mantenha o ritmo e revise os erros recentes."
+        )
+    elif average_score >= 50:
+        insights = (
+            f"Desempenho intermediário: média de {average_score:.1f}%. "
+            "Priorize revisão das questões erradas para subir a taxa de acerto."
+        )
+    else:
+        insights = (
+            f"Sua média atual é {average_score:.1f}%. "
+            "Recomendação: retomar fundamentos e revisar os últimos erros antes de avançar."
+        )
+
+    return {
+        "questions": questions,
+        "correct": correct,
+        "wrong": wrong,
+        "insights": insights,
+        "average_score": round(average_score, 2),
+        "attempts_count": attempts_count,
+        "recent_attempts": recent_attempts,
+        "user": _serialize_user(user),
+        "usage": _build_plan_status_for_user(user),
+        "entitlements": _build_entitlements_for_user(user),
+    }
+
+
 @app.on_event("startup")
 def startup_event() -> None:
     try:
-        print("STARTUP: criando tabelas...")
+        LOGGER.info("startup.begin")
         create_table()
         create_exam_tables()
-        print("STARTUP OK")
-    except Exception as e:
-        print("ERRO NO STARTUP:", str(e))
+        LOGGER.info("startup.ok")
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.exception("startup.error: %s", exc)
+        raise
 
 
 @app.get("/", tags=["health"])
 def read_root() -> dict:
     return {"message": "Study Chatbot API online"}
+
+
+@app.get("/health", tags=["health"])
+def healthcheck() -> dict:
+    return {"status": "ok"}
 
 
 @app.post("/auth/register", tags=["auth"])
@@ -645,17 +711,19 @@ def register(payload: RegisterRequest) -> dict:
         password_salt=password_salt,
         plan="free",
     )
+
     return {
         "message": "Usuário criado com sucesso.",
-        "user": user,
+        "user": _serialize_user(user),
     }
 
 
 @app.post("/auth/login", tags=["auth"])
 def login(payload: LoginRequest) -> dict:
     LOGGER.info("auth.login.attempt", extra={"email": payload.email})
+
     user = get_user_auth_by_email(payload.email)
-    if not user or not bool(user["is_active"]):
+    if not user or not bool(user.get("is_active")):
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
     if not _verify_password(
@@ -668,21 +736,34 @@ def login(payload: LoginRequest) -> dict:
     token = secrets.token_urlsafe(48)
     expires_at = (_now_utc() + timedelta(days=AUTH_TOKEN_TTL_DAYS)).isoformat()
     create_auth_token(user["id"], token, expires_at)
+
     safe_user = get_user_by_id(user["id"])
+    if not safe_user:
+        raise HTTPException(status_code=500, detail="Falha ao carregar usuário autenticado.")
 
     return {
         "message": "Login realizado com sucesso.",
         "token_type": "Bearer",
         "access_token": token,
         "expires_at": expires_at,
-        "user": safe_user,
-        "usage": _build_plan_status_for_user(safe_user) if safe_user else None,
-        "entitlements": _build_entitlements_for_user(safe_user) if safe_user else None,
+        "user": _serialize_user(safe_user),
+        "usage": _build_plan_status_for_user(safe_user),
+        "entitlements": _build_entitlements_for_user(safe_user),
     }
 
 
 @app.get("/auth/me", tags=["auth"])
 def auth_me(authorization: str | None = Header(default=None)) -> dict:
+    user = _get_current_user_or_401(authorization)
+    return {
+        "user": _serialize_user(user),
+        "usage": _build_plan_status_for_user(user),
+        "entitlements": _build_entitlements_for_user(user),
+    }
+
+
+@app.get("/users/me", tags=["auth"])
+def users_me_alias(authorization: str | None = Header(default=None)) -> dict:
     user = _get_current_user_or_401(authorization)
     return {
         "user": _serialize_user(user),
@@ -699,6 +780,12 @@ def logout(authorization: str | None = Header(default=None)) -> dict:
 
     revoke_auth_token(token)
     return {"message": "Logout realizado com sucesso."}
+
+
+@app.get("/dashboard", tags=["dashboard"])
+def get_dashboard(authorization: str | None = Header(default=None)) -> dict:
+    user = _get_current_user_or_401(authorization)
+    return _build_dashboard_payload(user)
 
 
 @app.patch("/billing/plan", tags=["billing"])
@@ -723,7 +810,7 @@ def update_plan(
 
     return {
         "message": "Plano atualizado com sucesso.",
-        "user": updated_user,
+        "user": _serialize_user(updated_user),
         "usage": _build_plan_status_for_user(updated_user),
         "entitlements": _build_entitlements_for_user(updated_user),
     }
@@ -774,7 +861,7 @@ def create_checkout_session(
                 }
             },
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise HTTPException(
             status_code=500,
             detail=f"Erro ao criar sessão de checkout no Stripe: {exc}",
@@ -834,10 +921,16 @@ async def stripe_webhook(request: Request) -> dict:
 
     event_id = str(event.get("id"))
     event_type = str(event.get("type"))
-    LOGGER.info("stripe.webhook.received", extra={"event_id": event_id, "event_type": event_type})
+    LOGGER.info(
+        "stripe.webhook.received",
+        extra={"event_id": event_id, "event_type": event_type},
+    )
 
     if is_stripe_event_processed(event_id):
-        LOGGER.info("stripe.webhook.duplicate", extra={"event_id": event_id, "event_type": event_type})
+        LOGGER.info(
+            "stripe.webhook.duplicate",
+            extra={"event_id": event_id, "event_type": event_type},
+        )
         return {"received": True, "duplicate": True}
 
     data_object = event.get("data", {}).get("object", {})
@@ -862,7 +955,10 @@ async def stripe_webhook(request: Request) -> dict:
             _sync_user_from_subscription(subscription)
 
     mark_stripe_event_processed(event_id, event_type)
-    LOGGER.info("stripe.webhook.processed", extra={"event_id": event_id, "event_type": event_type})
+    LOGGER.info(
+        "stripe.webhook.processed",
+        extra={"event_id": event_id, "event_type": event_type},
+    )
     return {"received": True, "event_type": event_type}
 
 
@@ -885,6 +981,7 @@ def get_simulation_entitlement(
         "user": None,
         "usage": _build_plan_status_for_guest(request),
         "entitlements": {
+            "plan": "guest",
             "is_pro": False,
             "can_access_advanced_analytics": False,
             "can_access_critical_questions": False,
@@ -1056,6 +1153,7 @@ def create_advanced_simulation(
 ) -> dict:
     user = _get_current_user_or_401(authorization)
     entitlements = _build_entitlements_for_user(user)
+
     if (
         not entitlements["can_generate_advanced_simulations"]
         and payload.question_count > 30
@@ -1064,6 +1162,7 @@ def create_advanced_simulation(
             status_code=403,
             detail="Disponível no PRO: simulados avançados com mais de 30 questões.",
         )
+
     created = create_simulation_v2(
         owner_user_id=user["id"],
         title=payload.title.strip(),
@@ -1099,6 +1198,7 @@ def submit_advanced_simulation_attempt(
     authorization: str | None = Header(default=None),
 ) -> dict:
     user = _get_current_user_or_401(authorization)
+
     created = create_simulation_attempt_v2(
         simulation_id=simulation_id,
         user_id=user["id"],
@@ -1106,16 +1206,22 @@ def submit_advanced_simulation_attempt(
     )
     if not created:
         raise HTTPException(status_code=404, detail="Simulado não encontrado.")
+
     record_hook_activity_event(
         user_id=user["id"],
         event_type="simulation_completed",
         score_percentage=float(created["accuracy_rate"] * 100),
-        time_spent_seconds=float(created["average_time_seconds"] * len(payload.answers)),
+        time_spent_seconds=float(
+            created["average_time_seconds"] * len(payload.answers)
+        ),
         metadata={
             "questions_answered": len(payload.answers),
-            "minutes_studied": int((created["average_time_seconds"] * len(payload.answers)) / 60),
+            "minutes_studied": int(
+                (created["average_time_seconds"] * len(payload.answers)) / 60
+            ),
         },
     )
+
     return {"message": "Tentativa registrada com sucesso.", "attempt": created}
 
 
@@ -1133,6 +1239,7 @@ def get_advanced_simulation_analytics(
     )
     if not analytics:
         raise HTTPException(status_code=404, detail="Simulado não encontrado.")
+
     user = _get_current_user(authorization)
     if not user:
         return {
@@ -1202,9 +1309,12 @@ def _build_critical_questions_for_user(
     questions = analytics.get("questions", [])
     most_wrong = sorted(questions, key=lambda item: item["correct_rate"])[:6]
     slowest = sorted(
-        questions, key=lambda item: item["average_time_seconds"], reverse=True
+        questions,
+        key=lambda item: item["average_time_seconds"],
+        reverse=True,
     )[:6]
     hard = [item for item in questions if item["difficulty"] == "hard"][:6]
+
     return {
         "source_simulation_id": simulation_id,
         "most_wrong": most_wrong,
@@ -1215,18 +1325,27 @@ def _build_critical_questions_for_user(
 
 def _build_exam_review_hint(user_id: int) -> dict | None:
     events = get_hook_recent_events(user_id, days=21)
-    exam_events = [event for event in events if event.get("event_type") == "exam_completed"]
+    exam_events = [
+        event for event in events if event.get("event_type") == "exam_completed"
+    ]
     if not exam_events:
         return None
+
     worst_exam = min(
-        (event for event in exam_events if event.get("score_percentage") is not None),
+        (
+            event
+            for event in exam_events
+            if event.get("score_percentage") is not None
+        ),
         key=lambda item: float(item["score_percentage"]),
         default=None,
     )
     if not worst_exam:
         return None
+
     metadata = json.loads(worst_exam.get("metadata_json") or "{}")
     wrong_count = int(metadata.get("wrong_questions_count", 0))
+
     return {
         "score": float(worst_exam["score_percentage"]),
         "wrong_questions_count": wrong_count,
@@ -1247,6 +1366,7 @@ def get_hook_status(authorization: str | None = Header(default=None)) -> dict:
 def get_hook_daily_goals(authorization: str | None = Header(default=None)) -> dict:
     user = _get_current_user_or_401(authorization)
     goal = get_hook_daily_goal(user["id"])
+
     progress = {
         "questions": min(goal["progress_questions"], goal["target_questions"]),
         "simulations": min(goal["progress_simulations"], goal["target_simulations"]),
@@ -1254,6 +1374,7 @@ def get_hook_daily_goals(authorization: str | None = Header(default=None)) -> di
         "minutes": min(goal["progress_minutes"], goal["target_minutes"]),
         "review_completed": bool(goal["progress_review_completed"]),
     }
+
     completion_ratio = (
         (
             progress["questions"] / max(1, goal["target_questions"])
@@ -1263,6 +1384,7 @@ def get_hook_daily_goals(authorization: str | None = Header(default=None)) -> di
         )
         / 4
     )
+
     return {
         "goal_date": goal["goal_date"],
         "targets": {
@@ -1298,8 +1420,10 @@ def get_hook_critical_questions(
     user = _get_current_user_or_401(authorization)
     entitlements = _build_entitlements_for_user(user)
     critical = _build_critical_questions_for_user(user, period_days=period_days)
+
     if entitlements["can_access_critical_questions"]:
         return {"premium_locked": False, **critical}
+
     return {
         "premium_locked": True,
         "premium_message": "Disponível no Pro: questões críticas completas.",
@@ -1319,7 +1443,7 @@ def get_hook_weekly_summary(
     entitlements = _build_entitlements_for_user(user)
     streak = get_hook_streak_stats(user["id"])
 
-    total_questions = sum(
+    total_questions_answered = sum(
         int(
             (
                 event.get("metadata_json")
@@ -1329,10 +1453,17 @@ def get_hook_weekly_summary(
         )
         for event in events
     )
-    simulations = sum(1 for event in events if event["event_type"] == "simulation_completed")
+    simulations = sum(
+        1 for event in events if event["event_type"] == "simulation_completed"
+    )
     exams = sum(1 for event in events if event["event_type"] == "exam_completed")
-    scores = [float(event["score_percentage"]) for event in events if event["score_percentage"] is not None]
+    scores = [
+        float(event["score_percentage"])
+        for event in events
+        if event["score_percentage"] is not None
+    ]
     avg_score = sum(scores) / len(scores) if scores else 0.0
+
     subjects: dict[str, list[float]] = {}
     for event in events:
         subject = (event.get("subject") or "").strip()
@@ -1349,6 +1480,7 @@ def get_hook_weekly_summary(
     )
     worst_subject = ranked_subjects[0][0] if ranked_subjects else None
     best_subject = ranked_subjects[-1][0] if ranked_subjects else None
+
     minutes = sum(
         int(
             (
@@ -1370,7 +1502,7 @@ def get_hook_weekly_summary(
         return {
             "premium_locked": True,
             "summary": {
-                "total_questions": total_questions,
+                "total_questions": total_questions_answered,
                 "simulations_completed": simulations,
                 "exams_completed": exams,
                 "average_accuracy": round(avg_score, 1),
@@ -1383,7 +1515,7 @@ def get_hook_weekly_summary(
     return {
         "premium_locked": False,
         "summary": {
-            "total_questions": total_questions,
+            "total_questions": total_questions_answered,
             "simulations_completed": simulations,
             "exams_completed": exams,
             "average_accuracy": round(avg_score, 1),
@@ -1434,13 +1566,15 @@ def get_hook_next_action(authorization: str | None = Header(default=None)) -> di
         }
 
     if exam_review_hint and exam_review_hint["score"] < 60:
-        exam_id = exam_review_hint.get("exam_id")
-        cta_href = f"/dashboard/provas/enem/{datetime.now(UTC).year}" if not exam_id else "/dashboard/provas/enem"
         return {
             "title": "Revisar sua prova recente",
-            "description": f"Seu último desempenho em prova ficou em {exam_review_hint['score']:.1f}% com {exam_review_hint['wrong_questions_count']} erros.",
+            "description": (
+                f"Seu último desempenho em prova ficou em "
+                f"{exam_review_hint['score']:.1f}% com "
+                f"{exam_review_hint['wrong_questions_count']} erros."
+            ),
             "cta_label": "Revisar prova",
-            "cta_href": cta_href,
+            "cta_href": "/dashboard/provas/enem",
             "action_key": "exam_review",
         }
 
