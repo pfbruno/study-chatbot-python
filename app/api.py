@@ -617,8 +617,13 @@ def _sync_user_from_subscription(subscription: Any) -> dict | None:
 
 @app.on_event("startup")
 def startup_event() -> None:
-    create_table()
-    create_exam_tables()
+    try:
+        print("STARTUP: criando tabelas...")
+        create_table()
+        create_exam_tables()
+        print("STARTUP OK")
+    except Exception as e:
+        print("ERRO NO STARTUP:", str(e))
 
 
 @app.get("/", tags=["health"])

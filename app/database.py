@@ -4,8 +4,7 @@ import json
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-DB_PATH = os.path.join(os.getcwd(), "data", "chatbot.db")
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+DB_PATH = os.getenv("DB_PATH", "/tmp/chatbot.db")
 
 
 USER_PUBLIC_FIELDS = """
