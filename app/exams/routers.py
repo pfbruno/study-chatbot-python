@@ -3,8 +3,6 @@ from __future__ import annotations
 from fastapi import APIRouter, Header, HTTPException
 
 from app.database import get_hook_recent_events, get_user_by_token
-from fastapi import APIRouter, HTTPException
-
 from app.exams.schemas import ExamSubmitRequest
 from app.exams.service import (
     get_exam_answer_sheet,
@@ -23,9 +21,11 @@ router = APIRouter(tags=["exams-v2"])
 def _current_user_optional(authorization: str | None) -> dict | None:
     if not authorization or not authorization.lower().startswith("bearer "):
         return None
+
     token = authorization.split(" ", 1)[1].strip()
     if not token:
         return None
+
     return get_user_by_token(token)
 
 
@@ -112,11 +112,9 @@ def submit_exam(
 
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
@@ -128,6 +126,7 @@ def latest_exam_attempt(
     user = _current_user_optional(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Autenticação obrigatória.")
+
     attempt = get_exam_latest_attempt(exam_id=exam_id, user_id=int(user["id"]))
     return {"item": attempt}
 
@@ -139,19 +138,36 @@ def exams_analytics_overview(
     user = _current_user_optional(authorization)
     if not user:
         raise HTTPException(status_code=401, detail="Autenticação obrigatória.")
+
     analytics = get_user_exam_analytics(int(user["id"]))
-    is_pro = str(user.get("plan", "")).lower() == "pro" and str(user.get("subscription_status", "")).lower() in {
-        "active",
-        "trialing",
-        "past_due",
-    }
+    is_pro = str(user.get("plan", "")).lower() == "pro" and str(
+        user.get("subscription_status", "")
+    ).lower() in {"active", "trialing", "past_due"}
+
     events = get_hook_recent_events(int(user["id"]), days=30)
-    exam_scores = [float(event["score_percentage"]) for event in events if event["event_type"] == "exam_completed" and event["score_percentage"] is not None]
-    sim_scores = [float(event["score_percentage"]) for event in events if event["event_type"] == "simulation_completed" and event["score_percentage"] is not None]
+
+    exam_scores = [
+        float(event["score_percentage"])
+        for event in events
+        if event["event_type"] == "exam_completed"
+        and event["score_percentage"] is not None
+    ]
+    sim_scores = [
+        float(event["score_percentage"])
+        for event in events
+        if event["event_type"] == "simulation_completed"
+        and event["score_percentage"] is not None
+    ]
+
     comparison = {
-        "exam_average_score": round(sum(exam_scores) / len(exam_scores), 2) if exam_scores else 0.0,
-        "simulation_average_score": round(sum(sim_scores) / len(sim_scores), 2) if sim_scores else 0.0,
+        "exam_average_score": round(sum(exam_scores) / len(exam_scores), 2)
+        if exam_scores
+        else 0.0,
+        "simulation_average_score": round(sum(sim_scores) / len(sim_scores), 2)
+        if sim_scores
+        else 0.0,
     }
+
     if not is_pro:
         return {
             "premium_locked": True,
@@ -160,6 +176,7 @@ def exams_analytics_overview(
             "average_score": analytics["average_score"],
             "comparison": comparison,
         }
+
     return {
         "premium_locked": False,
         **analytics,

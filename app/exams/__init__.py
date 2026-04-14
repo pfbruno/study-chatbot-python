@@ -1,15 +1,15 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 from typing import Any
 
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-CATALOG_PATH = BASE_DIR / "data" / "exams" / "catalog.json"
+CATALOG_PATH = Path(__file__).resolve().parents[2] / "data" / "exams" / "catalog.json"
 
 
 def load_exam_catalog() -> dict[str, Any]:
     if not CATALOG_PATH.exists():
-        raise FileNotFoundError("Arquivo data/exams/catalog.json não encontrado.")
+        raise FileNotFoundError(f"Arquivo {CATALOG_PATH} não encontrado.")
 
     with open(CATALOG_PATH, "r", encoding="utf-8") as file:
         return json.load(file)
@@ -19,27 +19,29 @@ def list_exam_types() -> list[dict[str, Any]]:
     catalog = load_exam_catalog()
     exams = catalog.get("exams", [])
 
-    result = []
+    result: list[dict[str, Any]] = []
     for exam in exams:
-        years = exam.get("years", [])
-        result.append(
-            {
-                "key": exam["key"],
-                "label": exam["label"],
-                "years": [
-                    {
-                        "year": year["year"],
-                        "title": year["title"],
-                        "description": year.get("description", ""),
-                        "question_count": year.get("question_count", 0),
-                        "has_answer_key": bool(year.get("answer_key")),
-                        "has_pdfs": bool(year.get("pdfs")),
-                        "official_page_url": year.get("official_page_url"),
-                    }
-                    for year in sorted(years, key=lambda item: item["year"], reverse=True)
-                ],
-            }
-        )
+      years = exam.get("years", [])
+      result.append(
+          {
+              "key": exam["key"],
+              "label": exam["label"],
+              "years": [
+                  {
+                      "year": year["year"],
+                      "title": year["title"],
+                      "description": year.get("description", ""),
+                      "question_count": year.get("question_count", 0),
+                      "has_answer_key": bool(year.get("answer_key")),
+                      "has_pdfs": bool(year.get("pdfs")),
+                      "official_page_url": year.get("official_page_url"),
+                  }
+                  for year in sorted(
+                      years, key=lambda item: int(item["year"]), reverse=True
+                  )
+              ],
+          }
+      )
 
     return result
 
@@ -87,12 +89,18 @@ def get_exam_with_answer_key(exam_type: str, year: int) -> dict[str, Any]:
     raise FileNotFoundError(f"Prova não encontrada para {exam_type} {year}.")
 
 
-def submit_exam_answers(exam_type: str, year: int, answers: list[str | None]) -> dict[str, Any]:
+def submit_exam_answers(
+    exam_type: str,
+    year: int,
+    answers: list[str | None],
+) -> dict[str, Any]:
     exam = get_exam_with_answer_key(exam_type, year)
     answer_key = exam.get("answer_key", [])
 
     if not answer_key:
-        raise ValueError("Esta prova ainda não possui gabarito cadastrado para correção automática.")
+        raise ValueError(
+            "Esta prova ainda não possui gabarito cadastrado para correção automática."
+        )
 
     if len(answers) != len(answer_key):
         raise ValueError(
@@ -103,13 +111,21 @@ def submit_exam_answers(exam_type: str, year: int, answers: list[str | None]) ->
     wrong_answers = 0
     unanswered_count = 0
     annulled_count = 0
-    results_by_question = []
+    results_by_question: list[dict[str, Any]] = []
 
     for index, correct in enumerate(answer_key):
         user_answer = answers[index]
 
-        normalized_user_answer = user_answer.upper() if isinstance(user_answer, str) and user_answer.strip() else None
-        normalized_correct = correct.upper() if isinstance(correct, str) and correct.strip() else None
+        normalized_user_answer = (
+            user_answer.upper().strip()
+            if isinstance(user_answer, str) and user_answer.strip()
+            else None
+        )
+        normalized_correct = (
+            correct.upper().strip()
+            if isinstance(correct, str) and correct.strip()
+            else None
+        )
 
         if normalized_correct is None:
             annulled_count += 1
@@ -152,7 +168,11 @@ def submit_exam_answers(exam_type: str, year: int, answers: list[str | None]) ->
         )
 
     valid_questions = len([item for item in answer_key if item is not None])
-    score_percentage = round((correct_answers / valid_questions) * 100, 2) if valid_questions else 0.0
+    score_percentage = (
+        round((correct_answers / valid_questions) * 100, 2)
+        if valid_questions
+        else 0.0
+    )
 
     return {
         "title": exam["title"],
@@ -167,7 +187,8 @@ def submit_exam_answers(exam_type: str, year: int, answers: list[str | None]) ->
         "score_percentage": score_percentage,
         "results_by_question": results_by_question,
     }
-# Novo módulo estruturado (v2)
+
+
 from app.exams.service import (  # noqa: E402
     get_exam_answer_sheet as get_exam_answer_sheet_v2,
     get_exam_details as get_exam_details_v2,
@@ -175,3 +196,16 @@ from app.exams.service import (  # noqa: E402
     list_exams as list_exams_v2,
     submit_exam_sheet as submit_exam_sheet_v2,
 )
+
+__all__ = [
+    "load_exam_catalog",
+    "list_exam_types",
+    "get_exam_by_type_and_year",
+    "get_exam_with_answer_key",
+    "submit_exam_answers",
+    "import_enem_year",
+    "list_exams_v2",
+    "get_exam_details_v2",
+    "get_exam_answer_sheet_v2",
+    "submit_exam_sheet_v2",
+]

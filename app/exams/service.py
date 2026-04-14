@@ -5,11 +5,10 @@ from app.exams.models import (
     create_exam_attempt,
     create_exam_tables,
     get_exam_analytics_overview,
-    list_recent_exam_attempts,
-    get_latest_exam_attempt,
-    create_exam_tables,
     get_exam_structure,
+    get_latest_exam_attempt,
     list_exams_structured,
+    list_recent_exam_attempts,
     upsert_exam_structure,
 )
 
@@ -51,6 +50,7 @@ def _infer_enem_subject(question_number: int) -> str:
         return "natureza"
     return "matematica"
 
+
 def submit_exam_sheet(
     exam_id: int,
     answers: list[str | None],
@@ -73,22 +73,24 @@ def submit_exam_sheet(
     unanswered_count = 0
     annulled_count = 0
 
-    results_by_question = []
-    subject_stats = {}
+    results_by_question: list[dict] = []
+    subject_stats: dict[str, dict[str, int]] = {}
 
     for index, correct in enumerate(answer_key):
         question_number = index + 1
         subject = _infer_enem_subject(question_number)
 
-        subject_stats.setdefault(subject, {
-            "total": 0,
-            "correct": 0,
-            "wrong": 0,
-            "blank": 0,
-        })
+        subject_stats.setdefault(
+            subject,
+            {
+                "total": 0,
+                "correct": 0,
+                "wrong": 0,
+                "blank": 0,
+            },
+        )
 
         subject_stats[subject]["total"] += 1
-
         user_answer = answers[index]
 
         normalized_user = (
@@ -96,7 +98,6 @@ def submit_exam_sheet(
             if isinstance(user_answer, str) and user_answer.strip()
             else None
         )
-
         normalized_correct = (
             correct.upper().strip()
             if isinstance(correct, str) and correct.strip()
@@ -105,25 +106,29 @@ def submit_exam_sheet(
 
         if normalized_correct is None:
             annulled_count += 1
-            results_by_question.append({
-                "question_number": question_number,
-                "user_answer": normalized_user,
-                "correct_answer": None,
-                "status": "annulled",
-                "subject": subject,
-            })
+            results_by_question.append(
+                {
+                    "question_number": question_number,
+                    "user_answer": normalized_user,
+                    "correct_answer": None,
+                    "status": "annulled",
+                    "subject": subject,
+                }
+            )
             continue
 
         if normalized_user is None:
             unanswered_count += 1
             subject_stats[subject]["blank"] += 1
-            results_by_question.append({
-                "question_number": question_number,
-                "user_answer": None,
-                "correct_answer": normalized_correct,
-                "status": "blank",
-                "subject": subject,
-            })
+            results_by_question.append(
+                {
+                    "question_number": question_number,
+                    "user_answer": None,
+                    "correct_answer": normalized_correct,
+                    "status": "blank",
+                    "subject": subject,
+                }
+            )
             continue
 
         if normalized_user == normalized_correct:
@@ -135,21 +140,30 @@ def submit_exam_sheet(
             subject_stats[subject]["wrong"] += 1
             status = "wrong"
 
-        results_by_question.append({
-            "question_number": question_number,
-            "user_answer": normalized_user,
-            "correct_answer": normalized_correct,
-            "status": status,
-            "subject": subject,
-        })
+        results_by_question.append(
+            {
+                "question_number": question_number,
+                "user_answer": normalized_user,
+                "correct_answer": normalized_correct,
+                "status": status,
+                "subject": subject,
+            }
+        )
 
     valid_questions = len([item for item in answer_key if item is not None])
-    score_percentage = round((correct_answers / valid_questions) * 100, 2) if valid_questions else 0.0
+    score_percentage = (
+        round((correct_answers / valid_questions) * 100, 2)
+        if valid_questions
+        else 0.0
+    )
 
     subject_breakdown = [
         {
             "subject": subject,
-            "accuracy": round((values["correct"] / max(1, values["total"])) * 100, 2),
+            "accuracy": round(
+                (values["correct"] / max(1, values["total"])) * 100,
+                2,
+            ),
             "correct": values["correct"],
             "wrong": values["wrong"],
             "blank": values["blank"],
