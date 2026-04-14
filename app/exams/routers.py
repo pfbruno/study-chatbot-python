@@ -85,12 +85,14 @@ def submit_exam(
 ) -> dict:
     try:
         user = _current_user_optional(authorization)
+
         result = submit_exam_sheet(
             exam_id,
             payload.answers,
             user_id=int(user["id"]) if user else None,
             time_spent_seconds=payload.time_spent_seconds,
         )
+
         if user:
             record_hook_activity_event_repo(
                 user_id=int(user["id"]),
@@ -105,14 +107,17 @@ def submit_exam(
                     "wrong_questions_count": len(result.get("wrong_questions") or []),
                 },
             )
+
         return result
-def submit_exam(exam_id: int, payload: ExamSubmitRequest) -> dict:
-    try:
-        return submit_exam_sheet(exam_id, payload.answers)
+
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get("/exams/{exam_id}/attempts/latest")
