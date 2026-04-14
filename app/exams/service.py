@@ -51,13 +51,6 @@ def _infer_enem_subject(question_number: int) -> str:
         return "natureza"
     return "matematica"
 
-
-def submit_exam_sheet(
-    exam_id: int,
-    answers: list[str | None],
-    user_id: int | None = None,
-    time_spent_seconds: float | None = None,
-) -> dict:
 def submit_exam_sheet(
     exam_id: int,
     answers: list[str | None],
