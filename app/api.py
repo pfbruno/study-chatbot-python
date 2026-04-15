@@ -22,9 +22,11 @@ from app.database import (
     clear_user_subscription,
     create_auth_token,
     create_simulation_attempt_v2,
+    cleanup_expired_auth_tokens,
     create_simulation_v2,
     create_table,
     create_user,
+    get_db_path,
     get_guest_usage,
     get_hook_daily_goal,
     get_hook_recent_events,
@@ -678,10 +680,14 @@ def _build_dashboard_payload(user: dict) -> dict:
 @app.on_event("startup")
 def startup_event() -> None:
     try:
-        LOGGER.info("startup.begin")
+        LOGGER.info("startup.begin", extra={"db_path": get_db_path()})
         create_table()
+        cleaned_tokens = cleanup_expired_auth_tokens()
         create_exam_tables()
-        LOGGER.info("startup.ok")
+        LOGGER.info(
+            "startup.ok",
+            extra={"db_path": get_db_path(), "cleaned_tokens": cleaned_tokens},
+        )
     except Exception as exc:  # noqa: BLE001
         LOGGER.exception("startup.error: %s", exc)
         raise

@@ -3,13 +3,22 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_DB_PATH = BASE_DIR / "data" / "chatbot.db"
-DB_PATH = Path(os.getenv("DB_PATH", str(DEFAULT_DB_PATH)))
+RENDER_DISK_MOUNT_PATH = os.getenv("RENDER_DISK_MOUNT_PATH", "/var/data").strip()
+DEFAULT_RENDER_DB_PATH = Path(RENDER_DISK_MOUNT_PATH) / "chatbot.db"
+DB_PATH = Path(
+    os.getenv(
+        "DB_PATH",
+        str(DEFAULT_RENDER_DB_PATH if Path(RENDER_DISK_MOUNT_PATH).is_dir() else DEFAULT_DB_PATH),
+    )
+).expanduser()
+SQLITE_TIMEOUT_SECONDS = float(os.getenv("SQLITE_TIMEOUT_SECONDS", "30"))
 
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -61,9 +70,17 @@ STRIPE_USER_COLUMNS: dict[str, str] = {
 
 
 def connect() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(
+        str(DB_PATH),
+        timeout=SQLITE_TIMEOUT_SECONDS,
+        check_same_thread=False,
+    )
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 30000")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
+    conn.execute("PRAGMA temp_store = MEMORY")
     return conn
 
 
@@ -73,6 +90,41 @@ def _now_iso() -> str:
 
 def _row_to_dict(row: sqlite3.Row | None) -> dict | None:
     return dict(row) if row else None
+
+
+def get_db_path() -> str:
+    return str(DB_PATH)
+
+
+def cleanup_expired_auth_tokens() -> int:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        DELETE FROM auth_tokens
+        WHERE revoked_at IS NOT NULL OR expires_at <= ?
+        """,
+        (_now_iso(),),
+    )
+    deleted_rows = cursor.rowcount or 0
+    conn.commit()
+    conn.close()
+    return int(deleted_rows)
+
+
+def revoke_all_user_auth_tokens(user_id: int) -> None:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE auth_tokens
+        SET revoked_at = ?
+        WHERE user_id = ? AND revoked_at IS NULL
+        """,
+        (_now_iso(), user_id),
+    )
+    conn.commit()
+    conn.close()
 
 
 def _ensure_user_billing_columns(cursor: sqlite3.Cursor) -> None:
@@ -85,202 +137,203 @@ def _ensure_user_billing_columns(cursor: sqlite3.Cursor) -> None:
 
 
 def create_table() -> None:
-    conn = connect()
-    cursor = conn.cursor()
+    with closing(connect()) as conn:
+        cursor = conn.cursor()
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS interactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            question TEXT NOT NULL,
-            category TEXT NOT NULL,
-            response TEXT NOT NULL,
-            created_at TEXT NOT NULL
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS interactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question TEXT NOT NULL,
+                category TEXT NOT NULL,
+                response TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            password_salt TEXT NOT NULL,
-            plan TEXT NOT NULL DEFAULT 'free',
-            subscription_status TEXT NOT NULL DEFAULT 'inactive',
-            current_period_end TEXT,
-            is_active INTEGER NOT NULL DEFAULT 1,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                password_salt TEXT NOT NULL,
+                plan TEXT NOT NULL DEFAULT 'free',
+                subscription_status TEXT NOT NULL DEFAULT 'inactive',
+                current_period_end TEXT,
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+            """
         )
-        """
-    )
-    _ensure_user_billing_columns(cursor)
+        _ensure_user_billing_columns(cursor)
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS auth_tokens (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            token TEXT NOT NULL UNIQUE,
-            created_at TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            revoked_at TEXT,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS auth_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                revoked_at TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS user_daily_usage (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            usage_date TEXT NOT NULL,
-            simulations_generated INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            UNIQUE(user_id, usage_date),
-            FOREIGN KEY (user_id) REFERENCES users(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS user_daily_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                usage_date TEXT NOT NULL,
+                simulations_generated INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, usage_date),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS guest_daily_usage (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            guest_key TEXT NOT NULL,
-            usage_date TEXT NOT NULL,
-            simulations_generated INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            UNIQUE(guest_key, usage_date)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS guest_daily_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guest_key TEXT NOT NULL,
+                usage_date TEXT NOT NULL,
+                simulations_generated INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(guest_key, usage_date)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS stripe_webhook_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            event_id TEXT NOT NULL UNIQUE,
-            event_type TEXT NOT NULL,
-            processed_at TEXT NOT NULL
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS stripe_webhook_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT NOT NULL UNIQUE,
+                event_type TEXT NOT NULL,
+                processed_at TEXT NOT NULL
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS simulations_v2 (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            owner_user_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            exam_type TEXT NOT NULL,
-            year INTEGER NOT NULL,
-            subject TEXT,
-            question_count INTEGER NOT NULL,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (owner_user_id) REFERENCES users(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS simulations_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                owner_user_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                exam_type TEXT NOT NULL,
+                year INTEGER NOT NULL,
+                subject TEXT,
+                question_count INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (owner_user_id) REFERENCES users(id)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS simulation_ratings_v2 (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            simulation_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            UNIQUE(simulation_id, user_id),
-            FOREIGN KEY (simulation_id) REFERENCES simulations_v2(id),
-            FOREIGN KEY (user_id) REFERENCES users(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS simulation_ratings_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                simulation_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(simulation_id, user_id),
+                FOREIGN KEY (simulation_id) REFERENCES simulations_v2(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS simulation_attempts_v2 (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            simulation_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            submitted_at TEXT NOT NULL,
-            average_time_seconds REAL NOT NULL,
-            correct_count INTEGER NOT NULL,
-            wrong_count INTEGER NOT NULL,
-            accuracy_rate REAL NOT NULL,
-            error_rate REAL NOT NULL,
-            FOREIGN KEY (simulation_id) REFERENCES simulations_v2(id),
-            FOREIGN KEY (user_id) REFERENCES users(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS simulation_attempts_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                simulation_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                submitted_at TEXT NOT NULL,
+                average_time_seconds REAL NOT NULL,
+                correct_count INTEGER NOT NULL,
+                wrong_count INTEGER NOT NULL,
+                accuracy_rate REAL NOT NULL,
+                error_rate REAL NOT NULL,
+                FOREIGN KEY (simulation_id) REFERENCES simulations_v2(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS simulation_attempt_answers_v2 (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            attempt_id INTEGER NOT NULL,
-            question_number INTEGER NOT NULL,
-            selected_option TEXT,
-            is_correct INTEGER NOT NULL,
-            time_spent_seconds REAL NOT NULL,
-            FOREIGN KEY (attempt_id) REFERENCES simulation_attempts_v2(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS simulation_attempt_answers_v2 (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                attempt_id INTEGER NOT NULL,
+                question_number INTEGER NOT NULL,
+                selected_option TEXT,
+                is_correct INTEGER NOT NULL,
+                time_spent_seconds REAL NOT NULL,
+                FOREIGN KEY (attempt_id) REFERENCES simulation_attempts_v2(id)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS hook_activity_events (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            event_type TEXT NOT NULL,
-            subject TEXT,
-            score_percentage REAL,
-            time_spent_seconds REAL,
-            metadata_json TEXT,
-            created_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS hook_activity_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                event_type TEXT NOT NULL,
+                subject TEXT,
+                score_percentage REAL,
+                time_spent_seconds REAL,
+                metadata_json TEXT,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
         )
-        """
-    )
 
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS hook_daily_goals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            goal_date TEXT NOT NULL,
-            target_questions INTEGER NOT NULL DEFAULT 10,
-            target_simulations INTEGER NOT NULL DEFAULT 1,
-            target_exams INTEGER NOT NULL DEFAULT 1,
-            target_minutes INTEGER NOT NULL DEFAULT 30,
-            progress_questions INTEGER NOT NULL DEFAULT 0,
-            progress_simulations INTEGER NOT NULL DEFAULT 0,
-            progress_exams INTEGER NOT NULL DEFAULT 0,
-            progress_minutes INTEGER NOT NULL DEFAULT 0,
-            progress_review_completed INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            UNIQUE(user_id, goal_date),
-            FOREIGN KEY (user_id) REFERENCES users(id)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS hook_daily_goals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                goal_date TEXT NOT NULL,
+                target_questions INTEGER NOT NULL DEFAULT 10,
+                target_simulations INTEGER NOT NULL DEFAULT 1,
+                target_exams INTEGER NOT NULL DEFAULT 1,
+                target_minutes INTEGER NOT NULL DEFAULT 30,
+                progress_questions INTEGER NOT NULL DEFAULT 0,
+                progress_simulations INTEGER NOT NULL DEFAULT 0,
+                progress_exams INTEGER NOT NULL DEFAULT 0,
+                progress_minutes INTEGER NOT NULL DEFAULT 0,
+                progress_review_completed INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(user_id, goal_date),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+            """
         )
-        """
-    )
 
-    _create_indexes(cursor)
+        _create_indexes(cursor)
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+
+    cleanup_expired_auth_tokens()
 
 
 def _create_indexes(cursor: sqlite3.Cursor) -> None:
@@ -296,6 +349,9 @@ def _create_indexes(cursor: sqlite3.Cursor) -> None:
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_auth_tokens_expires_at ON auth_tokens(expires_at)"
+    )
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_auth_tokens_token_active ON auth_tokens(token, revoked_at, expires_at)"
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_simulations_owner_created ON simulations_v2(owner_user_id, created_at)"
@@ -536,14 +592,23 @@ def clear_user_subscription(user_id: int) -> dict | None:
 
 
 def create_auth_token(user_id: int, token: str, expires_at: str) -> None:
+    now = _now_iso()
     conn = connect()
     cursor = conn.cursor()
+    cursor.execute(
+        """
+        UPDATE auth_tokens
+        SET revoked_at = ?
+        WHERE user_id = ? AND revoked_at IS NULL
+        """,
+        (now, user_id),
+    )
     cursor.execute(
         """
         INSERT INTO auth_tokens (user_id, token, created_at, expires_at, revoked_at)
         VALUES (?, ?, ?, ?, NULL)
         """,
-        (user_id, token, _now_iso(), expires_at),
+        (user_id, token, now, expires_at),
     )
     conn.commit()
     conn.close()
@@ -593,6 +658,22 @@ def get_user_by_token(token: str) -> dict | None:
           AND users.is_active = 1
         """,
         (token, now),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    return _row_to_dict(row)
+
+
+def get_auth_token_record(token: str) -> dict | None:
+    conn = connect()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, user_id, token, created_at, expires_at, revoked_at
+        FROM auth_tokens
+        WHERE token = ?
+        """,
+        (token,),
     )
     row = cursor.fetchone()
     conn.close()
