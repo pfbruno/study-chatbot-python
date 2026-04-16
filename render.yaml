@@ -5,10 +5,3 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: bash start.sh
     healthCheckPath: /health
-    envVars:
-      - key: DB_PATH
-        value: /var/data/chatbot.db
-    disk:
-      name: data
-      mountPath: /var/data
-      sizeGB: 5
