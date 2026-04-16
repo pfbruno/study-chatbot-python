@@ -1,118 +1,125 @@
 import Link from "next/link"
+import { Check, Star } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
-import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const plans = [
   {
-    name: "Free",
+    name: "Gratuito",
     price: "R$ 0",
-    period: "para sempre",
-    description: "Ideal para começar a estudar",
+    period: "/mês",
+    description: "Para começar a praticar",
     features: [
-      "Acesso limitado a provas",
-      "10 questões por dia",
-      "Dashboard básico",
-      "Correção automática"
+      "5 questões aleatórias por dia",
+      "Acesso inicial a provas",
+      "Correção automática",
+      "Estatísticas básicas",
     ],
     cta: "Começar grátis",
-    highlighted: false
+    href: "/register",
+    highlighted: false,
   },
   {
     name: "Premium",
     price: "R$ 29",
     period: "/mês",
-    description: "Para quem quer passar de verdade",
+    description: "Para quem quer aprovação com consistência",
     features: [
-      "Acesso ilimitado a provas",
       "Questões ilimitadas",
+      "Todas as provas disponíveis",
+      "Filtro por matéria",
       "Dashboard completo",
-      "Correção com explicações",
-      "Simulados personalizados",
-      "Ranking nacional",
-      "Suporte prioritário"
+      "Histórico detalhado",
+      "Suporte prioritário",
     ],
     cta: "Assinar Premium",
-    highlighted: true
+    href: "/pricing",
+    highlighted: true,
   },
   {
     name: "Anual",
     price: "R$ 199",
     period: "/ano",
-    description: "Economia de 43%",
+    description: "Melhor custo-benefício",
     features: [
-      "Todos os benefícios Premium",
-      "4 meses grátis",
-      "Acesso antecipado",
-      "Materiais exclusivos",
-      "Mentoria em grupo"
+      "Tudo do Premium",
+      "Economia anual",
+      "Simulados exclusivos",
+      "Acesso antecipado a novidades",
     ],
     cta: "Assinar Anual",
-    highlighted: false
-  }
+    href: "/pricing",
+    highlighted: false,
+  },
 ]
 
 export function Pricing() {
   return (
-    <section id="planos" className="border-t border-border/50 py-20 sm:py-32">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Planos que cabem no seu <span className="text-primary">bolso</span>
+    <section id="planos" className="section-padding">
+      <div className="container-shell">
+        <div className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-primary">
+            Planos
+          </span>
+          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
+            Invista no seu futuro
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
-            Escolha o plano ideal para sua jornada de estudos
+          <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
+            A rota continua a mesma. Nesta fase, a mudança é exclusivamente
+            visual no fluxo do aluno.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-6 lg:grid-cols-3">
+        <div className="mt-14 grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
-            <div
+            <article
               key={plan.name}
               className={cn(
-                "relative rounded-2xl border p-8 transition-all",
-                plan.highlighted
-                  ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                  : "border-border/50 bg-card hover:border-border"
+                "glass-panel relative rounded-[28px] p-6",
+                plan.highlighted &&
+                  "border-primary/30 bg-primary/[0.08] shadow-[0_18px_60px_-24px_rgba(59,130,246,0.65)]"
               )}
             >
               {plan.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-medium text-primary-foreground">
+                <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-slate-950 px-3 py-1 text-xs font-semibold text-primary">
+                  <Star className="size-3.5 fill-current" />
                   Mais popular
                 </div>
               )}
-              
-              <div>
-                <h3 className="text-lg font-semibold">{plan.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-              </div>
 
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="text-4xl font-bold">{plan.price}</span>
-                <span className="text-muted-foreground">{plan.period}</span>
+              <h3 className="mt-2 text-2xl font-semibold text-white">{plan.name}</h3>
+              <p className="mt-3 text-sm text-slate-300">{plan.description}</p>
+
+              <div className="mt-6 flex items-end gap-2">
+                <span className="text-4xl font-bold text-white">{plan.price}</span>
+                <span className="pb-1 text-sm text-muted-foreground">{plan.period}</span>
               </div>
 
               <ul className="mt-8 space-y-3">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm">
-                    <Check className="h-4 w-4 flex-shrink-0 text-primary" />
-                    <span className="text-muted-foreground">{feature}</span>
+                  <li key={feature} className="flex items-start gap-3 text-sm text-slate-300">
+                    <div className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-accent/15 text-accent">
+                      <Check className="size-3.5" />
+                    </div>
+                    <span>{feature}</span>
                   </li>
                 ))}
               </ul>
 
               <Button
                 asChild
+                size="lg"
+                variant={plan.highlighted ? "default" : "outline"}
                 className={cn(
-                  "mt-8 w-full",
-                  plan.highlighted
-                    ? "bg-primary hover:bg-primary/90"
-                    : "bg-secondary hover:bg-secondary/80"
+                  "mt-8 w-full rounded-2xl",
+                  !plan.highlighted &&
+                    "border-white/10 bg-white/5 text-white hover:bg-white/10"
                 )}
               >
-                <Link href="/register">{plan.cta}</Link>
+                <Link href={plan.href}>{plan.cta}</Link>
               </Button>
-            </div>
+            </article>
           ))}
         </div>
       </div>
