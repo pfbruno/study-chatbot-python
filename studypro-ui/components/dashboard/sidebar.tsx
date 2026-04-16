@@ -2,73 +2,42 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
 import {
-  BarChart3,
   BookOpen,
-  Brain,
   CreditCard,
   FileText,
-  LayoutDashboard,
+  Home,
   LogOut,
   Menu,
-  MessageSquare,
-  PenTool,
-  Settings,
-  Share2,
-  Trophy,
   User,
-  Users,
-  Video,
   X,
 } from "lucide-react"
-import { useEffect, useMemo, useState, type ComponentType } from "react"
-
-import { cn } from "@/lib/utils"
 
 const AUTH_TOKEN_KEY = "studypro_auth_token"
 const AUTH_USER_KEY = "studypro_auth_user"
 
 type SidebarUser = {
-  id: number
-  name: string
-  email: string
-  plan: "free" | "pro"
-  is_active: boolean
-  created_at: string
-  updated_at: string
+  id?: number | string
+  name?: string
+  email?: string
+  plan?: string
 }
 
 type NavItem = {
   name: string
   href?: string
-  icon: ComponentType<{ className?: string }>
+  icon: React.ComponentType<{ className?: string }>
 }
 
-const principalItems: NavItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Simulados", href: "/dashboard/simulados", icon: BookOpen },
-  { name: "Provas", href: "/dashboard/provas", icon: FileText },
-  { name: "Analytics", href: "/dashboard", icon: BarChart3 },
-  { name: "Área de Estudo", icon: Brain },
-  { name: "Chat IA", icon: MessageSquare },
+const mainItems: NavItem[] = [
+  { name: "Dashboard", href: "/dashboard", icon: Home },
+  { name: "Simulados", href: "/dashboard/simulados", icon: FileText },
   { name: "Perfil", href: "/dashboard/perfil", icon: User },
-  { name: "Resolver", href: "/dashboard/simulados/resolver", icon: PenTool },
-]
-
-const socialItems: NavItem[] = [
-  { name: "Comunidade", icon: Users },
-  { name: "Grupos", icon: Users },
-  { name: "Aulas ao Vivo", icon: Video },
-  { name: "Conquistas", icon: Trophy },
-]
-
-const accountItems: NavItem[] = [
   { name: "Planos", href: "/pricing", icon: CreditCard },
-  { name: "Indicação", icon: Share2 },
-  { name: "Configurações", icon: Settings },
 ]
 
-function NavGroup({
+function NavSection({
   title,
   items,
   pathname,
@@ -77,20 +46,29 @@ function NavGroup({
   title: string
   items: NavItem[]
   pathname: string
-  onNavigate: () => void
+  onNavigate?: () => void
 }) {
   return (
-    <div className="space-y-2">
-      <p className="px-3 text-xs font-semibold uppercase tracking-[0.2em] text-white/40">{title}</p>
-      <div className="space-y-1">
+    <div>
+      <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
+        {title}
+      </p>
+
+      <div className="space-y-1.5">
         {items.map((item) => {
           const Icon = item.icon
-          const isActive = !!item.href && (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)))
+          const isActive =
+            !!item.href &&
+            (pathname === item.href ||
+              (item.href !== "/dashboard" && pathname.startsWith(item.href)))
 
           if (!item.href) {
             return (
-              <div key={item.name} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-white/35" title="Disponível em breve">
-                <Icon className="h-4 w-4" />
+              <div
+                key={item.name}
+                className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm text-slate-400"
+              >
+                <Icon className="size-4" />
                 <span>{item.name}</span>
               </div>
             )
@@ -98,15 +76,17 @@ function NavGroup({
 
           return (
             <Link
-              key={item.href}
+              key={item.name}
               href={item.href}
               onClick={onNavigate}
-              className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition",
-                isActive ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5 hover:text-white",
-              )}
+              className={[
+                "flex items-center gap-3 rounded-2xl px-3 py-3 text-sm transition",
+                isActive
+                  ? "bg-primary/15 text-white ring-1 ring-primary/25"
+                  : "text-slate-300 hover:bg-white/5 hover:text-white",
+              ].join(" ")}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={isActive ? "size-4 text-primary" : "size-4"} />
               <span>{item.name}</span>
             </Link>
           )
@@ -119,7 +99,6 @@ function NavGroup({
 export function DashboardSidebar() {
   const pathname = usePathname()
   const router = useRouter()
-
   const [mobileOpen, setMobileOpen] = useState(false)
   const [user, setUser] = useState<SidebarUser | null>(null)
 
@@ -141,6 +120,7 @@ export function DashboardSidebar() {
 
   const initials = useMemo(() => {
     if (!user?.name) return "SP"
+
     return user.name
       .trim()
       .split(/\s+/)
@@ -156,69 +136,93 @@ export function DashboardSidebar() {
     router.push("/login")
   }
 
-  return (
-    <>
-      <div className="flex items-center justify-between border-b border-white/10 bg-[#0b1020] px-4 py-4 lg:hidden">
-        <Link href="/dashboard" className="flex items-center gap-3 text-white">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-emerald-400">
-            <BookOpen className="h-4 w-4" />
-          </div>
-          <span className="text-lg font-semibold">StudyPro</span>
-        </Link>
-
-        <button
-          type="button"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="rounded-lg border border-white/10 p-2 text-white"
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+  const sidebarContent = (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
+        <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/25">
+          <BookOpen className="size-5" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-white">StudyPro</p>
+          <p className="text-xs text-muted-foreground">Área do aluno</p>
+        </div>
       </div>
 
-      {mobileOpen ? <div className="fixed inset-0 z-40 bg-black/60 lg:hidden" onClick={() => setMobileOpen(false)} /> : null}
+      <div className="flex-1 space-y-8 overflow-y-auto px-4 py-5">
+        <NavSection
+          title="Principal"
+          items={mainItems}
+          pathname={pathname}
+          onNavigate={() => setMobileOpen(false)}
+        />
+      </div>
 
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/10 bg-[#0b1020] transition-transform lg:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-        )}
+      <div className="border-t border-white/10 p-4">
+        <div className="rounded-[24px] border border-white/10 bg-white/5 p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white ring-1 ring-white/10">
+              {initials}
+            </div>
+
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white">
+                {user?.name || "Aluno StudyPro"}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">
+                {user?.email || "Conta ativa"}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            <LogOut className="size-4" />
+            Sair
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return (
+    <>
+      <button
+        type="button"
+        className="inline-flex size-11 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white lg:hidden"
+        onClick={() => setMobileOpen(true)}
+        aria-label="Abrir menu"
       >
-        <div className="border-b border-white/10 px-5 py-5">
-          <Link href="/dashboard" className="flex items-center gap-3 text-white">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-400">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <span className="text-xl font-bold">StudyPro</span>
-          </Link>
-        </div>
+        <Menu className="size-5" />
+      </button>
 
-        <div className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
-          <NavGroup title="Principal" items={principalItems} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-          <NavGroup title="Social" items={socialItems} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-          <NavGroup title="Conta" items={accountItems} pathname={pathname} onNavigate={() => setMobileOpen(false)} />
-        </div>
+      <aside className="hidden h-screen w-[280px] shrink-0 border-r border-white/10 bg-slate-950/70 backdrop-blur-xl lg:block">
+        {sidebarContent}
+      </aside>
 
-        <div className="border-t border-white/10 px-4 py-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white">{initials}</div>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-white">{user?.name || "Usuário"}</p>
-                <p className="truncate text-xs text-white/60">{user?.email || "Faça login"}</p>
-              </div>
-            </div>
+      {mobileOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
 
+          <div className="absolute left-0 top-0 h-full w-[88%] max-w-[320px] border-r border-white/10 bg-slate-950 shadow-2xl">
             <button
               type="button"
-              onClick={handleLogout}
-              className="mt-3 inline-flex items-center gap-2 text-sm text-white/80 transition hover:text-white"
+              className="absolute right-4 top-4 inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Fechar menu"
             >
-              <LogOut className="h-4 w-4" />
-              Sair
+              <X className="size-5" />
             </button>
+
+            {sidebarContent}
           </div>
         </div>
-      </aside>
+      ) : null}
     </>
   )
 }
