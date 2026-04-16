@@ -31,7 +31,7 @@ def record_hook_activity_event_repo(
             metadata_json,
             created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
         (
             user_id,
@@ -52,7 +52,7 @@ def record_hook_activity_event_repo(
             created_at,
             updated_at
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s)
         ON CONFLICT(user_id, goal_date) DO NOTHING
         """,
         (user_id, goal_date, now, now),
@@ -67,16 +67,16 @@ def record_hook_activity_event_repo(
     cursor.execute(
         """
         UPDATE hook_daily_goals
-        SET progress_questions = progress_questions + ?,
-            progress_minutes = progress_minutes + ?,
-            progress_simulations = progress_simulations + ?,
-            progress_exams = progress_exams + ?,
+        SET progress_questions = progress_questions + %s,
+            progress_minutes = progress_minutes + %s,
+            progress_simulations = progress_simulations + %s,
+            progress_exams = progress_exams + %s,
             progress_review_completed = CASE
-                WHEN ? = 1 THEN 1
+                WHEN %s = 1 THEN 1
                 ELSE progress_review_completed
             END,
-            updated_at = ?
-        WHERE user_id = ? AND goal_date = ?
+            updated_at = %s
+        WHERE user_id = %s AND goal_date = %s
         """,
         (
             progress_questions,
@@ -102,7 +102,7 @@ def get_hook_daily_goal_repo(user_id: int, goal_date: str | None = None) -> dict
         """
         SELECT *
         FROM hook_daily_goals
-        WHERE user_id = ? AND goal_date = ?
+        WHERE user_id = %s AND goal_date = %s
         """,
         (user_id, target_date),
     )
@@ -134,7 +134,7 @@ def get_hook_recent_events_repo(user_id: int, days: int = 7) -> list[dict]:
         """
         SELECT *
         FROM hook_activity_events
-        WHERE user_id = ? AND created_at >= ?
+        WHERE user_id = %s AND created_at >= %s
         ORDER BY created_at DESC
         """,
         (user_id, cutoff),
@@ -149,9 +149,9 @@ def get_hook_streak_stats_repo(user_id: int) -> dict:
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT DISTINCT substr(created_at, 1, 10) AS activity_date
+        SELECT DISTINCT LEFT(created_at, 10) AS activity_date
         FROM hook_activity_events
-        WHERE user_id = ?
+        WHERE user_id = %s
         ORDER BY activity_date DESC
         """,
         (user_id,),
