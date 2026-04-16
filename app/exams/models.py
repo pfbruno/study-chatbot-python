@@ -18,7 +18,7 @@ def create_exam_tables() -> None:
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exams_catalog (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id BIGSERIAL PRIMARY KEY,
             source TEXT NOT NULL,
             year INTEGER NOT NULL,
             title TEXT NOT NULL,
@@ -34,62 +34,58 @@ def create_exam_tables() -> None:
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_days (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            exam_id INTEGER NOT NULL,
+            id BIGSERIAL PRIMARY KEY,
+            exam_id BIGINT NOT NULL REFERENCES exams_catalog(id) ON DELETE CASCADE,
             label TEXT NOT NULL,
             day_order INTEGER NOT NULL,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            UNIQUE(exam_id, day_order),
-            FOREIGN KEY (exam_id) REFERENCES exams_catalog(id) ON DELETE CASCADE
+            UNIQUE(exam_id, day_order)
         )
         """
     )
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_booklets (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            day_id INTEGER NOT NULL,
+            id BIGSERIAL PRIMARY KEY,
+            day_id BIGINT NOT NULL REFERENCES exam_days(id) ON DELETE CASCADE,
             color TEXT NOT NULL,
             pdf_url TEXT,
             answer_key_url TEXT,
             official_page_url TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
-            UNIQUE(day_id, color),
-            FOREIGN KEY (day_id) REFERENCES exam_days(id) ON DELETE CASCADE
+            UNIQUE(day_id, color)
         )
         """
     )
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_answer_keys (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            exam_id INTEGER NOT NULL UNIQUE,
+            id BIGSERIAL PRIMARY KEY,
+            exam_id BIGINT NOT NULL UNIQUE REFERENCES exams_catalog(id) ON DELETE CASCADE,
             answers_json TEXT NOT NULL,
             created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            FOREIGN KEY (exam_id) REFERENCES exams_catalog(id) ON DELETE CASCADE
+            updated_at TEXT NOT NULL
         )
         """
     )
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_attempts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            exam_id INTEGER NOT NULL,
-            user_id INTEGER,
+            id BIGSERIAL PRIMARY KEY,
+            exam_id BIGINT NOT NULL REFERENCES exams_catalog(id) ON DELETE CASCADE,
+            user_id BIGINT,
             submitted_at TEXT NOT NULL,
-            score_percentage REAL NOT NULL,
+            score_percentage DOUBLE PRECISION NOT NULL,
             correct_answers INTEGER NOT NULL,
             wrong_answers INTEGER NOT NULL,
             unanswered_count INTEGER NOT NULL,
             total_questions INTEGER NOT NULL,
-            time_spent_seconds REAL,
+            time_spent_seconds DOUBLE PRECISION,
             answers_json TEXT NOT NULL,
             subject_breakdown_json TEXT NOT NULL,
-            wrong_questions_json TEXT NOT NULL,
-            FOREIGN KEY (exam_id) REFERENCES exams_catalog(id) ON DELETE CASCADE
+            wrong_questions_json TEXT NOT NULL
         )
         """
     )
@@ -122,13 +118,13 @@ def upsert_exam_structure(
         INSERT INTO exams_catalog (
             source, year, title, total_questions, has_answer_key, official_page_url, created_at, updated_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT(source, year) DO UPDATE SET
-            title = excluded.title,
-            total_questions = excluded.total_questions,
-            has_answer_key = excluded.has_answer_key,
-            official_page_url = excluded.official_page_url,
-            updated_at = excluded.updated_at
+            title = EXCLUDED.title,
+            total_questions = EXCLUDED.total_questions,
+            has_answer_key = EXCLUDED.has_answer_key,
+            official_page_url = EXCLUDED.official_page_url,
+            updated_at = EXCLUDED.updated_at
         """,
         (
             source,
@@ -142,28 +138,29 @@ def upsert_exam_structure(
         ),
     )
     cursor.execute(
-        "SELECT id FROM exams_catalog WHERE source = ? AND year = ?",
+        "SELECT id FROM exams_catalog WHERE source = %s AND year = %s",
         (source, year),
     )
-    exam_id = int(cursor.fetchone()[0])
+    exam_id = int(cursor.fetchone()["id"])
 
-    cursor.execute("DELETE FROM exam_booklets WHERE day_id IN (SELECT id FROM exam_days WHERE exam_id = ?)", (exam_id,))
-    cursor.execute("DELETE FROM exam_days WHERE exam_id = ?", (exam_id,))
+    cursor.execute("DELETE FROM exam_booklets WHERE day_id IN (SELECT id FROM exam_days WHERE exam_id = %s)", (exam_id,))
+    cursor.execute("DELETE FROM exam_days WHERE exam_id = %s", (exam_id,))
 
     for day in days:
         cursor.execute(
             """
             INSERT INTO exam_days (exam_id, label, day_order, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
             """,
             (exam_id, day["label"], int(day["order"]), now, now),
         )
-        day_id = int(cursor.lastrowid)
+        day_id = int(cursor.fetchone()["id"])
         for booklet in day.get("booklets", []):
             cursor.execute(
                 """
                 INSERT INTO exam_booklets (day_id, color, pdf_url, answer_key_url, official_page_url, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     day_id,
@@ -180,10 +177,10 @@ def upsert_exam_structure(
         cursor.execute(
             """
             INSERT INTO exam_answer_keys (exam_id, answers_json, created_at, updated_at)
-            VALUES (?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT(exam_id) DO UPDATE SET
-                answers_json = excluded.answers_json,
-                updated_at = excluded.updated_at
+                answers_json = EXCLUDED.answers_json,
+                updated_at = EXCLUDED.updated_at
             """,
             (exam_id, json.dumps(answer_key), now, now),
         )
@@ -198,7 +195,7 @@ def list_exams_structured(source: str | None = None) -> list[dict[str, Any]]:
     cursor = conn.cursor()
     if source:
         cursor.execute(
-            "SELECT * FROM exams_catalog WHERE source = ? ORDER BY year DESC",
+            "SELECT * FROM exams_catalog WHERE source = %s ORDER BY year DESC",
             (source,),
         )
     else:
@@ -211,20 +208,20 @@ def list_exams_structured(source: str | None = None) -> list[dict[str, Any]]:
 def get_exam_structure(exam_id: int) -> dict[str, Any] | None:
     conn = connect()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM exams_catalog WHERE id = ?", (exam_id,))
+    cursor.execute("SELECT * FROM exams_catalog WHERE id = %s", (exam_id,))
     exam = cursor.fetchone()
     if not exam:
         conn.close()
         return None
 
     exam_dict = dict(exam)
-    cursor.execute("SELECT * FROM exam_days WHERE exam_id = ? ORDER BY day_order ASC", (exam_id,))
+    cursor.execute("SELECT * FROM exam_days WHERE exam_id = %s ORDER BY day_order ASC", (exam_id,))
     days = [dict(row) for row in cursor.fetchall()]
     for day in days:
-        cursor.execute("SELECT * FROM exam_booklets WHERE day_id = ? ORDER BY color ASC", (day["id"],))
+        cursor.execute("SELECT * FROM exam_booklets WHERE day_id = %s ORDER BY color ASC", (day["id"],))
         day["booklets"] = [dict(row) for row in cursor.fetchall()]
 
-    cursor.execute("SELECT answers_json FROM exam_answer_keys WHERE exam_id = ?", (exam_id,))
+    cursor.execute("SELECT answers_json FROM exam_answer_keys WHERE exam_id = %s", (exam_id,))
     answer_key_row = cursor.fetchone()
     exam_dict["answer_key"] = json.loads(answer_key_row["answers_json"]) if answer_key_row else []
     exam_dict["days"] = days
@@ -263,7 +260,8 @@ def create_exam_attempt(
             subject_breakdown_json,
             wrong_questions_json
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
         """,
         (
             exam_id,
@@ -280,7 +278,7 @@ def create_exam_attempt(
             json.dumps(wrong_questions),
         ),
     )
-    attempt_id = int(cursor.lastrowid)
+    attempt_id = int(cursor.fetchone()["id"])
     conn.commit()
     conn.close()
     return attempt_id
@@ -293,7 +291,7 @@ def get_latest_exam_attempt(exam_id: int, user_id: int) -> dict[str, Any] | None
         """
         SELECT *
         FROM exam_attempts
-        WHERE exam_id = ? AND user_id = ?
+        WHERE exam_id = %s AND user_id = %s
         ORDER BY submitted_at DESC
         LIMIT 1
         """,
@@ -322,7 +320,7 @@ def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
             COALESCE(AVG(wrong_answers * 1.0 / NULLIF(total_questions, 0)), 0) as average_error_rate,
             COALESCE(AVG(time_spent_seconds), 0) as average_time_spent_seconds
         FROM exam_attempts
-        WHERE user_id = ?
+        WHERE user_id = %s
         """,
         (user_id,),
     )
@@ -332,7 +330,7 @@ def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
         """
         SELECT exam_id, score_percentage
         FROM exam_attempts
-        WHERE user_id = ?
+        WHERE user_id = %s
         ORDER BY score_percentage DESC
         LIMIT 1
         """,
@@ -343,7 +341,7 @@ def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
         """
         SELECT exam_id, score_percentage
         FROM exam_attempts
-        WHERE user_id = ?
+        WHERE user_id = %s
         ORDER BY score_percentage ASC
         LIMIT 1
         """,
@@ -370,9 +368,9 @@ def list_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict[str, An
         SELECT exam_attempts.*, exams_catalog.title, exams_catalog.source, exams_catalog.year
         FROM exam_attempts
         INNER JOIN exams_catalog ON exams_catalog.id = exam_attempts.exam_id
-        WHERE exam_attempts.user_id = ?
+        WHERE exam_attempts.user_id = %s
         ORDER BY exam_attempts.submitted_at DESC
-        LIMIT ?
+        LIMIT %s
         """,
         (user_id, limit),
     )
@@ -385,3 +383,16 @@ def list_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict[str, An
         rows.append(item)
     conn.close()
     return rows
+
+
+@dataclass(slots=True)
+class ExamCatalogRow:
+    id: int
+    source: str
+    year: int
+    title: str
+    total_questions: int
+    has_answer_key: int
+    official_page_url: str | None
+    created_at: str
+    updated_at: str
