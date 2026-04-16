@@ -219,22 +219,22 @@ export async function getDashboardData(token?: string | null) {
 =========================== */
 
 export async function getExamTypes() {
-  return request<ExamCatalogResponse>("v2/exams");
+  return request<ExamCatalogResponse>("/v2/exams");
 }
 
 export async function getExamYears() {
-  return request<ExamYearsResponse>("v2/exams/enem");
+  return request<ExamYearsResponse>("/v2/exams/enem");
 }
 
 export async function getExamByYear(year: string | number) {
-  return request<ExamDetail>(`v2/exams/enem/${year}`);
+  return request<ExamDetail>(`/v2/exams/enem/${year}`);
 }
 
 export async function getExamByTypeAndYear(
   type: string,
   year: string | number
 ) {
-  return request<ExamDetail>(`v2/exams/${type}/${year}`);
+  return request<ExamDetail>(`/v2/exams/${type}/${year}`);
 }
 
 export async function submitExamAnswers(
@@ -243,7 +243,7 @@ export async function submitExamAnswers(
   answers: Array<string | null>,
   token?: string | null
 ) {
-  return request(`v2/exams/${type}/${year}/submit`, {
+  return request(`/v2/exams/${type}/${year}/submit`, {
     method: "POST",
     token,
     body: { answers },
