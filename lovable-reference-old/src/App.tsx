@@ -13,6 +13,10 @@ import Dashboard from "./pages/app/Dashboard";
 import TeacherDashboard from "./pages/app/TeacherDashboard";
 import Analytics from "./pages/app/Analytics";
 import PlaceholderPage from "./pages/app/PlaceholderPage";
+import Simulados from "./pages/app/Simulados";
+import SimuladoDetail from "./pages/app/SimuladoDetail";
+import SimuladoResolver from "./pages/app/SimuladoResolver";
+import SimuladoResult from "./pages/app/SimuladoResult";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,7 +37,10 @@ const App = () => (
           {/* App routes (authenticated area) */}
           <Route path="/app" element={<AppLayout />}>
             <Route index element={<Dashboard />} />
-            <Route path="simulados" element={<PlaceholderPage />} />
+            <Route path="simulados" element={<Simulados />} />
+            <Route path="simulados/:id" element={<SimuladoDetail />} />
+            <Route path="simulados/:id/resolver" element={<SimuladoResolver />} />
+            <Route path="simulados/:id/resultado" element={<SimuladoResult />} />
             <Route path="questoes" element={<PlaceholderPage />} />
             <Route path="chat" element={<PlaceholderPage />} />
             <Route path="estudo" element={<PlaceholderPage />} />

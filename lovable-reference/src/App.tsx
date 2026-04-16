@@ -17,6 +17,11 @@ import Simulados from "./pages/app/Simulados";
 import SimuladoDetail from "./pages/app/SimuladoDetail";
 import SimuladoResolver from "./pages/app/SimuladoResolver";
 import SimuladoResult from "./pages/app/SimuladoResult";
+import ChatIA from "./pages/app/ChatIA";
+import StudyArea from "./pages/app/StudyArea";
+import Community from "./pages/app/Community";
+import StudyGroups from "./pages/app/StudyGroups";
+import LiveClasses from "./pages/app/LiveClasses";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,13 +47,13 @@ const App = () => (
             <Route path="simulados/:id/resolver" element={<SimuladoResolver />} />
             <Route path="simulados/:id/resultado" element={<SimuladoResult />} />
             <Route path="questoes" element={<PlaceholderPage />} />
-            <Route path="chat" element={<PlaceholderPage />} />
-            <Route path="estudo" element={<PlaceholderPage />} />
+            <Route path="chat" element={<ChatIA />} />
+            <Route path="estudo" element={<StudyArea />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="professor" element={<TeacherDashboard />} />
-            <Route path="comunidade" element={<PlaceholderPage />} />
-            <Route path="grupos" element={<PlaceholderPage />} />
-            <Route path="aulas" element={<PlaceholderPage />} />
+            <Route path="comunidade" element={<Community />} />
+            <Route path="grupos" element={<StudyGroups />} />
+            <Route path="aulas" element={<LiveClasses />} />
             <Route path="conquistas" element={<PlaceholderPage />} />
             <Route path="conteudos" element={<PlaceholderPage />} />
             <Route path="planos" element={<PlaceholderPage />} />
