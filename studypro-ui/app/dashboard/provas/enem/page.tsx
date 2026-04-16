@@ -10,27 +10,27 @@ export default function EnemPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
-        setError(null);
+  async function load() {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const data = await getExamYears();
-        setYears(data.years || []);
-      } catch (err) {
-        setYears([]);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Erro ao carregar os anos do ENEM."
-        );
-      } finally {
-        setLoading(false);
-      }
+      const data = await getExamYears();
+      setYears(data || []);
+    } catch (err) {
+      setYears([]);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erro ao carregar os anos do ENEM."
+      );
+    } finally {
+      setLoading(false);
     }
+  }
 
-    load();
-  }, []);
+  load();
+}, []);
 
   if (loading) return <div className="p-6">Carregando provas do ENEM...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
