@@ -1,22 +1,50 @@
-import { SimulationV2AnalyticsResponse } from "@/lib/api"
+import { Card, CardContent } from "@/components/ui/card"
 
-export function InsightsPanel({ analytics }: { analytics: SimulationV2AnalyticsResponse | null }) {
-  if (!analytics) {
-    return <p className="text-sm text-muted-foreground">Selecione um simulado para visualizar insights.</p>
-  }
-
-  const hardQuestions = analytics.questions.filter((question) => question.difficulty === "hard").length
-  const mediumQuestions = analytics.questions.filter((question) => question.difficulty === "medium").length
+export function InsightsPanel({
+  insights,
+  streak,
+  bestStreak,
+  accuracyRate,
+}: {
+  insights: string
+  streak: number
+  bestStreak: number
+  accuracyRate: number
+}) {
+  const normalizedInsights =
+    insights?.trim() || "Continue praticando para gerar insights mais detalhados."
 
   return (
-    <div className="space-y-2 text-sm text-muted-foreground">
-      <p>Foram registradas {analytics.attempts_count} tentativas no período selecionado.</p>
-      <p>
-        Questões difíceis: <span className="font-medium text-foreground">{hardQuestions}</span> · médias: <span className="font-medium text-foreground">{mediumQuestions}</span>
-      </p>
-      <p>
-        Alternativa mais marcada: <span className="font-medium text-foreground">{analytics.most_marked_option?.option ?? "N/A"}</span>
-      </p>
-    </div>
+    <Card className="rounded-[32px] border-white/10 bg-white/5 backdrop-blur-xl">
+      <CardContent className="p-6 md:p-7">
+        <p className="text-sm text-muted-foreground">Insights</p>
+        <h2 className="mt-2 text-2xl font-semibold text-white">
+          Leitura inteligente do seu momento
+        </h2>
+
+        <div className="mt-6 rounded-[24px] border border-white/10 bg-slate-950/60 p-5">
+          <p className="text-sm leading-8 text-slate-300">{normalizedInsights}</p>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm text-muted-foreground">Sequência atual</p>
+            <p className="mt-2 text-2xl font-bold text-white">{streak}</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm text-muted-foreground">Melhor sequência</p>
+            <p className="mt-2 text-2xl font-bold text-white">{bestStreak}</p>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+            <p className="text-sm text-muted-foreground">Aproveitamento</p>
+            <p className="mt-2 text-2xl font-bold text-white">
+              {(accuracyRate * 100).toFixed(1)}%
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
