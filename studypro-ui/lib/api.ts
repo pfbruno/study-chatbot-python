@@ -219,7 +219,17 @@ export async function getDashboardData(token?: string | null) {
 =========================== */
 
 export async function getExamTypes() {
-  return request<ExamCatalogResponse>("/v2/exams");
+  const data = await request<{ items?: Array<any> }>("/v2/exams");
+
+  const items = data?.items ?? [];
+
+  return items.map((item: any) => ({
+    id: item.id,
+    type: item.source || item.type || item.exam_type || "enem",
+    label: (item.source || item.type || item.exam_type || "enem").toUpperCase(),
+    year: item.year,
+    title: item.title,
+  }));
 }
 
 export async function getExamYears() {
