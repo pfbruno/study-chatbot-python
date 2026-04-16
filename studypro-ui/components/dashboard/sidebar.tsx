@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import {
   BookOpen,
+  ClipboardList,
   CreditCard,
   FileText,
   Home,
@@ -33,6 +34,7 @@ type NavItem = {
 const mainItems: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: Home },
   { name: "Simulados", href: "/dashboard/simulados", icon: FileText },
+  { name: "Provas", href: "/dashboard/provas", icon: ClipboardList },
   { name: "Perfil", href: "/dashboard/perfil", icon: User },
   { name: "Planos", href: "/pricing", icon: CreditCard },
 ]
