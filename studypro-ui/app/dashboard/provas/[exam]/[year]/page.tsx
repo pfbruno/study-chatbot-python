@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
 import {
   ArrowLeft,
   CheckCircle2,
@@ -14,54 +14,71 @@ import {
   XCircle,
 } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   getExamByTypeAndYear,
   submitExamAnswers,
   type ExamDetail,
-  type ExamSubmissionResponse,
 } from "@/lib/api"
 import { saveRecentAttempt } from "@/lib/activity"
 
-const ALTERNATIVES = ["A", "B", "C", "D", "E"]
+const ALTERNATIVES = ["A", "B", "C", "D", "E"] as const
+
+type QuestionResultItem = {
+  question_number: number
+  status: "correct" | "wrong" | "blank" | "annulled"
+  user_answer: string | null
+  correct_answer: string | null
+}
+
+type ExamSubmissionResponse = {
+  correct_answers: number
+  wrong_answers: number
+  unanswered_count: number
+  annulled_count: number
+  valid_questions: number
+  total_questions: number
+  score_percentage: number
+  results_by_question: QuestionResultItem[]
+}
+
+function decodeParam(value: string) {
+  return decodeURIComponent(value).trim()
+}
 
 export default function ExamYearDetailPage() {
   const params = useParams<{ exam: string; year: string }>()
-  const examParam = decodeURIComponent(params.exam)
+  const examParam = decodeParam(params.exam).toLowerCase()
   const yearParam = Number(params.year)
 
   const [exam, setExam] = useState<ExamDetail | null>(null)
   const [answers, setAnswers] = useState<Array<string | null>>([])
   const [result, setResult] = useState<ExamSubmissionResponse | null>(null)
   const [selectedPdfUrl, setSelectedPdfUrl] = useState<string | null>(null)
-
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [error, setError] = useState("")
+  const [submitError, setSubmitError] = useState("")
 
   useEffect(() => {
     async function loadExam() {
       try {
         setLoading(true)
-        setError(null)
-
+        setError("")
         const data = await getExamByTypeAndYear(examParam, yearParam)
         setExam(data)
         setAnswers(Array.from({ length: data.question_count }, () => null))
         setSelectedPdfUrl(data.pdfs?.[0]?.url ?? null)
       } catch (err) {
-        const message =
+        setError(
           err instanceof Error ? err.message : "Não foi possível carregar a prova."
-
-        setError(message)
+        )
       } finally {
         setLoading(false)
       }
     }
 
     if (!Number.isNaN(yearParam)) {
-      void loadExam()
+      loadExam()
     } else {
       setError("Ano inválido.")
       setLoading(false)
@@ -81,19 +98,21 @@ export default function ExamYearDetailPage() {
 
     try {
       setSubmitting(true)
-      setSubmitError(null)
+      setSubmitError("")
 
-      const response = await submitExamAnswers(
+      const response = (await submitExamAnswers(
         exam.exam_type,
         exam.year,
         answers,
         typeof window !== "undefined"
           ? localStorage.getItem("studypro_auth_token") ?? undefined
-          : undefined,
-      )
+          : undefined
+      )) as ExamSubmissionResponse
+
       setResult(response)
+
       saveRecentAttempt({
-        id: `prova-${exam.exam_type}-${exam.year}-${Date.now()}` ,
+        id: `prova-${exam.exam_type}-${exam.year}-${Date.now()}`,
         module: "provas",
         title: exam.title,
         scorePercentage: response.score_percentage,
@@ -102,10 +121,9 @@ export default function ExamYearDetailPage() {
         createdAt: new Date().toISOString(),
       })
     } catch (err) {
-      const message =
+      setSubmitError(
         err instanceof Error ? err.message : "Não foi possível corrigir a prova."
-
-      setSubmitError(message)
+      )
     } finally {
       setSubmitting(false)
     }
@@ -113,46 +131,44 @@ export default function ExamYearDetailPage() {
 
   const answeredCount = useMemo(
     () => answers.filter((answer) => answer !== null).length,
-    [answers],
+    [answers]
   )
 
   const unansweredCount = useMemo(
     () => answers.filter((answer) => answer === null).length,
-    [answers],
+    [answers]
   )
 
   const questionResultsMap = useMemo(() => {
-    if (!result) return new Map<number, (typeof result.results_by_question)[number]>()
-
-    return new Map(result.results_by_question.map((item) => [item.question_number, item]))
+    if (!result) return new Map<number, QuestionResultItem>()
+    return new Map(
+      result.results_by_question.map((item) => [item.question_number, item])
+    )
   }, [result])
-
-  function getQuestionStatus(questionNumber: number) {
-    const item = questionResultsMap.get(questionNumber)
-    if (!item) return null
-    return item.status
-  }
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <Loader2 className="size-4 animate-spin" />
+          Carregando prova...
+        </div>
       </div>
     )
   }
 
   if (error || !exam) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Link
-          href={`/dashboard/provas/${examParam}`}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+          href={`/dashboard/provas/${encodeURIComponent(examParam)}`}
+          className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="size-4" />
           Voltar
         </Link>
 
-        <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error || "Prova não encontrada."}
         </div>
       </div>
@@ -160,319 +176,325 @@ export default function ExamYearDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <Link
-        href={`/dashboard/provas/${examParam}`}
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+        href={`/dashboard/provas/${encodeURIComponent(examParam)}`}
+        className="inline-flex items-center gap-2 text-sm text-slate-300 transition hover:text-white"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="size-4" />
         Voltar para os anos
       </Link>
 
-      <div className="space-y-3">
-        <div className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background/60 px-3 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          <FileText className="h-3.5 w-3.5" />
-          Prova selecionada
+      <section className="glass-panel rounded-[32px] p-6 md:p-8">
+        <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
+              Prova selecionada
+            </div>
+
+            <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
+              {exam.title}
+            </h1>
+
+            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
+              {exam.description}
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <MetaBadge value={exam.institution} />
+              <MetaBadge value={String(exam.year)} />
+              <MetaBadge value={`${exam.question_count} questões`} />
+              <MetaBadge value={exam.has_answer_key ? "Com gabarito" : "Sem gabarito"} />
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
+            <p className="text-sm text-muted-foreground">Resumo da folha</p>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-3">
+              <StatCard label="Respondidas" value={String(answeredCount)} />
+              <StatCard label="Em branco" value={String(unansweredCount)} />
+              <StatCard label="Total" value={String(exam.question_count)} />
+            </div>
+
+            {!exam.has_answer_key ? (
+              <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                Esta prova não possui gabarito disponível. A correção automática está desabilitada.
+              </div>
+            ) : null}
+          </div>
         </div>
+      </section>
 
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">{exam.title}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">{exam.description}</p>
-        </div>
+      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <article className="glass-panel rounded-[32px] p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70">
+              <FileText className="size-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-white">
+                Visualização da prova
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                PDFs e página oficial, quando disponíveis
+              </p>
+            </div>
+          </div>
 
-        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="rounded-md border border-border/60 bg-background/50 px-2 py-1">
-            {exam.institution}
-          </span>
-          <span className="rounded-md border border-border/60 bg-background/50 px-2 py-1">
-            {exam.year}
-          </span>
-          <span className="rounded-md border border-border/60 bg-background/50 px-2 py-1">
-            {exam.question_count} questões
-          </span>
-          <span className="rounded-md border border-border/60 bg-background/50 px-2 py-1">
-            {exam.has_answer_key ? "Com gabarito" : "Sem gabarito"}
-          </span>
-        </div>
-      </div>
+          {exam.pdfs.length === 0 ? (
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-300">
+              Nenhum PDF disponível para esta prova.
+            </div>
+          ) : (
+            <>
+              <div className="mt-6 flex flex-wrap gap-3">
+                {exam.pdfs.map((pdf) => {
+                  const isSelected = selectedPdfUrl === pdf.url
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="space-y-6">
-          <Card className="border-border/60 bg-card/80 backdrop-blur">
-            <CardHeader>
-              <CardTitle className="text-base">Visualização da prova</CardTitle>
-            </CardHeader>
+                  return (
+                    <button
+                      key={pdf.url}
+                      type="button"
+                      onClick={() => setSelectedPdfUrl(pdf.url)}
+                      className={`rounded-2xl border px-4 py-3 text-sm transition ${
+                        isSelected
+                          ? "border-primary/30 bg-primary text-primary-foreground"
+                          : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {pdf.label}
+                    </button>
+                  )
+                })}
+              </div>
 
-            <CardContent className="space-y-4">
-              {exam.pdfs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum PDF disponível para esta prova.
-                </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {selectedPdfUrl ? (
+                  <a
+                    href={selectedPdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
+                  >
+                    <ExternalLink className="size-4" />
+                    Abrir PDF em nova guia
+                  </a>
+                ) : null}
+
+                {exam.official_page_url ? (
+                  <a
+                    href={exam.official_page_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
+                  >
+                    <ExternalLink className="size-4" />
+                    Página oficial
+                  </a>
+                ) : null}
+              </div>
+
+              {selectedPdfUrl ? (
+                <div className="mt-6 overflow-hidden rounded-[24px] border border-white/10 bg-slate-950/70">
+                  <iframe
+                    src={selectedPdfUrl}
+                    title={`PDF ${exam.title}`}
+                    className="h-[720px] w-full"
+                  />
+                </div>
               ) : (
-                <>
-                  <div className="flex flex-wrap gap-2">
-                    {exam.pdfs.map((pdf) => {
-                      const isSelected = selectedPdfUrl === pdf.url
-
-                      return (
-                        <button
-                          key={pdf.url}
-                          type="button"
-                          onClick={() => setSelectedPdfUrl(pdf.url)}
-                          className={`rounded-lg border px-3 py-2 text-sm transition ${
-                            isSelected
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border/60 bg-background/50 text-foreground hover:border-primary/60"
-                          }`}
-                        >
-                          {pdf.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    {selectedPdfUrl ? (
-                      <a
-                        href={selectedPdfUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background/50 px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/60"
-                      >
-                        Abrir PDF em nova guia
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    ) : null}
-
-                    {exam.official_page_url ? (
-                      <a
-                        href={exam.official_page_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg border border-border/60 bg-background/50 px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/60"
-                      >
-                        Página oficial
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
-                    ) : null}
-                  </div>
-
-                  {selectedPdfUrl ? (
-                    <div className="overflow-hidden rounded-xl border border-border/60 bg-black">
-                      <iframe
-                        src={selectedPdfUrl}
-                        title="Visualizador de PDF da prova"
-                        className="h-[900px] w-full"
-                      />
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-border/60 bg-background/30 px-4 py-10 text-center text-sm text-muted-foreground">
-                      Selecione um PDF para visualizar.
-                    </div>
-                  )}
-
-                  <p className="text-xs text-muted-foreground">
-                    Se o PDF não carregar no visualizador, use o botão “Abrir PDF em nova guia”.
-                  </p>
-                </>
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-slate-300">
+                  Selecione um PDF para visualizar.
+                </div>
               )}
-            </CardContent>
-          </Card>
 
+              <p className="mt-4 text-xs text-muted-foreground">
+                Se o PDF não carregar no visualizador, use o botão “Abrir PDF em nova guia”.
+              </p>
+            </>
+          )}
+        </article>
+
+        <article className="space-y-6">
           {result ? (
-            <Card className="border-border/60 bg-card/80 backdrop-blur">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Trophy className="h-4 w-4 text-primary" />
-                  Resultado da correção
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Acertos</p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    {result.correct_answers}
+            <div className="glass-panel rounded-[32px] p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70">
+                  <Trophy className="size-5 text-accent" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-semibold text-white">
+                    Resultado da correção
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Resumo consolidado do desempenho
                   </p>
                 </div>
+              </div>
 
-                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">Erros</p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    {result.wrong_answers}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Percentual
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    {result.score_percentage.toFixed(1)}%
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Em branco
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    {result.unanswered_count}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Anuladas
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    {result.annulled_count}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Válidas
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-foreground">
-                    {result.valid_questions}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <StatCard label="Acertos" value={String(result.correct_answers)} />
+                <StatCard label="Erros" value={String(result.wrong_answers)} />
+                <StatCard
+                  label="Percentual"
+                  value={`${result.score_percentage.toFixed(1)}%`}
+                />
+                <StatCard label="Em branco" value={String(result.unanswered_count)} />
+                <StatCard label="Anuladas" value={String(result.annulled_count)} />
+                <StatCard label="Válidas" value={String(result.valid_questions)} />
+              </div>
+            </div>
           ) : null}
-        </div>
 
-        <div className="xl:sticky xl:top-6 xl:self-start">
-          <Card className="border-border/60 bg-card/80 backdrop-blur">
-            <CardHeader className="space-y-4">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                <CardTitle className="text-base">Folha de respostas</CardTitle>
-
-                <button
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={submitting || !exam.has_answer_key}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {submitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  Realizar correção
-                </button>
+          <div className="glass-panel rounded-[32px] p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Folha de respostas
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Marque as alternativas e envie para correção
+                </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl border border-border/60 bg-background/40 p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    Respondidas
-                  </p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">{answeredCount}</p>
-                </div>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting || !exam.has_answer_key}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {submitting ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+                Realizar correção
+              </button>
+            </div>
 
-                <div className="rounded-xl border border-border/60 bg-background/40 p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    Em branco
-                  </p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">{unansweredCount}</p>
-                </div>
-
-                <div className="rounded-xl border border-border/60 bg-background/40 p-3">
-                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    Total
-                  </p>
-                  <p className="mt-1 text-xl font-semibold text-foreground">
-                    {exam.question_count}
-                  </p>
-                </div>
+            {submitError ? (
+              <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {submitError}
               </div>
-            </CardHeader>
+            ) : null}
 
-            <CardContent className="space-y-4">
-              {!exam.has_answer_key ? (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-                  Esta prova não possui gabarito disponível no momento. Você ainda pode marcar as
-                  respostas, mas a correção automática está desabilitada.
-                </div>
-              ) : null}
+            <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: exam.question_count }, (_, index) => {
+                const questionNumber = index + 1
+                const questionResult = questionResultsMap.get(questionNumber)
 
-              {submitError ? (
-                <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {submitError}
-                </div>
-              ) : null}
+                return (
+                  <article
+                    key={questionNumber}
+                    className="rounded-[24px] border border-white/10 bg-white/5 p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-white">
+                        Questão {questionNumber}
+                      </span>
 
-              <div className="max-h-[70vh] overflow-y-auto pr-1">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-3">
-                  {Array.from({ length: exam.question_count }, (_, index) => {
-                    const questionNumber = index + 1
-                    const questionResult = questionResultsMap.get(questionNumber)
-                    const status = getQuestionStatus(questionNumber)
+                      {questionResult ? (
+                        <QuestionStatusBadge status={questionResult.status} />
+                      ) : null}
+                    </div>
 
-                    return (
-                      <div
-                        key={questionNumber}
-                        className="rounded-xl border border-border/60 bg-background/35 p-3"
-                      >
-                        <div className="mb-2 flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-foreground">
-                            {questionNumber}
-                          </span>
+                    <div className="mt-4 grid grid-cols-5 gap-2">
+                      {ALTERNATIVES.map((alternative) => {
+                        const selected = answers[index] === alternative
 
-                          {status === "correct" ? (
-                            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                          ) : status === "wrong" ? (
-                            <XCircle className="h-4 w-4 text-rose-400" />
-                          ) : status === "annulled" ? (
-                            <span className="text-[10px] font-medium text-amber-300">AN</span>
-                          ) : status === "blank" ? (
-                            <span className="text-[10px] font-medium text-slate-300">BR</span>
-                          ) : null}
-                        </div>
+                        return (
+                          <button
+                            key={alternative}
+                            type="button"
+                            onClick={() => updateAnswer(index, alternative)}
+                            className={`inline-flex h-10 items-center justify-center rounded-xl border text-sm font-semibold transition ${
+                              selected
+                                ? "border-primary/30 bg-primary text-primary-foreground"
+                                : "border-white/10 bg-slate-950/70 text-white hover:bg-white/10"
+                            }`}
+                          >
+                            {alternative}
+                          </button>
+                        )
+                      })}
+                    </div>
 
-                        <div className="grid grid-cols-5 gap-1.5">
-                          {ALTERNATIVES.map((alternative) => {
-                            const selected = answers[index] === alternative
-
-                            return (
-                              <button
-                                key={alternative}
-                                type="button"
-                                onClick={() => updateAnswer(index, alternative)}
-                                className={`inline-flex h-8 w-full items-center justify-center rounded-md border text-xs font-semibold transition ${
-                                  selected
-                                    ? "border-primary bg-primary text-primary-foreground"
-                                    : "border-border/60 bg-background/50 text-foreground hover:border-primary/60"
-                                }`}
-                              >
-                                {alternative}
-                              </button>
-                            )
-                          })}
-                        </div>
-
-                        {questionResult ? (
-                          <div className="mt-2 text-[11px] text-muted-foreground">
-                            <span className="font-medium text-foreground">
-                              {questionResult.user_answer ?? "-"}
-                            </span>
-                            {" / "}
-                            <span className="font-medium text-foreground">
-                              {questionResult.correct_answer ?? "-"}
-                            </span>
-                          </div>
-                        ) : null}
+                    {questionResult ? (
+                      <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/70 px-3 py-3 text-xs text-slate-300">
+                        Sua resposta:{" "}
+                        <span className="font-semibold text-white">
+                          {questionResult.user_answer ?? "-"}
+                        </span>
+                        {" · "}
+                        Gabarito:{" "}
+                        <span className="font-semibold text-white">
+                          {questionResult.correct_answer ?? "-"}
+                        </span>
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                    ) : null}
+                  </article>
+                )
+              })}
+            </div>
+          </div>
+        </article>
+      </section>
     </div>
+  )
+}
+
+function MetaBadge({ value }: { value: string }) {
+  return (
+    <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+      {value}
+    </div>
+  )
+}
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+    </div>
+  )
+}
+
+function QuestionStatusBadge({
+  status,
+}: {
+  status: "correct" | "wrong" | "blank" | "annulled"
+}) {
+  if (status === "correct") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-300">
+        <CheckCircle2 className="size-3.5" />
+        Correta
+      </span>
+    )
+  }
+
+  if (status === "wrong") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs text-rose-300">
+        <XCircle className="size-3.5" />
+        Errada
+      </span>
+    )
+  }
+
+  if (status === "annulled") {
+    return (
+      <span className="inline-flex rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs text-amber-200">
+        AN
+      </span>
+    )
+  }
+
+  return (
+    <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-slate-300">
+      BR
+    </span>
   )
 }
