@@ -28,7 +28,7 @@ def list_simulations_v2_repo(subject: str | None = None) -> list[dict]:
     """
     params: tuple[Any, ...] = ()
     if subject:
-        query += " WHERE LOWER(simulations_v2.subject) = LOWER(?) "
+        query += " WHERE LOWER(simulations_v2.subject) = LOWER(%s) "
         params = (subject,)
 
     query += """
@@ -49,7 +49,7 @@ def get_simulation_analytics_v2_repo(
     conn = connect()
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT id, subject FROM simulations_v2 WHERE id = ?",
+        "SELECT id, subject FROM simulations_v2 WHERE id = %s",
         (simulation_id,),
     )
     simulation = cursor.fetchone()
@@ -66,10 +66,10 @@ def get_simulation_analytics_v2_repo(
     if period_days is not None and period_days > 0:
         period_cutoff = (datetime.now(UTC) - timedelta(days=period_days)).isoformat()
 
-    where_clause = "WHERE simulation_id = ?"
+    where_clause = "WHERE simulation_id = %s"
     attempt_params: list[Any] = [simulation_id]
     if period_cutoff:
-        where_clause += " AND submitted_at >= ?"
+        where_clause += " AND submitted_at >= %s"
         attempt_params.append(period_cutoff)
 
     cursor.execute(
@@ -87,13 +87,13 @@ def get_simulation_analytics_v2_repo(
     summary = dict(cursor.fetchone())
 
     answer_where = """
-        WHERE simulation_attempts_v2.simulation_id = ?
+        WHERE simulation_attempts_v2.simulation_id = %s
           AND selected_option IS NOT NULL
           AND selected_option != ''
     """
     answer_params: list[Any] = [simulation_id]
     if period_cutoff:
-        answer_where += " AND simulation_attempts_v2.submitted_at >= ?"
+        answer_where += " AND simulation_attempts_v2.submitted_at >= %s"
         answer_params.append(period_cutoff)
 
     cursor.execute(
@@ -113,10 +113,10 @@ def get_simulation_analytics_v2_repo(
     )
     top_option = cursor.fetchone()
 
-    question_where = "WHERE simulation_attempts_v2.simulation_id = ?"
+    question_where = "WHERE simulation_attempts_v2.simulation_id = %s"
     question_params: list[Any] = [simulation_id]
     if period_cutoff:
-        question_where += " AND simulation_attempts_v2.submitted_at >= ?"
+        question_where += " AND simulation_attempts_v2.submitted_at >= %s"
         question_params.append(period_cutoff)
 
     cursor.execute(
