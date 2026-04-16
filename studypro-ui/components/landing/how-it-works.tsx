@@ -4,40 +4,68 @@ const steps = [
   {
     icon: FileText,
     title: "Escolha seu simulado",
-    description: "Monte listas por banca, ano e disciplina com o banco de questões oficial.",
+    description:
+      "Monte listas por banca, ano e disciplina com navegação mais objetiva e leitura rápida.",
   },
   {
     icon: Brain,
-    title: "Resolva com suporte inteligente",
-    description: "Receba feedback imediato, histórico e recomendações para corrigir pontos fracos.",
+    title: "Resolva com feedback imediato",
+    description:
+      "Veja desempenho, resultado e próximos passos sem sair do fluxo principal do aluno.",
   },
   {
     icon: LineChart,
-    title: "Acompanhe evolução",
-    description: "Veja progresso por matéria, tendências de acerto e plano de revisão personalizado.",
+    title: "Acompanhe a evolução",
+    description:
+      "Use métricas visuais, tendências e histórico para decidir onde revisar primeiro.",
   },
 ]
 
 export function HowItWorks() {
   return (
-    <section className="py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Como funciona</h2>
-          <p className="mt-3 text-muted-foreground">Fluxo simples para estudar com consistência e ganhar desempenho.</p>
+    <section id="como-funciona" className="section-padding">
+      <div className="container-shell">
+        <div className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-primary">
+            Como funciona
+          </span>
+          <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
+            Fluxo simples para estudar com consistência
+          </h2>
+          <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
+            O objetivo desta refatoração é reduzir atrito visual e deixar o
+            percurso do aluno mais previsível.
+          </p>
         </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {steps.map((step, index) => (
-            <div key={step.title} className="rounded-2xl border border-border/60 bg-card p-6">
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <step.icon className="h-5 w-5" />
-              </div>
-              <p className="text-xs font-semibold uppercase text-muted-foreground">Passo {index + 1}</p>
-              <h3 className="mt-2 text-lg font-semibold">{step.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-            </div>
-          ))}
+        <div className="mt-14 grid gap-6 lg:grid-cols-3">
+          {steps.map((step, index) => {
+            const Icon = step.icon
+
+            return (
+              <article
+                key={step.title}
+                className="glass-panel rounded-[24px] p-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/20">
+                    <Icon className="size-5" />
+                  </div>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Passo {index + 1}
+                  </span>
+                </div>
+
+                <h3 className="mt-5 text-xl font-semibold text-white">
+                  {step.title}
+                </h3>
+
+                <p className="mt-3 text-sm leading-7 text-slate-300">
+                  {step.description}
+                </p>
+              </article>
+            )
+          })}
         </div>
       </div>
     </section>
