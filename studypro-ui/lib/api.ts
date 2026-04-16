@@ -1,251 +1,73 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
   "https://study-chatbot-python.onrender.com";
 
-export const AUTH_TOKEN_KEY = "studypro_auth_token";
-export const AUTH_USER_KEY = "studypro_auth_user";
+function getAuthHeaders() {
+  if (typeof window === "undefined") return {};
 
-type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-
-type RequestOptions = {
-  method?: HttpMethod;
-  body?: unknown;
-  token?: string | null;
-};
-
-export type AuthUser = {
-  id: number;
-  name: string;
-  email: string;
-  plan: "free" | "pro";
-  subscription_status?: string;
-  current_period_end?: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export type BillingEntitlements = {
-  is_pro: boolean;
-  can_access_advanced_analytics: boolean;
-  can_access_critical_questions: boolean;
-  can_access_smart_insights: boolean;
-  can_generate_advanced_simulations: boolean;
-  can_compare_simulados_vs_provas: boolean;
-};
-
-export type BillingStatusResponse = {
-  user: AuthUser;
-  usage: {
-    scope: "user" | "guest";
-    plan: "free" | "pro" | "guest";
-    usage_date: string;
-    simulations_generated_today: number;
-    daily_limit: number | null;
-    remaining_today: number | null;
-    can_generate: boolean;
-  };
-  entitlements: BillingEntitlements;
-};
-
-export type DashboardResponse = {
-  questions: number;
-  correct: number;
-  wrong: number;
-  insights: string;
-  streak: number;
-  best_streak: number;
-  plan: "free" | "pro";
-  recent_attempts: Array<{
-    exam_id?: number;
-    title?: string;
-    score_percentage?: number;
-    created_at?: string;
-  }>;
-};
-
-export type ExamPdf = {
-  label: string;
-  url: string;
-};
-
-export type ExamYearSummary = {
-  year: number;
-  title: string;
-  description: string;
-  question_count: number;
-  has_answer_key: boolean;
-  has_pdfs: boolean;
-  official_page_url?: string | null;
-};
-
-export type ExamType = {
-  key: string;
-  label: string;
-  years: ExamYearSummary[];
-};
-
-export type ExamCatalogResponse = {
-  exam_types: ExamType[];
-};
-
-export type ExamYearsResponse = {
-  exam_type: string;
-  years: number[];
-};
-
-export type ExamDetail = {
-  exam_type: string;
-  institution: string;
-  year: number;
-  title: string;
-  description: string;
-  question_count: number;
-  pdfs: ExamPdf[];
-  has_answer_key: boolean;
-  official_page_url?: string | null;
-};
-
-function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(AUTH_TOKEN_KEY);
+  const token = localStorage.getItem("access_token");
+  return token
+    ? {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      }
+    : {
+        "Content-Type": "application/json",
+      };
 }
 
-async function parseApiError(response: Response): Promise<string> {
-  try {
-    const data = await response.json();
-
-    if (typeof data?.detail === "string") {
-      return data.detail;
-    }
-
-    if (Array.isArray(data?.detail)) {
-      return data.detail
-        .map((item: unknown) => {
-          if (typeof item === "string") return item;
-          if (item && typeof item === "object" && "msg" in item) {
-            return String((item as { msg: string }).msg);
-          }
-          return "Erro de validação.";
-        })
-        .join(" | ");
-    }
-
-    if (typeof data?.message === "string") {
-      return data.message;
-    }
-
-    return "Erro na requisição.";
-  } catch {
-    const text = await response.text().catch(() => "");
-    return text || "Erro na requisição.";
-  }
-}
-
-async function request<T>(
-  endpoint: string,
-  options: RequestOptions = {}
-): Promise<T> {
-  const { method = "GET", body, token } = options;
-
-  const resolvedToken =
-    typeof token === "undefined" ? getStoredToken() : token ?? null;
-
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-  };
-
-  if (resolvedToken) {
-    headers.Authorization = `Bearer ${resolvedToken}`;
-  }
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-    cache: "no-store",
+async function request(path: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...(options.headers || {}),
+    },
   });
 
-  if (!response.ok) {
-    throw new Error(await parseApiError(response));
+  if (!res.ok) {
+    let error;
+    try {
+      error = await res.json();
+    } catch {
+      throw new Error(`Erro HTTP ${res.status}`);
+    }
+    throw new Error(error.detail || "Erro na requisição");
   }
 
-  return response.json() as Promise<T>;
+  return res.json();
 }
 
-/* ===========================
-   AUTH
-=========================== */
+//
+// =============================
+// 🔥 PROVAS (CORRIGIDO)
+// =============================
+//
 
-export async function login(email: string, password: string) {
-  return request<{
-    message: string;
-    token_type: "Bearer";
-    access_token: string;
-    expires_at: string;
-    user: AuthUser;
-  }>("/auth/login", {
-    method: "POST",
-    body: { email, password },
-  });
-}
-
-export async function getMe(token?: string | null) {
-  return request<{
-    user: AuthUser;
-    usage: BillingStatusResponse["usage"];
-    entitlements: BillingEntitlements;
-  }>("/auth/me", { token });
-}
-
-/* ===========================
-   BILLING
-=========================== */
-
-export async function getBillingStatus(token?: string | null) {
-  return request<BillingStatusResponse>("/billing/status", { token });
-}
-
-/* ===========================
-   DASHBOARD
-=========================== */
-
-export async function getDashboardData(token?: string | null) {
-  return request<DashboardResponse>("/dashboard", { token });
-}
-
-/* ===========================
-   EXAMS
-=========================== */
-
-export async function getExamTypes() {
-  return request<ExamCatalogResponse>("/exams");
-}
-
+// LISTAR ANOS ENEM
 export async function getExamYears() {
-  return request<ExamYearsResponse>("/exams/enem");
+  return request("/v2/exams/enem");
 }
 
-export async function getExamByYear(year: string | number) {
-  return request<ExamDetail>(`/exams/enem/${year}`);
+// BUSCAR PROVA POR ANO
+export async function getExamByYear(year: number) {
+  return request(`/v2/exams/enem/${year}`);
 }
 
-export async function getExamByTypeAndYear(
-  type: string,
-  year: string | number
-) {
-  return request<ExamDetail>(`/exams/${type}/${year}`);
+// BUSCAR ESTRUTURA COMPLETA
+export async function getExamStructure(examId: number) {
+  return request(`/v2/exams/${examId}`);
 }
 
-export async function submitExamAnswers(
-  type: string,
-  year: string | number,
-  answers: Array<string | null>,
-  token?: string | null
-) {
-  return request(`/exams/${type}/${year}/submit`, {
+// CRIAR TENTATIVA
+export async function submitExamAttempt(payload: any) {
+  return request("/v2/exams/attempts", {
     method: "POST",
-    token,
-    body: { answers },
+    body: JSON.stringify(payload),
   });
+}
+
+// ANALYTICS
+export async function getExamAnalytics() {
+  return request("/v2/exams/analytics");
 }
