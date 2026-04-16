@@ -1,11 +1,13 @@
 import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
+
 import "./globals.css"
 
 export const metadata: Metadata = {
   title: "StudyPro - Conquiste sua vaga",
-  description: "Pratique com ENEM e vestibulares, acompanhe seu desempenho e evolua",
-  generator: "v0.app",
+  description:
+    "Pratique com ENEM e vestibulares, acompanhe seu desempenho e evolua com feedback inteligente.",
+  generator: "Next.js",
   icons: {
     icon: [
       {
@@ -27,12 +29,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className="font-sans antialiased">
+    <html lang="pt-BR" className="dark" suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased">
         {children}
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>
