@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   BarChart3,
+  GraduationCap,
+  Layers3,
   Loader2,
   Lock,
   SendHorizonal,
@@ -53,8 +55,32 @@ type SimulationHistoryEntry = {
   }>
 }
 
+type ReviewSummaryPayload = {
+  title: string
+  subtitle: string
+  revisionSummary: string
+  weakestSubjects: Array<{
+    subject: string
+    accuracy: number
+    correct: number
+    wrong: number
+    blank: number
+  }>
+  generatedAt: string
+}
+
+type ReviewCard = {
+  id: string
+  subject: string
+  questionNumber: number
+  front: string
+  back: string
+}
+
 const SESSION_STORAGE_KEY = "studypro_active_simulation"
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
 const QUICK_PROMPTS = [
   "Crie um simulado de 10 questões de biologia do enem",
@@ -92,6 +118,9 @@ export function ChatIA() {
   const [simulationHistory, setSimulationHistory] = useState<
     SimulationHistoryEntry[]
   >([])
+  const [reviewSummary, setReviewSummary] =
+    useState<ReviewSummaryPayload | null>(null)
+  const [reviewFlashcards, setReviewFlashcards] = useState<ReviewCard[]>([])
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -110,6 +139,8 @@ export function ChatIA() {
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
+    const rawSummary = localStorage.getItem(REVIEW_SUMMARY_KEY)
+    const rawFlashcards = localStorage.getItem(REVIEW_FLASHCARDS_KEY)
 
     setToken(storedToken)
 
@@ -121,6 +152,28 @@ export function ChatIA() {
         }
       } catch {
         localStorage.removeItem(SIMULATION_HISTORY_KEY)
+      }
+    }
+
+    if (rawSummary) {
+      try {
+        const parsed = JSON.parse(rawSummary) as ReviewSummaryPayload
+        if (parsed?.title && parsed?.revisionSummary) {
+          setReviewSummary(parsed)
+        }
+      } catch {
+        localStorage.removeItem(REVIEW_SUMMARY_KEY)
+      }
+    }
+
+    if (rawFlashcards) {
+      try {
+        const parsed = JSON.parse(rawFlashcards) as ReviewCard[]
+        if (Array.isArray(parsed)) {
+          setReviewFlashcards(parsed)
+        }
+      } catch {
+        localStorage.removeItem(REVIEW_FLASHCARDS_KEY)
       }
     }
   }, [])
@@ -364,6 +417,60 @@ export function ChatIA() {
                 </div>
               </div>
             ) : null}
+
+            {(reviewSummary || reviewFlashcards.length > 0) && (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <GraduationCap className="size-5 text-blue-300" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-semibold text-white">
+                      Área de Estudo pronta
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      Seus materiais de revisão já estão organizados.
+                    </p>
+
+                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <div className="text-sm text-slate-400">Resumo</div>
+                        <div className="mt-1 text-base font-semibold text-white">
+                          {reviewSummary ? "Disponível" : "Não"}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                        <div className="text-sm text-slate-400">Flashcards</div>
+                        <div className="mt-1 text-base font-semibold text-white">
+                          {reviewFlashcards.length}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link
+                        href="/dashboard/estudo"
+                        className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                      >
+                        Ir para Área de Estudo
+                      </Link>
+
+                      {reviewFlashcards.length > 0 ? (
+                        <Link
+                          href="/dashboard/flashcards"
+                          className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                        >
+                          <Layers3 className="size-4" />
+                          Flashcards
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {bestSimulationScore !== null ? (
               <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
