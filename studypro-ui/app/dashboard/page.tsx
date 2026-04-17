@@ -6,12 +6,13 @@ import {
   BarChart3,
   BookOpen,
   Clock3,
+  FileText,
   History,
+  Layers3,
   Loader2,
   Lock,
   Sparkles,
   Target,
-  TrendingUp,
 } from "lucide-react"
 import {
   Bar,
@@ -61,8 +62,32 @@ type SimulationHistoryEntry = {
   }>
 }
 
+type ReviewSummaryPayload = {
+  title: string
+  subtitle: string
+  revisionSummary: string
+  weakestSubjects: Array<{
+    subject: string
+    accuracy: number
+    correct: number
+    wrong: number
+    blank: number
+  }>
+  generatedAt: string
+}
+
+type ReviewCard = {
+  id: string
+  subject: string
+  questionNumber: number
+  front: string
+  back: string
+}
+
 const STUDY_GOAL_KEY = "studypro_goal"
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
@@ -149,12 +174,19 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<DashboardTab>("evolucao")
   const [goal, setGoal] = useState<StudyGoal | null>(null)
   const [goalLoaded, setGoalLoaded] = useState(false)
-  const [simulationHistory, setSimulationHistory] = useState<SimulationHistoryEntry[]>([])
+  const [simulationHistory, setSimulationHistory] = useState<
+    SimulationHistoryEntry[]
+  >([])
+  const [reviewSummary, setReviewSummary] =
+    useState<ReviewSummaryPayload | null>(null)
+  const [reviewFlashcards, setReviewFlashcards] = useState<ReviewCard[]>([])
 
   useEffect(() => {
     const savedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const savedGoal = localStorage.getItem(STUDY_GOAL_KEY) as StudyGoal | null
     const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
+    const rawSummary = localStorage.getItem(REVIEW_SUMMARY_KEY)
+    const rawFlashcards = localStorage.getItem(REVIEW_FLASHCARDS_KEY)
 
     setToken(savedToken)
     setGoal(savedGoal)
@@ -168,6 +200,28 @@ export default function DashboardPage() {
         }
       } catch {
         localStorage.removeItem(SIMULATION_HISTORY_KEY)
+      }
+    }
+
+    if (rawSummary) {
+      try {
+        const parsed = JSON.parse(rawSummary) as ReviewSummaryPayload
+        if (parsed?.title && parsed?.revisionSummary) {
+          setReviewSummary(parsed)
+        }
+      } catch {
+        localStorage.removeItem(REVIEW_SUMMARY_KEY)
+      }
+    }
+
+    if (rawFlashcards) {
+      try {
+        const parsed = JSON.parse(rawFlashcards) as ReviewCard[]
+        if (Array.isArray(parsed)) {
+          setReviewFlashcards(parsed)
+        }
+      } catch {
+        localStorage.removeItem(REVIEW_FLASHCARDS_KEY)
       }
     }
   }, [])
@@ -193,10 +247,6 @@ export default function DashboardPage() {
     if (!data.questions) return 58
     return clamp(Math.round(accuracyPercent - 14), 35, 90)
   }, [accuracyPercent, data.questions])
-
-  const evolutionDelta = useMemo(() => {
-    return accuracyPercent - baselinePercent
-  }, [accuracyPercent, baselinePercent])
 
   const estimatedTimePerQuestion = useMemo(() => {
     if (!data.questions) return "N/D"
@@ -230,44 +280,39 @@ export default function DashboardPage() {
       {
         title: "Taxa de acerto",
         value: `${accuracyPercent.toFixed(0)}%`,
-        subtitle: `Média: ${baselinePercent}%`,
-        trend: `${evolutionDelta >= 0 ? "+" : ""}${evolutionDelta.toFixed(0)}%`,
+        subtitle: `Base atual de desempenho`,
         icon: <Target className="size-5 text-blue-400" />,
         iconBg: "bg-blue-500/15",
-        trendClass: evolutionDelta >= 0 ? "text-emerald-400" : "text-rose-400",
       },
       {
         title: "Questões feitas",
         value: data.questions.toLocaleString("pt-BR"),
         subtitle: `${data.recent_attempts.length} tentativa(s) recentes`,
-        trend: "",
         icon: <BookOpen className="size-5 text-emerald-400" />,
         iconBg: "bg-emerald-500/15",
-        trendClass: "text-emerald-400",
       },
       {
         title: "Tempo/questão",
         value: estimatedTimePerQuestion,
         subtitle: "Estimativa local",
-        trend: "",
         icon: <Clock3 className="size-5 text-blue-400" />,
         iconBg: "bg-blue-500/15",
-        trendClass: "text-blue-400",
       },
       {
         title: "Melhor simulado",
-        value: bestSimulationScore !== null ? `${bestSimulationScore.toFixed(1)}%` : "N/D",
-        subtitle: latestSimulation ? `Último: ${latestSimulation.score_percentage.toFixed(1)}%` : "Sem histórico local",
-        trend: "",
+        value:
+          bestSimulationScore !== null
+            ? `${bestSimulationScore.toFixed(1)}%`
+            : "N/D",
+        subtitle: latestSimulation
+          ? `Último: ${latestSimulation.score_percentage.toFixed(1)}%`
+          : "Sem histórico local",
         icon: <History className="size-5 text-emerald-400" />,
         iconBg: "bg-emerald-500/15",
-        trendClass: "text-emerald-400",
       },
     ],
     [
       accuracyPercent,
-      baselinePercent,
-      evolutionDelta,
       data.questions,
       data.recent_attempts.length,
       estimatedTimePerQuestion,
@@ -342,7 +387,10 @@ export default function DashboardPage() {
         total > 0
           ? Math.max(8, Math.round((total / 10) * multiplier))
           : [120, 90, 150, 60, 180, 200, 110][index]
-      const minutos = Math.max(15, Math.round((questoes * (140 - accuracy)) / 60))
+      const minutos = Math.max(
+        15,
+        Math.round((questoes * (140 - accuracy)) / 60)
+      )
 
       return {
         day,
@@ -487,7 +535,11 @@ export default function DashboardPage() {
 
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href={!isPro && !canGenerateSimulation ? "/pricing" : "/dashboard/simulados"}
+                href={
+                  !isPro && !canGenerateSimulation
+                    ? "/pricing"
+                    : "/dashboard/simulados"
+                }
                 className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
               >
                 {!isPro && !canGenerateSimulation
@@ -539,8 +591,8 @@ export default function DashboardPage() {
                     {isPro
                       ? "Seu plano PRO está ativo. Os recursos premium já estão liberados."
                       : simulationLimit === null
-                      ? "Seu plano gratuito está ativo."
-                      : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
+                        ? "Seu plano gratuito está ativo."
+                        : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
                   </p>
 
                   {!isPro && typeof simulationRemaining === "number" ? (
@@ -583,8 +635,11 @@ export default function DashboardPage() {
                 {latestSimulation.title}
               </h2>
               <p className="mt-2 text-sm text-slate-300">
-                {formatDate(latestSimulation.saved_at)} • {latestSimulation.total_questions} questões •{" "}
-                {latestSimulation.mode === "balanced" ? "Balanceado" : "Aleatório"}
+                {formatDate(latestSimulation.saved_at)} •{" "}
+                {latestSimulation.total_questions} questões •{" "}
+                {latestSimulation.mode === "balanced"
+                  ? "Balanceado"
+                  : "Aleatório"}
               </p>
             </div>
 
@@ -602,6 +657,79 @@ export default function DashboardPage() {
           </div>
         </section>
       ) : null}
+
+      {(reviewSummary || reviewFlashcards.length > 0) && (
+        <section className="grid gap-6 xl:grid-cols-2">
+          {reviewSummary ? (
+            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <FileText className="size-5 text-blue-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      Último resumo
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Material de revisão salvo localmente
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/dashboard/resumos"
+                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                >
+                  Abrir resumo
+                </Link>
+              </div>
+
+              <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
+                {reviewSummary.revisionSummary}
+              </div>
+            </article>
+          ) : null}
+
+          {reviewFlashcards.length > 0 ? (
+            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <Layers3 className="size-5 text-blue-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      Flashcards disponíveis
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Revise erros e questões em branco
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/dashboard/flashcards"
+                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                >
+                  Abrir flashcards
+                </Link>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <InfoStat
+                  label="Total de cards"
+                  value={String(reviewFlashcards.length)}
+                />
+                <InfoStat
+                  label="Foco principal"
+                  value={reviewFlashcards[0]?.subject ?? "N/D"}
+                />
+              </div>
+            </article>
+          ) : null}
+        </section>
+      )}
 
       <section>
         <div className="flex items-start gap-3">
@@ -627,7 +755,9 @@ export default function DashboardPage() {
             className="rounded-[24px] border border-white/10 bg-[#071225] px-5 py-5 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]"
           >
             <div className="flex items-start justify-between gap-4">
-              <div className={`flex size-10 items-center justify-center rounded-2xl ${card.iconBg}`}>
+              <div
+                className={`flex size-10 items-center justify-center rounded-2xl ${card.iconBg}`}
+              >
                 {card.icon}
               </div>
 
@@ -635,18 +765,13 @@ export default function DashboardPage() {
                 <div className="text-4xl font-bold tracking-tight text-white">
                   {card.value}
                 </div>
-                <div className="mt-1 text-base text-slate-300">{card.title}</div>
+                <div className="mt-1 text-base text-slate-300">
+                  {card.title}
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-between gap-3 text-sm">
-              <span className="text-slate-400">{card.subtitle}</span>
-              {card.trend ? (
-                <span className={card.trendClass}>{card.trend}</span>
-              ) : (
-                <span />
-              )}
-            </div>
+            <div className="mt-6 text-sm text-slate-400">{card.subtitle}</div>
           </article>
         ))}
       </section>
@@ -654,7 +779,11 @@ export default function DashboardPage() {
       <section className="grid gap-4 md:grid-cols-3">
         <QuickActionCard
           label="Próxima ação"
-          value={!isPro && !canGenerateSimulation ? "Fazer upgrade" : getNextAction(goal)}
+          value={
+            !isPro && !canGenerateSimulation
+              ? "Fazer upgrade"
+              : getNextAction(goal)
+          }
           helper="Use este atalho para continuar o fluxo de estudo."
         />
         <QuickActionCard
@@ -832,9 +961,22 @@ export default function DashboardPage() {
         <div className="mt-6 h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
-              <XAxis dataKey="day" stroke="#7c8aa5" tickLine={false} axisLine={false} />
-              <YAxis yAxisId="left" stroke="#7c8aa5" tickLine={false} axisLine={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(148,163,184,0.12)"
+              />
+              <XAxis
+                dataKey="day"
+                stroke="#7c8aa5"
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                yAxisId="left"
+                stroke="#7c8aa5"
+                tickLine={false}
+                axisLine={false}
+              />
               <YAxis
                 yAxisId="right"
                 orientation="right"
