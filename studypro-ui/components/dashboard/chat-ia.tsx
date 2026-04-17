@@ -84,6 +84,7 @@ export function ChatIA() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const hasAutoRunExecutedRef = useRef(false)
 
   const [token, setToken] = useState<string | null>(null)
   const [entitlement, setEntitlement] =
@@ -183,9 +184,9 @@ export function ChatIA() {
     return "Plano gratuito"
   }, [entitlement, isPro, remainingToday])
 
-  async function handleSubmit() {
-    const question = input.trim()
-    if (!question || sending) return
+  async function executePrompt(question: string) {
+    if (!question.trim()) return
+    if (sending) return
 
     setError("")
 
@@ -264,6 +265,27 @@ export function ChatIA() {
     } finally {
       setSending(false)
     }
+  }
+
+  useEffect(() => {
+    const autorun = searchParams.get("autorun")
+    const promptFromUrl = searchParams.get("prompt")?.trim() ?? ""
+
+    if (hasAutoRunExecutedRef.current) return
+    if (autorun !== "1") return
+    if (!promptFromUrl) return
+    if (loadingEntitlement) return
+    if (!canAsk) return
+    if (sending) return
+
+    hasAutoRunExecutedRef.current = true
+    void executePrompt(promptFromUrl)
+  }, [searchParams, loadingEntitlement, canAsk, sending])
+
+  async function handleSubmit() {
+    const question = input.trim()
+    if (!question || sending) return
+    await executePrompt(question)
   }
 
   function handleQuickPrompt(prompt: string) {
