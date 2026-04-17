@@ -3,34 +3,17 @@
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
-import { Check, CreditCard, Sparkles, Zap } from "lucide-react"
+import { Check, Crown, CreditCard, ShieldCheck, Sparkles } from "lucide-react"
 
-import { getBillingStatus, type BillingEntitlements } from "@/lib/api"
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-  "https://study-chatbot-python.onrender.com"
-
-const AUTH_TOKEN_KEY = "studypro_auth_token"
-const AUTH_USER_KEY = "studypro_auth_user"
-
-type AuthUser = {
-  id: number
-  name: string
-  email: string
-  plan: "free" | "pro"
-  subscription_status?: string
-  current_period_end?: string | null
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
-type CheckoutResponse = {
-  message: string
-  checkout_session_id: string
-  checkout_url: string
-}
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USER_KEY,
+  createCheckoutSession,
+  getBillingStatus,
+  type AuthUser,
+  type BillingEntitlements,
+  type BillingUsage,
+} from "@/lib/api"
 
 export default function PricingPage() {
   return (
@@ -46,10 +29,11 @@ function PricingPageContent() {
 
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
+  const [usage, setUsage] = useState<BillingUsage | null>(null)
+  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(null)
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
-  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(null)
 
   const canceled = useMemo(() => searchParams.get("canceled") === "1", [searchParams])
 
@@ -81,6 +65,7 @@ function PricingPageContent() {
       try {
         const data = await getBillingStatus(authToken)
         setUser(data.user)
+        setUsage(data.usage)
         setEntitlements(data.entitlements)
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user))
       } catch (error) {
@@ -112,21 +97,7 @@ function PricingPageContent() {
     setErrorMessage("")
 
     try {
-      const response = await fetch(`${API_BASE_URL}/billing/checkout`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({}),
-      })
-
-      if (!response.ok) {
-        const message = await safeReadError(response)
-        throw new Error(message || "Não foi possível iniciar o checkout.")
-      }
-
-      const data: CheckoutResponse = await response.json()
+      const data = await createCheckoutSession(authToken)
 
       if (!data.checkout_url) {
         throw new Error("O backend não retornou a URL de checkout do Stripe.")
@@ -144,23 +115,30 @@ function PricingPageContent() {
     }
   }
 
+  const isPro = user?.plan === "pro"
+  const freeUsageText =
+    usage?.daily_limit && usage?.remaining_today !== null
+      ? `${usage.remaining_today} de ${usage.daily_limit} geração(ões) restantes hoje`
+      : "Uso liberado"
+
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-8">
         <section className="glass-panel rounded-[32px] p-6 md:p-8">
-          <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
             <div>
               <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-                Monetização
+                Monetização ENEM
               </div>
 
               <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-                Ative o plano PRO
+                Desbloqueie o Pro e estude sem travas
               </h1>
 
               <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
-                Checkout integrado ao Stripe com retorno ao StudyPro e ativação
-                automática do acesso após confirmação do backend.
+                O plano gratuito é ótimo para experimentar. O Pro é para quem quer
+                mais volume de prática, leitura de desempenho e constância real na
+                preparação para o ENEM.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -183,7 +161,7 @@ function PricingPageContent() {
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
-              <p className="text-sm text-muted-foreground">Conta atual</p>
+              <p className="text-sm text-muted-foreground">Sua situação atual</p>
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <InfoRow
@@ -191,29 +169,25 @@ function PricingPageContent() {
                   value={
                     isLoadingUser
                       ? "Carregando..."
-                      : user?.plan === "pro"
+                      : isPro
                       ? "PRO"
-                      : "Free"
+                      : authToken
+                      ? "FREE"
+                      : "Visitante"
                   }
                 />
                 <InfoRow
-                  label="Status"
-                  value={
-                    isLoadingUser
-                      ? "Carregando..."
-                      : user?.subscription_status || "sem assinatura"
-                  }
+                  label="Uso hoje"
+                  value={isLoadingUser ? "Carregando..." : freeUsageText}
                 />
               </div>
 
-              {entitlements ? (
-                <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                  Recursos avançados:{" "}
-                  <span className="font-semibold text-white">
-                    {entitlements.is_pro ? "liberados" : "bloqueados"}
-                  </span>
-                </div>
-              ) : null}
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                Recursos avançados:{" "}
+                <span className="font-semibold text-white">
+                  {entitlements?.is_pro ? "liberados" : "bloqueados"}
+                </span>
+              </div>
             </div>
           </div>
         </section>
@@ -230,11 +204,11 @@ function PricingPageContent() {
           </div>
         ) : null}
 
-        <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="grid gap-6 xl:grid-cols-[0.98fr_1.02fr]">
           <article className="glass-panel rounded-[32px] p-6 md:p-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-              <Sparkles className="size-4" />
-              Plano PRO
+              <Crown className="size-4" />
+              Plano Pro
             </div>
 
             <div className="mt-6 flex items-end gap-2">
@@ -243,39 +217,45 @@ function PricingPageContent() {
             </div>
 
             <p className="mt-5 text-sm leading-7 text-slate-300">
-              Fluxo preparado para Stripe Checkout com retorno ao StudyPro e
-              liberação automática do uso ilimitado.
+              Ideal para transformar teste em rotina. O Pro remove bloqueios e
+              torna o StudyPro uma ferramenta de preparação diária.
             </p>
 
             <div className="mt-8 space-y-3">
+              <FeatureItem text="Simulados ilimitados" />
+              <FeatureItem text="Mais prática por dia" />
+              <FeatureItem text="Análise de desempenho completa" />
+              <FeatureItem text="Insights inteligentes" />
               <FeatureItem text="Checkout seguro com Stripe" />
-              <FeatureItem text="Retorno automático ao StudyPro" />
-              <FeatureItem text="Ativação via backend e webhook" />
-              <FeatureItem text="Recursos avançados liberados" />
             </div>
 
             <button
               type="button"
               onClick={handleCheckout}
-              disabled={isCreatingCheckout}
+              disabled={isCreatingCheckout || isLoadingUser}
               className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_16px_50px_-18px_rgba(59,130,246,0.85)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isLoadingUser
                 ? "Carregando conta..."
-                : user?.plan === "pro"
-                ? "Você já possui PRO ativo"
+                : isPro
+                ? "Seu plano PRO já está ativo"
                 : isCreatingCheckout
                 ? "Redirecionando para o Stripe..."
                 : authToken
-                ? "Assinar PRO"
+                ? "Desbloquear Pro"
                 : "Entrar para assinar"}
             </button>
+
+            <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+              <ShieldCheck className="size-4" />
+              Pagamento processado com Stripe e retorno automático para o StudyPro.
+            </div>
           </article>
 
           <article className="glass-panel rounded-[32px] p-6 md:p-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CreditCard className="size-4" />
-              Comparativo Free vs Pro
+              Free vs Pro
             </div>
 
             <div className="mt-6 overflow-hidden rounded-[24px] border border-white/10">
@@ -285,17 +265,55 @@ function PricingPageContent() {
                 <div className="px-4 py-4">Pro</div>
               </div>
 
-              <PlanRow feature="Questões" free="Limitado" pro="Ilimitado" />
-              <PlanRow feature="Dashboard completo" free="Parcial" pro="Completo" />
-              <PlanRow feature="Insights inteligentes" free="Não" pro="Sim" />
-              <PlanRow feature="Recursos avançados" free="Não" pro="Sim" />
+              <PlanRow feature="Simulados" free="Limitado" pro="Ilimitado" />
+              <PlanRow feature="Desempenho" free="Básico" pro="Completo" />
+              <PlanRow feature="Insights" free="Não" pro="Sim" />
+              <PlanRow feature="Velocidade de evolução" free="Menor" pro="Maior" />
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-              Após o pagamento, o Stripe redireciona para{" "}
-              <span className="font-semibold text-white">/success</span>. Essa
-              página consulta o backend até a ativação do plano PRO ser confirmada.
+            <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
+              Quem usa o Free experimenta. Quem usa o Pro constrói constância.
             </div>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+              Depois do pagamento, o Stripe redireciona para{" "}
+              <span className="font-semibold text-white">/success</span>, onde a
+              conta é sincronizada automaticamente com o backend.
+            </div>
+          </article>
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-2">
+          <article className="glass-panel rounded-[28px] p-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300">
+              <Sparkles className="size-4 text-primary" />
+              Para começar
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold text-white">Plano Free</h2>
+
+            <ul className="mt-6 space-y-3">
+              <FeatureItem text="Conhecer a plataforma" />
+              <FeatureItem text="Testar fluxo de simulados" />
+              <FeatureItem text="Ver correção automática" />
+              <FeatureItem text="Entender se o modelo combina com seu estudo" />
+            </ul>
+          </article>
+
+          <article className="glass-panel rounded-[28px] p-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+              <Crown className="size-4" />
+              Para converter
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold text-white">Plano Pro</h2>
+
+            <ul className="mt-6 space-y-3">
+              <FeatureItem text="Aumentar volume de treino" />
+              <FeatureItem text="Remover travas do gratuito" />
+              <FeatureItem text="Ler evolução com mais clareza" />
+              <FeatureItem text="Criar hábito diário de estudo" />
+            </ul>
           </article>
         </section>
       </div>
@@ -309,10 +327,10 @@ function PricingPageFallback() {
       <div className="mx-auto max-w-7xl">
         <div className="glass-panel rounded-[32px] p-6 md:p-8">
           <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-            Monetização
+            Monetização ENEM
           </div>
           <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Ative o plano PRO
+            Desbloqueie o Pro
           </h1>
           <p className="mt-5 text-sm text-slate-300">
             Carregando informações de pricing...
@@ -359,30 +377,4 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-lg font-semibold text-white">{value}</p>
     </div>
   )
-}
-
-async function safeReadError(response: Response): Promise<string> {
-  try {
-    const data = await response.json()
-
-    if (typeof data?.detail === "string") {
-      return data.detail
-    }
-
-    if (Array.isArray(data?.detail)) {
-      return data.detail
-        .map((item: unknown) => {
-          if (typeof item === "string") return item
-          if (item && typeof item === "object" && "msg" in item) {
-            return String((item as { msg: string }).msg)
-          }
-          return "Erro de validação."
-        })
-        .join(" | ")
-    }
-
-    return "Erro na requisição."
-  } catch {
-    return "Erro na requisição."
-  }
 }
