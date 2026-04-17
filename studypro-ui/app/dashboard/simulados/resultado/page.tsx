@@ -101,11 +101,26 @@ type ReviewCard = {
   back: string
 }
 
+type ReviewSummaryPayload = {
+  title: string
+  subtitle: string
+  revisionSummary: string
+  weakestSubjects: Array<{
+    subject: string
+    accuracy: number
+    correct: number
+    wrong: number
+    blank: number
+  }>
+  generatedAt: string
+}
+
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
 const MAX_HISTORY_ITEMS = 20
 
 export default function ResultadoSimuladoPage() {
@@ -253,6 +268,26 @@ export default function ResultadoSimuladoPage() {
     const subjectNames = weakestSubjects.map((item) => item.subject).join(", ")
     return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, refazer questões semelhantes e gerar um novo treino direcionado.`
   }, [result, weakestSubjects])
+
+  useEffect(() => {
+    if (!result || !revisionSummary) return
+
+    const summaryPayload: ReviewSummaryPayload = {
+      title: `${result.title} — Resumo de revisão`,
+      subtitle: `Resumo gerado a partir do desempenho do ${result.exam_type.toUpperCase()} ${result.year}.`,
+      revisionSummary,
+      weakestSubjects: weakestSubjects.map((subject) => ({
+        subject: subject.subject,
+        accuracy: subject.accuracy_percentage,
+        correct: subject.correct,
+        wrong: subject.wrong,
+        blank: subject.blank,
+      })),
+      generatedAt: new Date().toISOString(),
+    }
+
+    localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summaryPayload))
+  }, [result, revisionSummary, weakestSubjects])
 
   const summaryPrompt = useMemo(() => {
     if (!result) return ""
@@ -551,19 +586,28 @@ export default function ResultadoSimuladoPage() {
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-              <BookOpen className="size-5 text-blue-300" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                <BookOpen className="size-5 text-blue-300" />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Resumo de revisão
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Direção prática para o próximo estudo.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h2 className="text-2xl font-semibold text-white">
-                Resumo de revisão
-              </h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Direção prática para o próximo estudo.
-              </p>
-            </div>
+            <Link
+              href="/dashboard/resumos"
+              className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+            >
+              Abrir resumo
+            </Link>
           </div>
 
           <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
