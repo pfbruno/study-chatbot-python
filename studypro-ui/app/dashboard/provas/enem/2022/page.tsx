@@ -8,6 +8,8 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  GraduationCap,
+  Layers3,
   Loader2,
 } from "lucide-react"
 
@@ -74,7 +76,31 @@ type ExamResult = {
   }>
 }
 
+type ReviewCard = {
+  id: string
+  subject: string
+  questionNumber: number
+  front: string
+  back: string
+}
+
+type ReviewSummaryPayload = {
+  title: string
+  subtitle: string
+  revisionSummary: string
+  weakestSubjects: Array<{
+    subject: string
+    accuracy: number
+    correct: number
+    wrong: number
+    blank: number
+  }>
+  generatedAt: string
+}
+
 const OFFICIAL_EXAM_RESULT_KEY = "studypro_official_exam_result_enem_2022"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
 const RAW_QUESTIONS_URL =
   "https://raw.githubusercontent.com/pfbruno/study-chatbot-python/main/data/exams/questions/enem/2022.json"
 
@@ -152,6 +178,76 @@ export default function Enem2022Page() {
     () => Object.keys(answers).filter((key) => Boolean(answers[Number(key)])).length,
     [answers]
   )
+
+  const weakestSubjects = useMemo(() => {
+    if (!result) return []
+    return [...result.subjects_summary]
+      .sort((a, b) => a.accuracy_percentage - b.accuracy_percentage)
+      .slice(0, 3)
+  }, [result])
+
+  const reviewSummaryText = useMemo(() => {
+    if (!result) return ""
+
+    if (result.correct_answers === result.total_questions - result.annulled_count) {
+      return "Excelente desempenho. Seu próximo passo deve ser manutenção de desempenho com revisão leve e novo treino de consolidação."
+    }
+
+    if (weakestSubjects.length === 0) {
+      return "Priorize revisar as questões incorretas e em branco antes de avançar para um novo treino."
+    }
+
+    const subjectNames = weakestSubjects.map((item) => item.subject).join(", ")
+    return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, consolidar conceitos centrais e voltar para um novo treino com foco nessas disciplinas.`
+  }, [result, weakestSubjects])
+
+  const reviewCards = useMemo<ReviewCard[]>(() => {
+    if (!result) return []
+
+    return result.results_by_question
+      .filter((entry) => entry.status === "wrong" || entry.status === "blank")
+      .slice(0, 12)
+      .map((entry) => {
+        const question = questions.find((item) => item.number === entry.question_number)
+        const correctText =
+          entry.correct_answer && question?.options?.[entry.correct_answer]
+            ? question.options[entry.correct_answer]
+            : "Resposta correta indisponível"
+
+        return {
+          id: `enem-2022-${entry.question_number}-${entry.status}`,
+          subject: entry.subject,
+          questionNumber: entry.question_number,
+          front: `Questão ${entry.question_number} • ${entry.subject}: qual alternativa correta e por que esta questão precisa ser revisada?`,
+          back: `Resposta correta: ${entry.correct_answer ?? "N/D"} — ${correctText}. ${
+            entry.user_answer
+              ? `Sua resposta foi ${entry.user_answer}.`
+              : "A questão ficou em branco."
+          } Revise o enunciado, as alternativas e o conteúdo-base desta disciplina.`,
+        }
+      })
+  }, [questions, result])
+
+  useEffect(() => {
+    if (!result) return
+
+    const summaryPayload: ReviewSummaryPayload = {
+      title: `${result.title} — Resumo de revisão`,
+      subtitle: `Resumo gerado a partir da prova oficial ${result.exam_type.toUpperCase()} ${result.year}.`,
+      revisionSummary: reviewSummaryText,
+      weakestSubjects: weakestSubjects.map((subject) => ({
+        subject: subject.subject,
+        accuracy: subject.accuracy_percentage,
+        correct: subject.correct,
+        wrong: subject.wrong,
+        blank: subject.blank,
+      })),
+      generatedAt: new Date().toISOString(),
+    }
+
+    localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summaryPayload))
+    localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(reviewCards))
+  }, [result, reviewCards, reviewSummaryText, weakestSubjects])
 
   function handleSelectAnswer(questionNumber: number, option: string) {
     setAnswers((current) => ({
@@ -386,11 +482,116 @@ export default function Enem2022Page() {
           </p>
         </section>
 
+        <section className="rounded-[32px] border border-emerald-500/20 bg-emerald-500/10 p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
+                <GraduationCap className="size-4" />
+                Revisão integrada
+              </div>
+
+              <h2 className="mt-4 text-2xl font-semibold text-white">
+                Sua Área de Estudo foi atualizada com esta prova
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-emerald-50/90">
+                Resumo de revisão e flashcards foram gerados automaticamente a partir do seu desempenho no ENEM 2022.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row">
+              <Link
+                href="/dashboard/estudo"
+                className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              >
+                Ir para Área de Estudo
+              </Link>
+
+              {reviewCards.length > 0 ? (
+                <Link
+                  href="/dashboard/flashcards"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  <Layers3 className="size-4" />
+                  Abrir flashcards
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </section>
+
         <section className="grid gap-4 md:grid-cols-4">
           <StatCard label="Acertos" value={String(result.correct_answers)} />
           <StatCard label="Erros" value={String(result.wrong_answers)} />
           <StatCard label="Em branco" value={String(result.unanswered_count)} />
           <StatCard label="Anuladas" value={String(result.annulled_count)} />
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+            <h2 className="text-2xl font-semibold text-white">
+              Resumo de revisão
+            </h2>
+
+            <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
+              {reviewSummaryText}
+            </div>
+
+            <div className="mt-6 space-y-4">
+              {weakestSubjects.map((subject) => (
+                <div
+                  key={subject.subject}
+                  className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">
+                        {subject.subject}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        {subject.accuracy_percentage.toFixed(1)}%
+                      </div>
+                      <div className="text-sm text-slate-400">acurácia</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+            <h2 className="text-2xl font-semibold text-white">
+              Flashcards gerados
+            </h2>
+
+            <div className="mt-6 space-y-4">
+              {reviewCards.length === 0 ? (
+                <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm text-slate-300">
+                  Nenhum flashcard foi necessário. Seu desempenho não gerou pendências de revisão.
+                </div>
+              ) : (
+                reviewCards.slice(0, 4).map((card) => (
+                  <div
+                    key={card.id}
+                    className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
+                  >
+                    <div className="text-sm font-medium text-blue-300">
+                      {card.subject} • Questão {card.questionNumber}
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-slate-300">
+                      {card.front}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </article>
         </section>
 
         <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
