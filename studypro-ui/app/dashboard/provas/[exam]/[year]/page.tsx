@@ -1,27 +1,36 @@
 "use client"
 
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import {
   ArrowLeft,
   CheckCircle2,
+  Crown,
   ExternalLink,
   FileText,
   Loader2,
+  Rocket,
   Send,
   Trophy,
   XCircle,
 } from "lucide-react"
 
 import {
+  AUTH_TOKEN_KEY,
+  createCheckoutSession,
+  generateRandomSimulation,
+  getBillingStatus,
   getExamByTypeAndYear,
   submitExamAnswers,
+  type BillingStatusResponse,
   type ExamDetail,
 } from "@/lib/api"
 import { saveRecentAttempt } from "@/lib/activity"
 
 const ALTERNATIVES = ["A", "B", "C", "D", "E"] as const
+const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
+const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 
 type QuestionResultItem = {
   question_number: number
@@ -47,6 +56,8 @@ function decodeParam(value: string) {
 
 export default function ExamYearDetailPage() {
   const params = useParams<{ exam: string; year: string }>()
+  const router = useRouter()
+
   const examParam = decodeParam(params.exam).toLowerCase()
   const yearParam = Number(params.year)
 
@@ -58,6 +69,14 @@ export default function ExamYearDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [submitError, setSubmitError] = useState("")
+
+  const [billing, setBilling] = useState<BillingStatusResponse | null>(null)
+  const [billingLoading, setBillingLoading] = useState(true)
+  const [generationError, setGenerationError] = useState("")
+  const [isGeneratingSimulation, setIsGeneratingSimulation] = useState(false)
+  const [questionCount, setQuestionCount] = useState(10)
+  const [showGenerationPaywall, setShowGenerationPaywall] = useState(false)
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false)
 
   useEffect(() => {
     async function loadExam() {
@@ -85,6 +104,33 @@ export default function ExamYearDetailPage() {
     }
   }, [examParam, yearParam])
 
+  useEffect(() => {
+    async function loadBilling() {
+      const token =
+        typeof window !== "undefined"
+          ? localStorage.getItem(AUTH_TOKEN_KEY)
+          : null
+
+      if (!token) {
+        setBilling(null)
+        setBillingLoading(false)
+        return
+      }
+
+      try {
+        setBillingLoading(true)
+        const data = await getBillingStatus(token)
+        setBilling(data)
+      } catch {
+        setBilling(null)
+      } finally {
+        setBillingLoading(false)
+      }
+    }
+
+    loadBilling()
+  }, [])
+
   function updateAnswer(index: number, value: string) {
     setAnswers((prev) => {
       const next = [...prev]
@@ -105,7 +151,7 @@ export default function ExamYearDetailPage() {
         exam.year,
         answers,
         typeof window !== "undefined"
-          ? localStorage.getItem("studypro_auth_token") ?? undefined
+          ? localStorage.getItem(AUTH_TOKEN_KEY) ?? undefined
           : undefined
       )) as ExamSubmissionResponse
 
@@ -129,6 +175,82 @@ export default function ExamYearDetailPage() {
     }
   }
 
+  async function handleGenerateSimulation() {
+    if (!exam) return
+
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem(AUTH_TOKEN_KEY)
+        : null
+
+    try {
+      setIsGeneratingSimulation(true)
+      setGenerationError("")
+      setShowGenerationPaywall(false)
+
+      const simulation = await generateRandomSimulation(
+        {
+          exam_type: exam.exam_type,
+          year: exam.year,
+          question_count: questionCount,
+          mode: "balanced",
+          subjects: null,
+          seed: null,
+        },
+        token
+      )
+
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem(ACTIVE_SIMULATION_KEY, JSON.stringify(simulation))
+        sessionStorage.removeItem(ACTIVE_SIMULATION_ANSWERS_KEY)
+      }
+
+      router.push("/dashboard/simulados/resolver")
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Não foi possível gerar o simulado."
+
+      setGenerationError(message)
+
+      if (
+        message.toLowerCase().includes("limite diário") ||
+        message.toLowerCase().includes("plano gratuito") ||
+        message.toLowerCase().includes("upgrade") ||
+        message.toLowerCase().includes("modo convidado")
+      ) {
+        setShowGenerationPaywall(true)
+      }
+    } finally {
+      setIsGeneratingSimulation(false)
+    }
+  }
+
+  async function handleStartCheckout() {
+    const token =
+      typeof window !== "undefined"
+        ? localStorage.getItem(AUTH_TOKEN_KEY)
+        : null
+
+    if (!token) {
+      router.push("/login?redirect=/pricing")
+      return
+    }
+
+    try {
+      setIsStartingCheckout(true)
+      const data = await createCheckoutSession(token)
+      window.location.href = data.checkout_url
+    } catch (err) {
+      setGenerationError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível iniciar o checkout."
+      )
+    } finally {
+      setIsStartingCheckout(false)
+    }
+  }
+
   const answeredCount = useMemo(
     () => answers.filter((answer) => answer !== null).length,
     [answers]
@@ -145,6 +267,14 @@ export default function ExamYearDetailPage() {
       result.results_by_question.map((item) => [item.question_number, item])
     )
   }, [result])
+
+  const planLabel = billing?.user.plan?.toUpperCase() ?? "VISITANTE"
+  const usageLabel =
+    billing?.usage.daily_limit !== null && billing?.usage.remaining_today !== null
+      ? `${billing.usage.remaining_today} de ${billing.usage.daily_limit} geração(ões) restantes hoje`
+      : billing?.user.plan === "pro"
+      ? "Uso ilimitado"
+      : "Faça login para liberar mais controle"
 
   if (loading) {
     return (
@@ -225,6 +355,136 @@ export default function ExamYearDetailPage() {
           </div>
         </div>
       </section>
+
+      <section className="glass-panel rounded-[32px] p-6 md:p-8">
+        <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
+              <Rocket className="size-4" />
+              Gerar simulado
+            </div>
+
+            <h2 className="mt-5 text-2xl font-bold tracking-tight text-white md:text-4xl">
+              Transforme esta prova em treino imediato
+            </h2>
+
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
+              Gere um simulado aleatório deste ano e siga direto para a resolução.
+              É aqui que o usuário tenta continuar estudando — e, quando o limite
+              gratuito acaba, o paywall aparece no ponto de maior intenção.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              {[10, 20, 30].map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => setQuestionCount(count)}
+                  className={`rounded-2xl border px-4 py-3 text-sm transition ${
+                    questionCount === count
+                      ? "border-primary/30 bg-primary text-primary-foreground"
+                      : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {count} questões
+                </button>
+              ))}
+            </div>
+
+            {generationError ? (
+              <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {generationError}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
+            <p className="text-sm text-muted-foreground">Seu acesso atual</p>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <StatCard
+                label="Plano"
+                value={billingLoading ? "..." : planLabel}
+              />
+              <StatCard
+                label="Uso"
+                value={billingLoading ? "..." : usageLabel}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGenerateSimulation}
+              disabled={isGeneratingSimulation}
+              className="mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isGeneratingSimulation ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Gerando simulado...
+                </>
+              ) : (
+                <>
+                  <Rocket className="size-4" />
+                  Gerar simulado agora
+                </>
+              )}
+            </button>
+
+            <p className="mt-3 text-xs leading-6 text-slate-400">
+              O fluxo envia direto para a resolução assim que o backend liberar a geração.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {showGenerationPaywall ? (
+        <section className="glass-panel rounded-[32px] border border-primary/20 bg-primary/10 p-6 md:p-8">
+          <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-slate-950/60 px-4 py-1 text-sm text-primary">
+                <Crown className="size-4" />
+                Limite gratuito atingido
+              </div>
+
+              <h2 className="mt-5 text-2xl font-bold text-white md:text-4xl">
+                Você atingiu o limite gratuito
+              </h2>
+
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200">
+                Continue estudando com geração liberada, mais prática e experiência
+                completa no StudyPro.
+              </p>
+            </div>
+
+            <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
+              <div className="space-y-3 text-sm text-slate-300">
+                <PaywallItem text="Gerar mais simulados sem travar o fluxo" />
+                <PaywallItem text="Continuar estudando no momento de maior foco" />
+                <PaywallItem text="Desbloquear o Pro com checkout direto" />
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={handleStartCheckout}
+                  disabled={isStartingCheckout}
+                  className="inline-flex h-12 items-center justify-center rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isStartingCheckout ? "Redirecionando..." : "Desbloquear Pro"}
+                </button>
+
+                <Link
+                  href="/pricing"
+                  className="inline-flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  Ver comparação completa
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <article className="glass-panel rounded-[32px] p-6">
@@ -440,6 +700,14 @@ export default function ExamYearDetailPage() {
           </div>
         </article>
       </section>
+    </div>
+  )
+}
+
+function PaywallItem({ text }: { text: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+      {text}
     </div>
   )
 }
