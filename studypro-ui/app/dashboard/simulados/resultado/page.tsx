@@ -6,9 +6,11 @@ import { useEffect, useMemo, useState } from "react"
 import {
   ArrowLeft,
   BarChart3,
+  BookOpen,
   CheckCircle2,
   CircleX,
   ClipboardList,
+  Layers3,
   RotateCcw,
 } from "lucide-react"
 
@@ -88,6 +90,14 @@ type SimulationHistoryEntry = {
   unanswered_count: number
   score_percentage: number
   subjects_summary: SimulationSubmissionResponse["subjects_summary"]
+}
+
+type ReviewCard = {
+  id: string
+  subject: string
+  questionNumber: number
+  front: string
+  back: string
 }
 
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
@@ -184,6 +194,53 @@ export default function ResultadoSimuladoPage() {
     })
     return map
   }, [simulation])
+
+  const weakestSubjects = useMemo(() => {
+    if (!result) return []
+    return [...result.subjects_summary]
+      .sort((a, b) => a.accuracy_percentage - b.accuracy_percentage)
+      .slice(0, 3)
+  }, [result])
+
+  const reviewCards = useMemo<ReviewCard[]>(() => {
+    if (!result) return []
+
+    return result.results_by_question
+      .filter((entry) => entry.status !== "correct")
+      .slice(0, 8)
+      .map((entry) => {
+        const question = questionMap.get(entry.question_number)
+        const correctOptionText =
+          question?.options?.[entry.correct_answer] ?? "Resposta correta indisponível"
+
+        return {
+          id: `${entry.question_number}-${entry.status}`,
+          subject: entry.subject,
+          questionNumber: entry.question_number,
+          front: `Questão ${entry.question_number} • ${entry.subject}: qual alternativa correta e por que sua escolha precisa ser revista?`,
+          back: `Resposta correta: ${entry.correct_answer} — ${correctOptionText}. ${
+            entry.user_answer
+              ? `Sua resposta foi ${entry.user_answer}.`
+              : "A questão ficou em branco."
+          } Revise o enunciado, as alternativas e o conteúdo-base dessa disciplina.`,
+        }
+      })
+  }, [questionMap, result])
+
+  const revisionSummary = useMemo(() => {
+    if (!result) return null
+
+    if (result.correct_answers === result.valid_questions && result.valid_questions > 0) {
+      return "Excelente resultado. Seu próximo foco deve ser manutenção de desempenho com novos simulados e revisão leve dos tópicos."
+    }
+
+    if (weakestSubjects.length === 0) {
+      return "Seu resultado já está disponível. Priorize revisar as questões incorretas antes de iniciar um novo simulado."
+    }
+
+    const subjectNames = weakestSubjects.map((item) => item.subject).join(", ")
+    return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, refazer questões semelhantes e gerar um novo treino direcionado.`
+  }, [result, weakestSubjects])
 
   function handleNewSimulation() {
     sessionStorage.removeItem(ACTIVE_SIMULATION_KEY)
@@ -424,6 +481,111 @@ export default function ResultadoSimuladoPage() {
                         {entry.correct_answers} acerto(s)
                       </div>
                     </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+              <BookOpen className="size-5 text-blue-300" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-semibold text-white">
+                Resumo de revisão
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Direção prática para o próximo estudo.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
+            {revisionSummary}
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {weakestSubjects.length === 0 ? (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm text-slate-300">
+                Não houve disciplinas suficientes para destacar prioridade.
+              </div>
+            ) : (
+              weakestSubjects.map((subject, index) => (
+                <div
+                  key={`${subject.subject}-${index}`}
+                  className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">
+                        {index + 1}. {subject.subject}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        {subject.accuracy_percentage.toFixed(1)}%
+                      </div>
+                      <div className="text-sm text-slate-400">acurácia</div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+              <Layers3 className="size-5 text-blue-300" />
+            </div>
+
+            <div>
+              <h2 className="text-2xl font-semibold text-white">
+                Flashcards automáticos
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Gerados localmente com base nos erros e questões em branco.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {reviewCards.length === 0 ? (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm text-slate-300">
+                Nenhum flashcard foi necessário. Seu resultado foi totalmente correto nas questões válidas.
+              </div>
+            ) : (
+              reviewCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
+                >
+                  <div className="text-sm font-medium text-blue-300">
+                    {card.subject} • Questão {card.questionNumber}
+                  </div>
+                  <h3 className="mt-3 text-base font-semibold text-white">
+                    Frente
+                  </h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-300">
+                    {card.front}
+                  </p>
+
+                  <div className="mt-4 border-t border-white/10 pt-4">
+                    <h4 className="text-base font-semibold text-white">Verso</h4>
+                    <p className="mt-2 text-sm leading-7 text-slate-300">
+                      {card.back}
+                    </p>
                   </div>
                 </div>
               ))
