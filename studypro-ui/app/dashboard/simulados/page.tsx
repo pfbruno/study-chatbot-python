@@ -7,6 +7,7 @@ import {
   ArrowRight,
   ClipboardList,
   Crown,
+  History,
   Loader2,
   Sparkles,
   Zap,
@@ -49,9 +50,32 @@ type SimulationGenerationResponse = {
   }>
 }
 
+type SimulationHistoryEntry = {
+  id: string
+  saved_at: string
+  title: string
+  exam_type: string
+  year: number
+  mode: SimulationMode
+  total_questions: number
+  correct_answers: number
+  wrong_answers: number
+  unanswered_count: number
+  score_percentage: number
+  subjects_summary: Array<{
+    subject: string
+    total: number
+    correct: number
+    wrong: number
+    blank: number
+    accuracy_percentage: number
+  }>
+}
+
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
+const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 
 const SUBJECT_OPTIONS = [
   "Biologia",
@@ -77,6 +101,7 @@ export default function SimuladosPage() {
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [billing, setBilling] = useState<BillingStatusResponse | null>(null)
+  const [history, setHistory] = useState<SimulationHistoryEntry[]>([])
 
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -90,6 +115,7 @@ export default function SimuladosPage() {
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const storedUser = localStorage.getItem(AUTH_USER_KEY)
+    const storedHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
 
     setAuthToken(storedToken)
 
@@ -98,6 +124,17 @@ export default function SimuladosPage() {
         setUser(JSON.parse(storedUser) as AuthUser)
       } catch {
         localStorage.removeItem(AUTH_USER_KEY)
+      }
+    }
+
+    if (storedHistory) {
+      try {
+        const parsed = JSON.parse(storedHistory) as SimulationHistoryEntry[]
+        if (Array.isArray(parsed)) {
+          setHistory(parsed)
+        }
+      } catch {
+        localStorage.removeItem(SIMULATION_HISTORY_KEY)
       }
     }
 
@@ -145,6 +182,11 @@ export default function SimuladosPage() {
     }
     return "Uso disponível"
   }, [authToken, billing, dailyLimit, isPro, loading, remainingToday])
+
+  const bestRecentScore = useMemo(() => {
+    if (history.length === 0) return null
+    return Math.max(...history.map((item) => item.score_percentage))
+  }, [history])
 
   function toggleSubject(subject: string) {
     setSelectedSubjects((current) =>
@@ -249,6 +291,18 @@ export default function SimuladosPage() {
                 {usageLabel}
               </p>
             </div>
+
+            {history.length > 0 ? (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <p className="text-sm text-slate-400">Melhor resultado recente</p>
+                <div className="mt-2 text-2xl font-bold text-white">
+                  {bestRecentScore?.toFixed(1)}%
+                </div>
+                <p className="mt-3 text-sm text-slate-300">
+                  Histórico local salvo neste navegador.
+                </p>
+              </div>
+            ) : null}
 
             {paywallActive ? (
               <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5">
@@ -425,28 +479,54 @@ export default function SimuladosPage() {
         </article>
 
         <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-          <h2 className="text-2xl font-semibold text-white">
-            O que acontece depois
-          </h2>
-
-          <div className="mt-6 space-y-4">
-            <InfoCard
-              title="Resolução guiada"
-              description="O simulado é salvo na sessão atual e aberto imediatamente na área de resolução."
-            />
-            <InfoCard
-              title="Correção no final"
-              description="Ao finalizar, o sistema envia as respostas para correção e abre a tela de resultado."
-            />
-            <InfoCard
-              title="Base reaproveitável"
-              description="Esse mesmo fluxo prepara histórico, analytics e revisão de erros na próxima etapa."
-            />
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+              <History className="size-5 text-blue-300" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-white">
+                Histórico recente
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Últimos simulados corrigidos neste navegador.
+              </p>
+            </div>
           </div>
 
-          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
-            Recomendação: comece com 10 questões e uma única disciplina para
-            validar rapidamente o fluxo completo.
+          <div className="mt-6 space-y-4">
+            {history.length === 0 ? (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
+                Ainda não há resultados salvos. Finalize um simulado para começar
+                a montar seu histórico local.
+              </div>
+            ) : (
+              history.slice(0, 5).map((entry) => (
+                <div
+                  key={entry.id}
+                  className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
+                >
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">
+                        {entry.title}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {formatLocalDate(entry.saved_at)} • {entry.total_questions} questões
+                      </p>
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        {entry.score_percentage.toFixed(1)}%
+                      </div>
+                      <div className="text-sm text-slate-400">
+                        {entry.correct_answers} acerto(s)
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="mt-6">
@@ -464,17 +544,15 @@ export default function SimuladosPage() {
   )
 }
 
-function InfoCard({
-  title,
-  description,
-}: {
-  title: string
-  description: string
-}) {
-  return (
-    <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-      <h3 className="text-lg font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-slate-300">{description}</p>
-    </div>
-  )
+function formatLocalDate(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)
 }
