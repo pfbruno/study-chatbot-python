@@ -6,12 +6,15 @@ import { useEffect, useMemo, useState } from "react"
 import {
   ArrowLeft,
   CheckCircle2,
+  Clock3,
   Crown,
   ExternalLink,
   FileText,
+  Flame,
   Loader2,
   Rocket,
   Send,
+  ShieldCheck,
   Trophy,
   XCircle,
 } from "lucide-react"
@@ -369,9 +372,8 @@ export default function ExamYearDetailPage() {
             </h2>
 
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-              Gere um simulado aleatório deste ano e siga direto para a resolução.
-              É aqui que o usuário tenta continuar estudando — e, quando o limite
-              gratuito acaba, o paywall aparece no ponto de maior intenção.
+              Gere um simulado deste ano e siga direto para a resolução. Esse é o
+              ponto de maior intenção: quando o aluno quer continuar estudando sem perder ritmo.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -439,7 +441,7 @@ export default function ExamYearDetailPage() {
       </section>
 
       {showGenerationPaywall ? (
-        <section className="glass-panel rounded-[32px] border border-primary/20 bg-primary/10 p-6 md:p-8">
+        <section className="glass-panel rounded-[32px] border border-primary/20 bg-primary/[0.08] p-6 md:p-8 shadow-[0_18px_60px_-24px_rgba(59,130,246,0.65)]">
           <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-slate-950/60 px-4 py-1 text-sm text-primary">
@@ -452,9 +454,29 @@ export default function ExamYearDetailPage() {
               </h2>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200">
-                Continue estudando com geração liberada, mais prática e experiência
-                completa no StudyPro.
+                Você já chegou no ponto mais valioso do fluxo: continuar treinando
+                agora. O Pro existe para evitar que esse momento seja interrompido.
               </p>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+                <MiniBenefit
+                  icon={<Flame className="size-4 text-primary" />}
+                  label="Mais constância"
+                />
+                <MiniBenefit
+                  icon={<Clock3 className="size-4 text-primary" />}
+                  label="Menos interrupção"
+                />
+                <MiniBenefit
+                  icon={<ShieldCheck className="size-4 text-primary" />}
+                  label="Checkout seguro"
+                />
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+                <span className="font-semibold text-white">R$ 29/mês</span>{" "}
+                para continuar com mais prática, mais ritmo e menos fricção no StudyPro.
+              </div>
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
@@ -464,6 +486,10 @@ export default function ExamYearDetailPage() {
                 <PaywallItem text="Desbloquear o Pro com checkout direto" />
               </div>
 
+              <div className="mt-6 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
+                Quanto mais vezes você trava no gratuito, maior a chance de perder ritmo.
+              </div>
+
               <div className="mt-6 flex flex-col gap-3">
                 <button
                   type="button"
@@ -471,7 +497,7 @@ export default function ExamYearDetailPage() {
                   disabled={isStartingCheckout}
                   className="inline-flex h-12 items-center justify-center rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isStartingCheckout ? "Redirecionando..." : "Desbloquear Pro"}
+                  {isStartingCheckout ? "Redirecionando..." : "Desbloquear Pro agora"}
                 </button>
 
                 <Link
@@ -481,6 +507,10 @@ export default function ExamYearDetailPage() {
                   Ver comparação completa
                 </Link>
               </div>
+
+              <p className="mt-4 text-xs leading-6 text-slate-400">
+                Pagamento processado com Stripe e ativação automática no retorno.
+              </p>
             </div>
           </div>
         </section>
@@ -708,6 +738,21 @@ function PaywallItem({ text }: { text: string }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
       {text}
+    </div>
+  )
+}
+
+function MiniBenefit({
+  icon,
+  label,
+}: {
+  icon: React.ReactNode
+  label: string
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div>{icon}</div>
+      <p className="mt-3 text-sm font-medium text-white">{label}</p>
     </div>
   )
 }
