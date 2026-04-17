@@ -7,7 +7,9 @@ import {
   ArrowRight,
   ClipboardList,
   Crown,
+  FileText,
   History,
+  Layers3,
   Loader2,
   Sparkles,
   Zap,
@@ -72,10 +74,34 @@ type SimulationHistoryEntry = {
   }>
 }
 
+type ReviewSummaryPayload = {
+  title: string
+  subtitle: string
+  revisionSummary: string
+  weakestSubjects: Array<{
+    subject: string
+    accuracy: number
+    correct: number
+    wrong: number
+    blank: number
+  }>
+  generatedAt: string
+}
+
+type ReviewCard = {
+  id: string
+  subject: string
+  questionNumber: number
+  front: string
+  back: string
+}
+
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
 const SUBJECT_OPTIONS = [
   "Biologia",
@@ -95,6 +121,19 @@ const SUBJECT_OPTIONS = [
   "Tecnologias da Comunicação",
 ]
 
+function formatLocalDate(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)
+}
+
 export default function SimuladosPage() {
   const router = useRouter()
 
@@ -102,6 +141,9 @@ export default function SimuladosPage() {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [billing, setBilling] = useState<BillingStatusResponse | null>(null)
   const [history, setHistory] = useState<SimulationHistoryEntry[]>([])
+  const [reviewSummary, setReviewSummary] =
+    useState<ReviewSummaryPayload | null>(null)
+  const [reviewFlashcards, setReviewFlashcards] = useState<ReviewCard[]>([])
 
   const [loading, setLoading] = useState(true)
   const [checkoutLoading, setCheckoutLoading] = useState(false)
@@ -116,6 +158,8 @@ export default function SimuladosPage() {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const storedUser = localStorage.getItem(AUTH_USER_KEY)
     const storedHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
+    const storedSummary = localStorage.getItem(REVIEW_SUMMARY_KEY)
+    const storedFlashcards = localStorage.getItem(REVIEW_FLASHCARDS_KEY)
 
     setAuthToken(storedToken)
 
@@ -135,6 +179,28 @@ export default function SimuladosPage() {
         }
       } catch {
         localStorage.removeItem(SIMULATION_HISTORY_KEY)
+      }
+    }
+
+    if (storedSummary) {
+      try {
+        const parsed = JSON.parse(storedSummary) as ReviewSummaryPayload
+        if (parsed?.title && parsed?.revisionSummary) {
+          setReviewSummary(parsed)
+        }
+      } catch {
+        localStorage.removeItem(REVIEW_SUMMARY_KEY)
+      }
+    }
+
+    if (storedFlashcards) {
+      try {
+        const parsed = JSON.parse(storedFlashcards) as ReviewCard[]
+        if (Array.isArray(parsed)) {
+          setReviewFlashcards(parsed)
+        }
+      } catch {
+        localStorage.removeItem(REVIEW_FLASHCARDS_KEY)
       }
     }
 
@@ -284,7 +350,9 @@ export default function SimuladosPage() {
             <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <p className="text-sm text-slate-400">Seu plano</p>
               <div className="mt-2 text-2xl font-bold text-white">
-                {loading ? "Carregando..." : billing?.user.plan?.toUpperCase() ?? "VISITANTE"}
+                {loading
+                  ? "Carregando..."
+                  : billing?.user.plan?.toUpperCase() ?? "VISITANTE"}
               </div>
 
               <p className="mt-3 text-sm leading-6 text-slate-300">
@@ -334,6 +402,79 @@ export default function SimuladosPage() {
           </div>
         </div>
       </section>
+
+      {(reviewSummary || reviewFlashcards.length > 0) && (
+        <section className="grid gap-6 xl:grid-cols-2">
+          {reviewSummary ? (
+            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <FileText className="size-5 text-blue-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      Revisar antes de tentar de novo
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Seu último resumo de revisão está pronto
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/dashboard/resumos"
+                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                >
+                  Abrir resumo
+                </Link>
+              </div>
+
+              <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
+                {reviewSummary.revisionSummary}
+              </div>
+            </article>
+          ) : null}
+
+          {reviewFlashcards.length > 0 ? (
+            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <Layers3 className="size-5 text-blue-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      Flashcards disponíveis
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Revise seus pontos fracos antes do próximo treino
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/dashboard/flashcards"
+                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                >
+                  Abrir flashcards
+                </Link>
+              </div>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <InfoPill
+                  label="Cards disponíveis"
+                  value={String(reviewFlashcards.length)}
+                />
+                <InfoPill
+                  label="Primeiro foco"
+                  value={reviewFlashcards[0]?.subject ?? "N/D"}
+                />
+              </div>
+            </article>
+          ) : null}
+        </section>
+      )}
 
       <section className="grid gap-4 md:grid-cols-4">
         {[
@@ -544,15 +685,17 @@ export default function SimuladosPage() {
   )
 }
 
-function formatLocalDate(value: string) {
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date)
+function InfoPill({
+  label,
+  value,
+}: {
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#020b18] p-4">
+      <p className="text-sm text-slate-400">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+    </div>
+  )
 }
