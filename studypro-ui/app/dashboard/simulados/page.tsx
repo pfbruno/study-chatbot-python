@@ -8,6 +8,7 @@ import {
   ClipboardList,
   Crown,
   FileText,
+  GraduationCap,
   History,
   Layers3,
   Loader2,
@@ -254,6 +255,9 @@ export default function SimuladosPage() {
     return Math.max(...history.map((item) => item.score_percentage))
   }, [history])
 
+  const latestHistory = history[0] ?? null
+  const weakestReviewSubject = reviewSummary?.weakestSubjects?.[0]?.subject ?? null
+
   function toggleSubject(subject: string) {
     setSelectedSubjects((current) =>
       current.includes(subject)
@@ -404,75 +408,85 @@ export default function SimuladosPage() {
       </section>
 
       {(reviewSummary || reviewFlashcards.length > 0) && (
-        <section className="grid gap-6 xl:grid-cols-2">
-          {reviewSummary ? (
-            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <FileText className="size-5 text-blue-300" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white">
-                      Revisar antes de tentar de novo
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Seu último resumo de revisão está pronto
-                    </p>
-                  </div>
+        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <article className="rounded-[24px] border border-emerald-500/20 bg-emerald-500/10 p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
+                  <GraduationCap className="size-4" />
+                  Antes de tentar novamente
                 </div>
 
+                <h2 className="mt-4 text-2xl font-semibold text-white">
+                  Passe pela Área de Estudo para revisar seus pontos fracos
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-emerald-50/90">
+                  {weakestReviewSubject
+                    ? `Seu foco principal de revisão agora é ${weakestReviewSubject}.`
+                    : "Seus materiais de revisão já estão disponíveis."}
+                  {" "}
+                  Revise resumo, flashcards e mapa mental antes do próximo treino.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 md:flex-row">
                 <Link
-                  href="/dashboard/resumos"
-                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  href="/dashboard/estudo"
+                  className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
                 >
-                  Abrir resumo
+                  Ir para Área de Estudo
                 </Link>
-              </div>
-
-              <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
-                {reviewSummary.revisionSummary}
-              </div>
-            </article>
-          ) : null}
-
-          {reviewFlashcards.length > 0 ? (
-            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <Layers3 className="size-5 text-blue-300" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white">
-                      Flashcards disponíveis
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Revise seus pontos fracos antes do próximo treino
-                    </p>
-                  </div>
-                </div>
 
                 <Link
                   href="/dashboard/flashcards"
-                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
                 >
-                  Abrir flashcards
+                  Revisar flashcards
                 </Link>
               </div>
+            </div>
+          </article>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <InfoPill
-                  label="Cards disponíveis"
-                  value={String(reviewFlashcards.length)}
-                />
-                <InfoPill
-                  label="Primeiro foco"
-                  value={reviewFlashcards[0]?.subject ?? "N/D"}
-                />
+          <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                  <FileText className="size-5 text-blue-300" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-semibold text-white">
+                    Revisão pronta
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Materiais salvos para continuidade do estudo
+                  </p>
+                </div>
               </div>
-            </article>
-          ) : null}
+
+              <Link
+                href="/dashboard/estudo"
+                className="rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                Abrir hub
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <InfoPill
+                label="Resumo"
+                value={reviewSummary ? "Disponível" : "Não"}
+              />
+              <InfoPill
+                label="Flashcards"
+                value={String(reviewFlashcards.length)}
+              />
+              <InfoPill
+                label="Último simulado"
+                value={latestHistory ? "Registrado" : "N/D"}
+              />
+            </div>
+          </article>
         </section>
       )}
 
