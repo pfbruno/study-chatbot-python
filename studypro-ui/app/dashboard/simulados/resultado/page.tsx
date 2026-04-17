@@ -75,15 +75,34 @@ type StoredSimulationResult = {
   result: SimulationSubmissionResponse
 }
 
+type SimulationHistoryEntry = {
+  id: string
+  saved_at: string
+  title: string
+  exam_type: string
+  year: number
+  mode: SimulationMode
+  total_questions: number
+  correct_answers: number
+  wrong_answers: number
+  unanswered_count: number
+  score_percentage: number
+  subjects_summary: SimulationSubmissionResponse["subjects_summary"]
+}
+
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
+const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
+const MAX_HISTORY_ITEMS = 20
 
 export default function ResultadoSimuladoPage() {
   const router = useRouter()
 
   const [payload, setPayload] = useState<StoredSimulationResult | null>(null)
+  const [history, setHistory] = useState<SimulationHistoryEntry[]>([])
   const [loadError, setLoadError] = useState("")
+  const [historySaved, setHistorySaved] = useState(false)
 
   useEffect(() => {
     try {
@@ -101,9 +120,62 @@ export default function ResultadoSimuladoPage() {
     }
   }, [])
 
+  useEffect(() => {
+    try {
+      const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
+      if (!rawHistory) {
+        setHistory([])
+        return
+      }
+
+      const parsedHistory = JSON.parse(rawHistory) as SimulationHistoryEntry[]
+      if (Array.isArray(parsedHistory)) {
+        setHistory(parsedHistory)
+      } else {
+        setHistory([])
+      }
+    } catch {
+      setHistory([])
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!payload || historySaved) return
+
+    const entry: SimulationHistoryEntry = {
+      id: payload.simulation.simulation_id,
+      saved_at: new Date().toISOString(),
+      title: payload.result.title,
+      exam_type: payload.result.exam_type,
+      year: payload.result.year,
+      mode: payload.simulation.mode,
+      total_questions: payload.result.total_questions,
+      correct_answers: payload.result.correct_answers,
+      wrong_answers: payload.result.wrong_answers,
+      unanswered_count: payload.result.unanswered_count,
+      score_percentage: payload.result.score_percentage,
+      subjects_summary: payload.result.subjects_summary,
+    }
+
+    try {
+      const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
+      const currentHistory = rawHistory
+        ? (JSON.parse(rawHistory) as SimulationHistoryEntry[])
+        : []
+
+      const deduped = currentHistory.filter((item) => item.id !== entry.id)
+      const nextHistory = [entry, ...deduped].slice(0, MAX_HISTORY_ITEMS)
+
+      localStorage.setItem(SIMULATION_HISTORY_KEY, JSON.stringify(nextHistory))
+      setHistory(nextHistory)
+      setHistorySaved(true)
+    } catch {
+      setHistorySaved(true)
+    }
+  }, [historySaved, payload])
+
   const simulation = payload?.simulation ?? null
   const result = payload?.result ?? null
-  const answers = payload?.answers ?? {}
 
   const questionMap = useMemo(() => {
     const map = new Map<number, SimulationQuestion>()
@@ -118,6 +190,11 @@ export default function ResultadoSimuladoPage() {
     sessionStorage.removeItem(ACTIVE_SIMULATION_ANSWERS_KEY)
     sessionStorage.removeItem(LAST_SIMULATION_RESULT_KEY)
     router.push("/dashboard/simulados")
+  }
+
+  function handleClearHistory() {
+    localStorage.removeItem(SIMULATION_HISTORY_KEY)
+    setHistory([])
   }
 
   if (loadError) {
@@ -296,65 +373,124 @@ export default function ResultadoSimuladoPage() {
         </article>
 
         <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-          <h2 className="text-2xl font-semibold text-white">
-            Correção por questão
-          </h2>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-semibold text-white">
+                Últimos resultados
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Histórico local salvo neste navegador.
+              </p>
+            </div>
+
+            {history.length > 0 ? (
+              <button
+                type="button"
+                onClick={handleClearHistory}
+                className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+              >
+                Limpar histórico
+              </button>
+            ) : null}
+          </div>
 
           <div className="mt-6 space-y-4">
-            {result.results_by_question.map((entry) => {
-              const question = questionMap.get(entry.question_number)
-              const selectedOption =
-                entry.user_answer && question?.options?.[entry.user_answer]
-                  ? question.options[entry.user_answer]
-                  : null
-              const correctOption =
-                question?.options?.[entry.correct_answer] ?? null
-
-              return (
+            {history.length === 0 ? (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm text-slate-300">
+                Ainda não há histórico salvo localmente.
+              </div>
+            ) : (
+              history.map((entry) => (
                 <div
-                  key={entry.question_number}
+                  key={entry.id}
                   className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
                 >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-semibold text-white">
-                          Questão {entry.question_number}
-                        </span>
-                        <StatusBadge status={entry.status} />
-                      </div>
-
-                      <p className="mt-2 text-sm text-slate-400">
-                        {entry.subject}
+                      <h3 className="text-lg font-semibold text-white">
+                        {entry.title}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {formatLocalDate(entry.saved_at)} • {entry.total_questions} questões •{" "}
+                        {entry.mode === "balanced" ? "Balanceado" : "Aleatório"}
                       </p>
+                    </div>
 
-                      {question?.statement ? (
-                        <p className="mt-3 text-sm leading-7 text-slate-300">
-                          {question.statement}
-                        </p>
-                      ) : null}
+                    <div className="text-right">
+                      <div className="text-2xl font-bold text-white">
+                        {entry.score_percentage.toFixed(1)}%
+                      </div>
+                      <div className="text-sm text-slate-400">
+                        {entry.correct_answers} acerto(s)
+                      </div>
                     </div>
                   </div>
-
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    <AnswerBox
-                      label="Sua resposta"
-                      value={
-                        entry.user_answer
-                          ? `${entry.user_answer}${selectedOption ? ` — ${selectedOption}` : ""}`
-                          : "Em branco"
-                      }
-                    />
-                    <AnswerBox
-                      label="Resposta correta"
-                      value={`${entry.correct_answer}${correctOption ? ` — ${correctOption}` : ""}`}
-                    />
-                  </div>
                 </div>
-              )
-            })}
+              ))
+            )}
           </div>
         </article>
+      </section>
+
+      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+        <h2 className="text-2xl font-semibold text-white">
+          Correção por questão
+        </h2>
+
+        <div className="mt-6 space-y-4">
+          {result.results_by_question.map((entry) => {
+            const question = questionMap.get(entry.question_number)
+            const selectedOption =
+              entry.user_answer && question?.options?.[entry.user_answer]
+                ? question.options[entry.user_answer]
+                : null
+            const correctOption =
+              question?.options?.[entry.correct_answer] ?? null
+
+            return (
+              <div
+                key={entry.question_number}
+                className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
+              >
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg font-semibold text-white">
+                        Questão {entry.question_number}
+                      </span>
+                      <StatusBadge status={entry.status} />
+                    </div>
+
+                    <p className="mt-2 text-sm text-slate-400">
+                      {entry.subject}
+                    </p>
+
+                    {question?.statement ? (
+                      <p className="mt-3 text-sm leading-7 text-slate-300">
+                        {question.statement}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  <AnswerBox
+                    label="Sua resposta"
+                    value={
+                      entry.user_answer
+                        ? `${entry.user_answer}${selectedOption ? ` — ${selectedOption}` : ""}`
+                        : "Em branco"
+                    }
+                  />
+                  <AnswerBox
+                    label="Resposta correta"
+                    value={`${entry.correct_answer}${correctOption ? ` — ${correctOption}` : ""}`}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </section>
 
       <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
@@ -467,4 +603,17 @@ function AnswerBox({
       <p className="mt-2 text-sm leading-7 text-white">{value}</p>
     </div>
   )
+}
+
+function formatLocalDate(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)
 }
