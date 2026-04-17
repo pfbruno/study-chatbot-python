@@ -1,22 +1,55 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   BookOpen,
   Clock,
   Crown,
   Filter,
+  Loader2,
   Search,
   Star,
   TrendingUp,
   Users,
 } from "lucide-react"
 
-type Difficulty = "easy" | "medium" | "hard"
+import {
+  getExamByTypeAndYear,
+  getExamTypes,
+  type ExamDetail,
+} from "@/lib/api"
 
-type SimuladoItem = {
+type Difficulty = "easy" | "medium" | "hard"
+type CardKind = "official_exam" | "generated_simulation"
+
+type SimulationMode = "balanced" | "random"
+
+type SimulationHistoryEntry = {
   id: string
+  saved_at: string
+  title: string
+  exam_type: string
+  year: number
+  mode: SimulationMode
+  total_questions: number
+  correct_answers: number
+  wrong_answers: number
+  unanswered_count: number
+  score_percentage: number
+  subjects_summary: Array<{
+    subject: string
+    total: number
+    correct: number
+    wrong: number
+    blank: number
+    accuracy_percentage: number
+  }>
+}
+
+type SimuladoCard = {
+  id: string
+  kind: CardKind
   title: string
   description: string
   subject: string
@@ -30,116 +63,10 @@ type SimuladoItem = {
   author: string
   createdAt: string
   isPremium?: boolean
-  href?: string
+  href: string
 }
 
-const simulados: SimuladoItem[] = [
-  {
-    id: "enem-matematica-tecnologias",
-    title: "ENEM — Matemática e suas Tecnologias",
-    description:
-      "45 questões no padrão ENEM para treinar matemática completa.",
-    subject: "Matemática",
-    subjects: ["Matemática"],
-    difficulty: "easy",
-    tags: ["ENEM", "Matemática"],
-    questionCount: 10,
-    duration: 25,
-    timesCompleted: 4521,
-    rating: 4.3,
-    author: "Maria Clara",
-    createdAt: "2026-04-01",
-    href: "/dashboard/simulados",
-  },
-  {
-    id: "fisica-mecanica-termodinamica",
-    title: "Física — Mecânica e Termodinâmica",
-    description:
-      "Questões selecionadas de mecânica e termodinâmica para vestibulares.",
-    subject: "Física",
-    subjects: ["Física"],
-    difficulty: "medium",
-    tags: ["Física", "Mecânica"],
-    questionCount: 10,
-    duration: 35,
-    timesCompleted: 2103,
-    rating: 4.5,
-    author: "João Pedro",
-    createdAt: "2026-04-05",
-    href: "/dashboard/simulados",
-  },
-  {
-    id: "enem-2024-ciencias-natureza",
-    title: "ENEM 2024 — Ciências da Natureza",
-    description:
-      "Simulado completo baseado no padrão ENEM com questões de Biologia, Química e Física.",
-    subject: "Biologia",
-    subjects: ["Biologia", "Física", "Química"],
-    difficulty: "medium",
-    tags: ["ENEM", "Ciências"],
-    questionCount: 10,
-    duration: 30,
-    timesCompleted: 1847,
-    rating: 4.7,
-    author: "Prof. Ana Silva",
-    createdAt: "2026-04-08",
-    href: "/dashboard/provas/enem/2022",
-  },
-  {
-    id: "matematica-fuvest-funcoes-geometria",
-    title: "Matemática FUVEST — Funções e Geometria",
-    description:
-      "Simulado focado nos temas mais cobrados pela FUVEST em Matemática.",
-    subject: "Matemática",
-    subjects: ["Matemática"],
-    difficulty: "hard",
-    tags: ["FUVEST", "Matemática"],
-    questionCount: 10,
-    duration: 45,
-    timesCompleted: 956,
-    rating: 4.9,
-    author: "Prof. Carlos Mendes",
-    createdAt: "2026-04-12",
-    isPremium: true,
-    href: "/dashboard/simulados",
-  },
-  {
-    id: "biologia-genetica-evolucao",
-    title: "Biologia — Genética e Evolução",
-    description:
-      "Simulado aprofundado em genética mendeliana, molecular e evolução.",
-    subject: "Biologia",
-    subjects: ["Biologia"],
-    difficulty: "hard",
-    tags: ["Biologia", "Genética"],
-    questionCount: 10,
-    duration: 40,
-    timesCompleted: 723,
-    rating: 4.8,
-    author: "Prof. Ana Silva",
-    createdAt: "2026-04-15",
-    isPremium: true,
-    href: "/dashboard/simulados",
-  },
-  {
-    id: "fisica-unicamp-eletromagnetismo",
-    title: "Física UNICAMP — Eletromagnetismo",
-    description:
-      "Simulado de alta dificuldade focado em eletromagnetismo para UNICAMP.",
-    subject: "Física",
-    subjects: ["Física"],
-    difficulty: "hard",
-    tags: ["UNICAMP", "Física"],
-    questionCount: 10,
-    duration: 50,
-    timesCompleted: 412,
-    rating: 4.6,
-    author: "Prof. Ricardo Lima",
-    createdAt: "2026-04-18",
-    isPremium: true,
-    href: "/dashboard/simulados",
-  },
-]
+const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 
 const subjects = [
   "Todas",
@@ -181,6 +108,92 @@ function formatCount(value: number) {
   return value.toLocaleString("pt-BR")
 }
 
+function normalizeSubject(subject?: string | null): string {
+  if (!subject) return "Geral"
+
+  const value = subject.trim().toLowerCase()
+
+  if (value.includes("biolog")) return "Biologia"
+  if (value.includes("mate")) return "Matemática"
+  if (value.includes("fís") || value.includes("fis")) return "Física"
+  if (value.includes("quí") || value.includes("qui")) return "Química"
+  if (value.includes("hist")) return "História"
+  if (value.includes("geog")) return "Geografia"
+  if (value.includes("port")) return "Português"
+
+  return subject
+}
+
+function inferDifficultyFromQuestionCount(questionCount: number): Difficulty {
+  if (questionCount <= 10) return "easy"
+  if (questionCount <= 20) return "medium"
+  return "hard"
+}
+
+function inferDifficultyFromScore(score: number): Difficulty {
+  if (score >= 75) return "easy"
+  if (score >= 45) return "medium"
+  return "hard"
+}
+
+function buildOfficialCard(detail: ExamDetail): SimuladoCard {
+  const normalizedType = detail.exam_type.toUpperCase()
+  const year = detail.year
+  const questionCount = detail.question_count
+  const primarySubject = "Biologia"
+
+  return {
+    id: `official-${detail.exam_type}-${detail.year}`,
+    kind: "official_exam",
+    title: `${normalizedType} ${year} — Prova Oficial`,
+    description:
+      detail.description ||
+      `Prova oficial completa de ${normalizedType} ${year} para resolução e revisão.`,
+    subject: primarySubject,
+    subjects: ["Biologia", "Física", "Química", "Matemática", "Português"],
+    difficulty: inferDifficultyFromQuestionCount(questionCount),
+    tags: [normalizedType, "Oficial"],
+    questionCount,
+    duration: Math.max(30, Math.round(questionCount * 1.5)),
+    timesCompleted: 1,
+    rating: 5,
+    author: "Base oficial",
+    createdAt: `${year}-01-01`,
+    href: `/dashboard/provas/${detail.exam_type}/${detail.year}`,
+  }
+}
+
+function buildHistoryCard(item: SimulationHistoryEntry): SimuladoCard {
+  const sortedSubjects = [...item.subjects_summary].sort(
+    (a, b) => b.total - a.total
+  )
+  const primarySubject = normalizeSubject(sortedSubjects[0]?.subject || "Geral")
+  const subjectsUsed = sortedSubjects
+    .slice(0, 3)
+    .map((subject) => normalizeSubject(subject.subject))
+
+  return {
+    id: `history-${item.id}`,
+    kind: "generated_simulation",
+    title: item.title,
+    description: `Simulado já resolvido com ${item.correct_answers} acerto(s), ${item.wrong_answers} erro(s) e ${item.unanswered_count} em branco.`,
+    subject: primarySubject,
+    subjects: subjectsUsed.length > 0 ? subjectsUsed : [primarySubject],
+    difficulty: inferDifficultyFromScore(item.score_percentage),
+    tags: [
+      item.exam_type.toUpperCase(),
+      item.mode === "balanced" ? "Balanceado" : "Aleatório",
+    ],
+    questionCount: item.total_questions,
+    duration: Math.max(20, Math.round(item.total_questions * 2.5)),
+    timesCompleted: 1,
+    rating: Number((Math.max(1, item.score_percentage / 20)).toFixed(1)),
+    author: "Seu histórico",
+    createdAt: item.saved_at,
+    href: "/dashboard/simulados/resultado",
+  }
+}
+
 export default function SimuladosPage() {
   const [search, setSearch] = useState("")
   const [subject, setSubject] = useState("Todas")
@@ -189,8 +202,72 @@ export default function SimuladosPage() {
   const [sort, setSort] =
     useState<(typeof sortOptions)[number]["value"]>("popular")
 
+  const [cards, setCards] = useState<SimuladoCard[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  useEffect(() => {
+    async function loadRealCards() {
+      try {
+        setLoading(true)
+        setError("")
+
+        const [types, localHistoryRaw] = await Promise.all([
+          getExamTypes(),
+          Promise.resolve(localStorage.getItem(SIMULATION_HISTORY_KEY)),
+        ])
+
+        const officialCandidates = types.filter(
+          (item) =>
+            String(item.type).toLowerCase() === "enem" &&
+            Number(item.year) === 2022
+        )
+
+        const officialCards: SimuladoCard[] = []
+
+        for (const candidate of officialCandidates) {
+          try {
+            const detail = await getExamByTypeAndYear(
+              String(candidate.type),
+              Number(candidate.year)
+            )
+            officialCards.push(buildOfficialCard(detail))
+          } catch {
+            // ignora falha individual e segue com o restante
+          }
+        }
+
+        let historyCards: SimuladoCard[] = []
+
+        if (localHistoryRaw) {
+          try {
+            const parsed = JSON.parse(localHistoryRaw) as SimulationHistoryEntry[]
+            if (Array.isArray(parsed)) {
+              historyCards = parsed.map(buildHistoryCard)
+            }
+          } catch {
+            localStorage.removeItem(SIMULATION_HISTORY_KEY)
+          }
+        }
+
+        const merged = [...officialCards, ...historyCards]
+        setCards(merged)
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível carregar os simulados."
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadRealCards()
+  }, [])
+
   const filtered = useMemo(() => {
-    return [...simulados]
+    return [...cards]
       .filter((sim) => {
         if (
           search &&
@@ -215,7 +292,7 @@ export default function SimuladosPage() {
         if (sort === "rating") return b.rating - a.rating
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       })
-  }, [difficulty, search, sort, subject])
+  }, [cards, difficulty, search, sort, subject])
 
   return (
     <div className="space-y-6">
@@ -287,82 +364,97 @@ export default function SimuladosPage() {
           </div>
         </div>
 
-        <p className="mt-6 text-lg text-[#7ea0d6]">
-          {filtered.length} simulados encontrados
-        </p>
+        {loading ? (
+          <div className="mt-6 flex items-center gap-3 text-lg text-[#7ea0d6]">
+            <Loader2 className="size-5 animate-spin" />
+            Carregando simulados reais...
+          </div>
+        ) : error ? (
+          <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            {error}
+          </div>
+        ) : (
+          <>
+            <p className="mt-6 text-lg text-[#7ea0d6]">
+              {filtered.length} simulados encontrados
+            </p>
 
-        <div className="mt-6 grid gap-5 xl:grid-cols-3">
-          {filtered.map((sim) => {
-            const href = sim.href ?? "/dashboard/simulados"
-
-            return (
-              <Link
-                key={sim.id}
-                href={href}
-                className="group rounded-[24px] border border-white/10 bg-[#081224] p-5 transition hover:border-[#2f7cff]/40 hover:bg-[#0a1830]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="max-w-[85%] text-[19px] font-bold leading-tight text-white">
-                    {sim.title}
-                  </h3>
-
-                  {sim.isPremium ? (
-                    <Crown className="mt-1 size-5 text-yellow-400" />
-                  ) : null}
-                </div>
-
-                <p className="mt-4 line-clamp-3 min-h-[78px] text-lg leading-8 text-[#7ea0d6]">
-                  {sim.description}
-                </p>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span
-                    className={`rounded-full border px-3 py-1 text-sm font-medium ${difficultyColors[sim.difficulty]}`}
+            {filtered.length === 0 ? (
+              <div className="mt-6 rounded-[24px] border border-white/10 bg-[#081224] p-6 text-base text-[#7ea0d6]">
+                Nenhum simulado encontrado com os filtros atuais.
+              </div>
+            ) : (
+              <div className="mt-6 grid gap-5 xl:grid-cols-3">
+                {filtered.map((sim) => (
+                  <Link
+                    key={sim.id}
+                    href={sim.href}
+                    className="group rounded-[24px] border border-white/10 bg-[#081224] p-5 transition hover:border-[#2f7cff]/40 hover:bg-[#0a1830]"
                   >
-                    {difficultyLabels[sim.difficulty]}
-                  </span>
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="max-w-[85%] text-[19px] font-bold leading-tight text-white">
+                        {sim.title}
+                      </h3>
 
-                  {sim.tags.slice(0, 2).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-white/15 bg-[#071225] px-3 py-1 text-sm font-medium text-white"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
+                      {sim.isPremium ? (
+                        <Crown className="mt-1 size-5 text-yellow-400" />
+                      ) : null}
+                    </div>
 
-                <div className="mt-5 border-t border-white/10 pt-4">
-                  <div className="flex flex-wrap items-center gap-5 text-sm text-[#8ea6cc]">
-                    <span className="inline-flex items-center gap-1.5">
-                      <BookOpen className="size-4" />
-                      {sim.questionCount}q
-                    </span>
+                    <p className="mt-4 line-clamp-3 min-h-[78px] text-lg leading-8 text-[#7ea0d6]">
+                      {sim.description}
+                    </p>
 
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock className="size-4" />
-                      {sim.duration}min
-                    </span>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <span
+                        className={`rounded-full border px-3 py-1 text-sm font-medium ${difficultyColors[sim.difficulty]}`}
+                      >
+                        {difficultyLabels[sim.difficulty]}
+                      </span>
 
-                    <span className="inline-flex items-center gap-1.5">
-                      <Users className="size-4" />
-                      {formatCount(sim.timesCompleted)}
-                    </span>
+                      {sim.tags.slice(0, 2).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-white/15 bg-[#071225] px-3 py-1 text-sm font-medium text-white"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
 
-                    <span className="inline-flex items-center gap-1.5 text-yellow-400">
-                      <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                      {sim.rating.toFixed(1)}
-                    </span>
-                  </div>
+                    <div className="mt-5 border-t border-white/10 pt-4">
+                      <div className="flex flex-wrap items-center gap-5 text-sm text-[#8ea6cc]">
+                        <span className="inline-flex items-center gap-1.5">
+                          <BookOpen className="size-4" />
+                          {sim.questionCount}q
+                        </span>
 
-                  <p className="mt-4 text-base text-[#9db3d7]">
-                    por <span className="font-medium text-white">{sim.author}</span>
-                  </p>
-                </div>
-              </Link>
-            )
-          })}
-        </div>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Clock className="size-4" />
+                          {sim.duration}min
+                        </span>
+
+                        <span className="inline-flex items-center gap-1.5">
+                          <Users className="size-4" />
+                          {formatCount(sim.timesCompleted)}
+                        </span>
+
+                        <span className="inline-flex items-center gap-1.5 text-yellow-400">
+                          <Star className="size-4 fill-yellow-400 text-yellow-400" />
+                          {sim.rating.toFixed(1)}
+                        </span>
+                      </div>
+
+                      <p className="mt-4 text-base text-[#9db3d7]">
+                        por <span className="font-medium text-white">{sim.author}</span>
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </section>
     </div>
   )
