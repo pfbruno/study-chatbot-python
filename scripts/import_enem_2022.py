@@ -2,9 +2,13 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-API_URL = "https://api.enem.dev/v1/exams/2022/questions?limit=180&offset=0"
+EXAMS_URL = "https://api.enem.dev/v1/exams"
+QUESTIONS_URL = "https://api.enem.dev/v1/exams/2022/questions"
+QUESTIONS_URL_PAGED = "https://api.enem.dev/v1/exams/2022/questions?limit=180&offset=0"
+
 OUT_PATH = Path("data/exams/questions/enem/2022.json")
 OFFICIAL_PAGE_URL = "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022"
 
@@ -12,6 +16,7 @@ DISCIPLINE_MAP = {
     "linguagens": "Linguagens",
     "ciencias-humanas": "Ciências Humanas",
     "ciencias-da-natureza": "Ciências da Natureza",
+    "ciencias-natureza": "Ciências da Natureza",
     "matematica": "Matemática",
     "humanas": "Ciências Humanas",
     "natureza": "Ciências da Natureza",
@@ -23,7 +28,7 @@ LANGUAGE_MAP = {
 }
 
 
-def http_get_json(url: str) -> Dict[str, Any]:
+def http_get_json(url: str) -> Dict[str, Any] | List[Any]:
     req = Request(
         url,
         headers={
@@ -33,6 +38,37 @@ def http_get_json(url: str) -> Dict[str, Any]:
     )
     with urlopen(req, timeout=60) as response:
         return json.loads(response.read().decode("utf-8"))
+
+
+def ensure_exam_exists() -> None:
+    payload = http_get_json(EXAMS_URL)
+
+    if not isinstance(payload, list):
+        raise RuntimeError("Resposta inesperada ao listar provas.")
+
+    years = {int(item["year"]) for item in payload if "year" in item}
+    if 2022 not in years:
+        raise RuntimeError("A API não retornou a prova do ENEM 2022 em /v1/exams.")
+
+
+def fetch_questions_payload() -> Dict[str, Any]:
+    try:
+        payload = http_get_json(QUESTIONS_URL)
+        if isinstance(payload, dict) and "questions" in payload:
+            return payload
+        raise RuntimeError("Resposta inesperada ao listar questões sem paginação.")
+    except HTTPError as first_error:
+        try:
+            payload = http_get_json(QUESTIONS_URL_PAGED)
+            if isinstance(payload, dict) and "questions" in payload:
+                return payload
+            raise RuntimeError("Resposta inesperada ao listar questões com paginação.")
+        except Exception as second_error:
+            raise RuntimeError(
+                f"Falha ao importar questões do ENEM 2022. "
+                f"Sem paginação: HTTP {getattr(first_error, 'code', 'erro')}. "
+                f"Com paginação: {second_error}"
+            ) from second_error
 
 
 def infer_day(index: int) -> int:
@@ -58,9 +94,9 @@ def build_statement(question: Dict[str, Any]) -> str:
     intro = (question.get("alternativesIntroduction") or "").strip()
 
     if context:
-      parts.append(context)
+        parts.append(context)
     if intro:
-      parts.append(intro)
+        parts.append(intro)
 
     statement = "\n\n".join(parts).strip()
     return statement or f"Questão {question.get('index')} - ENEM 2022"
@@ -112,7 +148,8 @@ def normalize_question(question: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def main() -> int:
-    payload = http_get_json(API_URL)
+    ensure_exam_exists()
+    payload = fetch_questions_payload()
 
     questions_raw = payload.get("questions", [])
     metadata = payload.get("metadata", {})
@@ -134,7 +171,7 @@ def main() -> int:
         "total_questions": total,
         "has_answer_key": True,
         "official_page_url": OFFICIAL_PAGE_URL,
-        "imported_from": API_URL,
+        "imported_from": QUESTIONS_URL,
         "imported_at": datetime.now(timezone.utc).isoformat(),
         "questions": normalized_questions,
     }
@@ -147,6 +184,7 @@ def main() -> int:
 
     print(f"Arquivo gerado: {OUT_PATH}")
     print(f"Questões importadas: {len(normalized_questions)}")
+    print(f"Total declarado pela API: {total}")
     return 0
 
 
