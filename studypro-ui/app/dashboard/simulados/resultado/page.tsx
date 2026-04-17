@@ -105,6 +105,7 @@ const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 const MAX_HISTORY_ITEMS = 20
 
 export default function ResultadoSimuladoPage() {
@@ -232,6 +233,11 @@ export default function ResultadoSimuladoPage() {
         }
       })
   }, [questionMap, result])
+
+  useEffect(() => {
+    if (reviewCards.length === 0) return
+    localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(reviewCards))
+  }, [reviewCards])
 
   const revisionSummary = useMemo(() => {
     if (!result) return null
@@ -599,19 +605,30 @@ export default function ResultadoSimuladoPage() {
         </article>
 
         <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-              <Layers3 className="size-5 text-blue-300" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                <Layers3 className="size-5 text-blue-300" />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Flashcards automáticos
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Gerados localmente com base nos erros e questões em branco.
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h2 className="text-2xl font-semibold text-white">
-                Flashcards automáticos
-              </h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Gerados localmente com base nos erros e questões em branco.
-              </p>
-            </div>
+            {reviewCards.length > 0 ? (
+              <Link
+                href="/dashboard/flashcards"
+                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              >
+                Abrir flashcards
+              </Link>
+            ) : null}
           </div>
 
           <div className="mt-6 space-y-4">
@@ -620,7 +637,7 @@ export default function ResultadoSimuladoPage() {
                 Nenhum flashcard foi necessário. Seu resultado foi totalmente correto nas questões válidas.
               </div>
             ) : (
-              reviewCards.map((card) => (
+              reviewCards.slice(0, 3).map((card) => (
                 <div
                   key={card.id}
                   className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
@@ -634,13 +651,6 @@ export default function ResultadoSimuladoPage() {
                   <p className="mt-2 text-sm leading-7 text-slate-300">
                     {card.front}
                   </p>
-
-                  <div className="mt-4 border-t border-white/10 pt-4">
-                    <h4 className="text-base font-semibold text-white">Verso</h4>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">
-                      {card.back}
-                    </p>
-                  </div>
                 </div>
               ))
             )}
