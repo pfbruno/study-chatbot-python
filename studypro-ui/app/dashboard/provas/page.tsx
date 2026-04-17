@@ -4,7 +4,11 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { FileText, GraduationCap, Loader2 } from "lucide-react"
 
-import { getExamByTypeAndYear, getExamYears, type ExamDetail } from "@/lib/api"
+import {
+  getExamByTypeAndYear,
+  getExamTypes,
+  type ExamDetail,
+} from "@/lib/api"
 
 type ExamListItem = {
   year: number
@@ -16,7 +20,7 @@ type ExamListItem = {
 }
 
 export default function ProvasPage() {
-  const [years, setYears] = useState<number[]>([])
+  const [availableYears, setAvailableYears] = useState<number[]>([])
   const [enem2022, setEnem2022] = useState<ExamDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
@@ -27,14 +31,17 @@ export default function ProvasPage() {
         setLoading(true)
         setError("")
 
-        const yearsResponse = await getExamYears()
-        const normalizedYears = Array.isArray(yearsResponse?.years)
-          ? yearsResponse.years
-          : []
+        const examTypes = await getExamTypes()
+        const enemItems = examTypes.filter((item) => item.type === "enem")
+        const years = enemItems
+          .map((item) => Number(item.year))
+          .filter((year) => Number.isFinite(year))
 
-        setYears(normalizedYears)
+        setAvailableYears(years)
 
-        if (normalizedYears.includes(2022)) {
+        const hasEnem2022 = years.includes(2022)
+
+        if (hasEnem2022) {
           const exam2022 = await getExamByTypeAndYear("enem", 2022)
           setEnem2022(exam2022)
         }
@@ -109,7 +116,7 @@ export default function ProvasPage() {
               <p className="text-sm text-slate-400">Instituição</p>
               <div className="mt-2 text-2xl font-bold text-white">ENEM</div>
               <p className="mt-3 text-sm text-slate-300">
-                {years.length} ano(s) disponível(is) no catálogo
+                {availableYears.length} ano(s) disponível(is) detectado(s)
               </p>
             </div>
           </div>
@@ -166,7 +173,7 @@ export default function ProvasPage() {
 
               <div className="mt-6 flex flex-col gap-3 md:flex-row">
                 <Link
-                  href={`/dashboard/provas/enem/2022`}
+                  href="/dashboard/provas/enem/2022"
                   className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
                 >
                   Resolver prova
