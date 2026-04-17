@@ -121,6 +121,38 @@ export type ExamDetail = {
   official_page_url?: string | null;
 };
 
+export type RandomSimulationQuestion = {
+  number: number;
+  subject: string;
+  statement: string;
+  options: Record<string, string>;
+  source_pdf_label?: string | null;
+};
+
+export type RandomSimulationResponse = {
+  simulation_id: string;
+  generated_at: string;
+  exam_type: string;
+  year: number;
+  title: string;
+  mode: "balanced" | "random";
+  requested_question_count: number;
+  generated_question_count: number;
+  filters: {
+    subjects: string[];
+    mode: "balanced" | "random";
+    seed: number | null;
+  };
+  subjects_used: string[];
+  question_numbers: number[];
+  questions: RandomSimulationQuestion[];
+  access?: {
+    auth_scope: "user" | "guest";
+    usage: BillingUsage;
+    user: AuthUser | null;
+  };
+};
+
 function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(AUTH_TOKEN_KEY);
@@ -286,5 +318,27 @@ export async function submitExamAnswers(
     method: "POST",
     token,
     body: { answers },
+  });
+}
+
+/* ===========================
+   RANDOM SIMULATIONS
+=========================== */
+
+export async function generateRandomSimulation(
+  payload: {
+    exam_type: string;
+    year: number;
+    question_count: number;
+    subjects?: string[] | null;
+    mode?: "balanced" | "random";
+    seed?: number | null;
+  },
+  token?: string | null
+) {
+  return request<RandomSimulationResponse>("/simulados/random", {
+    method: "POST",
+    token,
+    body: payload,
   });
 }
