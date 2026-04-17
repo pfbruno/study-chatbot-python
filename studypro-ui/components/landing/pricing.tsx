@@ -1,56 +1,40 @@
 import Link from "next/link"
-import { Check, Star } from "lucide-react"
+import { Check, Crown, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const plans = [
   {
-    name: "Gratuito",
+    name: "Free",
     price: "R$ 0",
     period: "/mês",
-    description: "Para começar a praticar",
+    description: "Para testar a plataforma e começar sua preparação para o ENEM.",
     features: [
-      "5 questões aleatórias por dia",
-      "Acesso inicial a provas",
+      "Acesso inicial ao StudyPro",
+      "Geração limitada de simulados",
       "Correção automática",
-      "Estatísticas básicas",
+      "Dashboard básico",
     ],
     cta: "Começar grátis",
     href: "/register",
     highlighted: false,
   },
   {
-    name: "Premium",
+    name: "Pro",
     price: "R$ 29",
     period: "/mês",
-    description: "Para quem quer aprovação com consistência",
+    description: "Para quem quer estudar com constância e transformar prática em aprovação.",
     features: [
-      "Questões ilimitadas",
-      "Todas as provas disponíveis",
-      "Filtro por matéria",
-      "Dashboard completo",
-      "Histórico detalhado",
-      "Suporte prioritário",
+      "Simulados ilimitados",
+      "Mais volume de treino",
+      "Análise de desempenho completa",
+      "Insights inteligentes",
+      "Fluxo prioritário de evolução",
     ],
-    cta: "Assinar Premium",
+    cta: "Desbloquear Pro",
     href: "/pricing",
     highlighted: true,
-  },
-  {
-    name: "Anual",
-    price: "R$ 199",
-    period: "/ano",
-    description: "Melhor custo-benefício",
-    features: [
-      "Tudo do Premium",
-      "Economia anual",
-      "Simulados exclusivos",
-      "Acesso antecipado a novidades",
-    ],
-    cta: "Assinar Anual",
-    href: "/pricing",
-    highlighted: false,
   },
 ]
 
@@ -60,18 +44,21 @@ export function Pricing() {
       <div className="container-shell">
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-primary">
-            Planos
+            Planos StudyPro
           </span>
+
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Invista no seu futuro
+            Comece no Free. Evolua no Pro.
           </h2>
+
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            A rota continua a mesma. Nesta fase, a mudança é exclusivamente
-            visual no fluxo do aluno.
+            O plano gratuito serve para experimentar. O plano Pro existe para
+            quem quer acelerar a preparação para o ENEM com mais prática,
+            leitura de desempenho e menos fricção.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
+        <div className="mx-auto mt-14 grid max-w-5xl gap-6 lg:grid-cols-2">
           {plans.map((plan) => (
             <article
               key={plan.name}
@@ -81,24 +68,38 @@ export function Pricing() {
                   "border-primary/30 bg-primary/[0.08] shadow-[0_18px_60px_-24px_rgba(59,130,246,0.65)]"
               )}
             >
-              {plan.highlighted && (
+              {plan.highlighted ? (
                 <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-slate-950 px-3 py-1 text-xs font-semibold text-primary">
-                  <Star className="size-3.5 fill-current" />
-                  Mais popular
+                  <Crown className="size-3.5 fill-current" />
+                  Melhor para aprovação
                 </div>
-              )}
+              ) : null}
 
-              <h3 className="mt-2 text-2xl font-semibold text-white">{plan.name}</h3>
-              <p className="mt-3 text-sm text-slate-300">{plan.description}</p>
+              <div className="flex items-center gap-2">
+                <Sparkles
+                  className={cn(
+                    "size-4",
+                    plan.highlighted ? "text-primary" : "text-slate-300"
+                  )}
+                />
+                <span className="text-sm text-slate-300">{plan.name}</span>
+              </div>
 
               <div className="mt-6 flex items-end gap-2">
                 <span className="text-4xl font-bold text-white">{plan.price}</span>
                 <span className="pb-1 text-sm text-muted-foreground">{plan.period}</span>
               </div>
 
+              <p className="mt-4 text-sm leading-7 text-slate-300">
+                {plan.description}
+              </p>
+
               <ul className="mt-8 space-y-3">
                 {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3 text-sm text-slate-300">
+                  <li
+                    key={feature}
+                    className="flex items-start gap-3 text-sm text-slate-300"
+                  >
                     <div className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-accent/15 text-accent">
                       <Check className="size-3.5" />
                     </div>
