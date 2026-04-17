@@ -1,11 +1,12 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
 import {
   BarChart3,
   BookOpen,
   Clock3,
+  History,
   Loader2,
   Lock,
   Sparkles,
@@ -36,8 +37,32 @@ import { useBillingStatus } from "@/hooks/use-billing-status"
 
 type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes"
 type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade"
+type SimulationMode = "balanced" | "random"
+
+type SimulationHistoryEntry = {
+  id: string
+  saved_at: string
+  title: string
+  exam_type: string
+  year: number
+  mode: SimulationMode
+  total_questions: number
+  correct_answers: number
+  wrong_answers: number
+  unanswered_count: number
+  score_percentage: number
+  subjects_summary: Array<{
+    subject: string
+    total: number
+    correct: number
+    wrong: number
+    blank: number
+    accuracy_percentage: number
+  }>
+}
 
 const STUDY_GOAL_KEY = "studypro_goal"
+const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
@@ -120,20 +145,31 @@ function getLocalStreak(dataStreak: number) {
 }
 
 export default function DashboardPage() {
-  const router = useRouter()
-
   const [token, setToken] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashboardTab>("evolucao")
   const [goal, setGoal] = useState<StudyGoal | null>(null)
   const [goalLoaded, setGoalLoaded] = useState(false)
+  const [simulationHistory, setSimulationHistory] = useState<SimulationHistoryEntry[]>([])
 
   useEffect(() => {
     const savedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const savedGoal = localStorage.getItem(STUDY_GOAL_KEY) as StudyGoal | null
+    const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
 
     setToken(savedToken)
     setGoal(savedGoal)
     setGoalLoaded(true)
+
+    if (rawHistory) {
+      try {
+        const parsed = JSON.parse(rawHistory) as SimulationHistoryEntry[]
+        if (Array.isArray(parsed)) {
+          setSimulationHistory(parsed)
+        }
+      } catch {
+        localStorage.removeItem(SIMULATION_HISTORY_KEY)
+      }
+    }
   }, [])
 
   const { data, loading, error } = useDashboardData(token)
@@ -183,6 +219,12 @@ export default function DashboardPage() {
   const hasSmartInsights =
     billing?.entitlements.can_access_smart_insights ?? isPro
 
+  const latestSimulation = simulationHistory[0] ?? null
+  const bestSimulationScore =
+    simulationHistory.length > 0
+      ? Math.max(...simulationHistory.map((item) => item.score_percentage))
+      : null
+
   const topCards = useMemo(
     () => [
       {
@@ -213,13 +255,13 @@ export default function DashboardPage() {
         trendClass: "text-blue-400",
       },
       {
-        title: "Evolução total",
-        value: `${evolutionDelta >= 0 ? "+" : ""}${evolutionDelta.toFixed(0)}%`,
-        subtitle: "Com base nos agregados atuais",
+        title: "Melhor simulado",
+        value: bestSimulationScore !== null ? `${bestSimulationScore.toFixed(1)}%` : "N/D",
+        subtitle: latestSimulation ? `Último: ${latestSimulation.score_percentage.toFixed(1)}%` : "Sem histórico local",
         trend: "",
-        icon: <TrendingUp className="size-5 text-emerald-400" />,
+        icon: <History className="size-5 text-emerald-400" />,
         iconBg: "bg-emerald-500/15",
-        trendClass: evolutionDelta >= 0 ? "text-emerald-400" : "text-rose-400",
+        trendClass: "text-emerald-400",
       },
     ],
     [
@@ -229,6 +271,8 @@ export default function DashboardPage() {
       data.questions,
       data.recent_attempts.length,
       estimatedTimePerQuestion,
+      bestSimulationScore,
+      latestSimulation,
     ]
   )
 
@@ -333,19 +377,6 @@ export default function DashboardPage() {
   function handleResetGoal() {
     localStorage.removeItem(STUDY_GOAL_KEY)
     setGoal(null)
-  }
-
-  function handlePrimaryAction() {
-    if (!isPro && !canGenerateSimulation) {
-      router.push("/pricing")
-      return
-    }
-
-    router.push("/dashboard/simulados")
-  }
-
-  function handleUpgrade() {
-    router.push("/pricing")
   }
 
   if (!goalLoaded) {
@@ -455,15 +486,14 @@ export default function DashboardPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={handlePrimaryAction}
+              <Link
+                href={!isPro && !canGenerateSimulation ? "/pricing" : "/dashboard/simulados"}
                 className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
               >
                 {!isPro && !canGenerateSimulation
                   ? "Desbloquear Pro"
                   : getNextAction(goal)}
-              </button>
+              </Link>
 
               <button
                 type="button"
@@ -532,40 +562,43 @@ export default function DashboardPage() {
               </div>
 
               {!isPro ? (
-                <button
-                  type="button"
-                  onClick={handleUpgrade}
-                  className="mt-5 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                <Link
+                  href="/pricing"
+                  className="mt-5 inline-flex w-full justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
                 >
                   Desbloquear Pro
-                </button>
+                </Link>
               ) : null}
             </div>
           </div>
         </div>
       </section>
 
-      {!isPro && !canGenerateSimulation ? (
-        <section className="rounded-[24px] border border-rose-500/20 bg-rose-500/10 p-5">
+      {latestSimulation ? (
+        <section className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm text-rose-200/80">Limite do plano gratuito</p>
+              <p className="text-sm text-slate-400">Último simulado corrigido</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">
-                Você atingiu o limite diário de simulados
+                {latestSimulation.title}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-rose-100">
-                Continue estudando com acesso ampliado, sem depender do limite
-                diário do plano free.
+              <p className="mt-2 text-sm text-slate-300">
+                {formatDate(latestSimulation.saved_at)} • {latestSimulation.total_questions} questões •{" "}
+                {latestSimulation.mode === "balanced" ? "Balanceado" : "Aleatório"}
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleUpgrade}
-              className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-            >
-              Ir para o PRO
-            </button>
+            <div className="flex flex-col items-start gap-3 md:items-end">
+              <div className="text-3xl font-bold text-white">
+                {latestSimulation.score_percentage.toFixed(1)}%
+              </div>
+              <Link
+                href="/dashboard/simulados"
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                Continuar treinando
+              </Link>
+            </div>
           </div>
         </section>
       ) : null}
@@ -782,13 +815,12 @@ export default function DashboardPage() {
                 visão premium da sua evolução.
               </p>
 
-              <button
-                type="button"
-                onClick={handleUpgrade}
-                className="mt-5 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              <Link
+                href="/pricing"
+                className="mt-5 inline-flex rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
               >
                 Desbloquear analytics
-              </button>
+              </Link>
             </div>
           </div>
         ) : null}
@@ -913,13 +945,12 @@ export default function DashboardPage() {
                     evolução e prioridade de estudo.
                   </p>
 
-                  <button
-                    type="button"
-                    onClick={handleUpgrade}
-                    className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  <Link
+                    href="/pricing"
+                    className="mt-4 inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
                   >
                     Ver plano PRO
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>
