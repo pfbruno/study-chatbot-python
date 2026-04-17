@@ -2,15 +2,16 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
-from urllib.error import HTTPError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 EXAMS_URL = "https://api.enem.dev/v1/exams"
-QUESTIONS_URL = "https://api.enem.dev/v1/exams/2022/questions"
-QUESTIONS_URL_PAGED = "https://api.enem.dev/v1/exams/2022/questions?limit=180&offset=0"
+QUESTIONS_BASE_URL = "https://api.enem.dev/v1/exams/2022/questions"
 
 OUT_PATH = Path("data/exams/questions/enem/2022.json")
 OFFICIAL_PAGE_URL = "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022"
+
+PAGE_SIZE = 50
 
 DISCIPLINE_MAP = {
     "linguagens": "Linguagens",
@@ -51,24 +52,48 @@ def ensure_exam_exists() -> None:
         raise RuntimeError("A API não retornou a prova do ENEM 2022 em /v1/exams.")
 
 
-def fetch_questions_payload() -> Dict[str, Any]:
-    try:
-        payload = http_get_json(QUESTIONS_URL)
-        if isinstance(payload, dict) and "questions" in payload:
-            return payload
-        raise RuntimeError("Resposta inesperada ao listar questões sem paginação.")
-    except HTTPError as first_error:
-        try:
-            payload = http_get_json(QUESTIONS_URL_PAGED)
-            if isinstance(payload, dict) and "questions" in payload:
-                return payload
-            raise RuntimeError("Resposta inesperada ao listar questões com paginação.")
-        except Exception as second_error:
-            raise RuntimeError(
-                f"Falha ao importar questões do ENEM 2022. "
-                f"Sem paginação: HTTP {getattr(first_error, 'code', 'erro')}. "
-                f"Com paginação: {second_error}"
-            ) from second_error
+def build_questions_url(limit: int, offset: int) -> str:
+    return f"{QUESTIONS_BASE_URL}?{urlencode({'limit': limit, 'offset': offset})}"
+
+
+def fetch_all_questions_payload() -> Dict[str, Any]:
+    offset = 0
+    total = None
+    all_questions: List[Dict[str, Any]] = []
+
+    while True:
+        url = build_questions_url(PAGE_SIZE, offset)
+        payload = http_get_json(url)
+
+        if not isinstance(payload, dict):
+            raise RuntimeError("Resposta inesperada ao listar questões.")
+
+        page_questions = payload.get("questions", [])
+        metadata = payload.get("metadata", {})
+
+        if not isinstance(page_questions, list):
+            raise RuntimeError("Campo 'questions' inválido na resposta da API.")
+
+        if total is None:
+            total = int(metadata.get("total") or 0)
+            if total <= 0:
+                total = len(page_questions)
+
+        if not page_questions:
+            break
+
+        all_questions.extend(page_questions)
+        offset += len(page_questions)
+
+        if len(all_questions) >= total:
+            break
+
+    return {
+        "questions": all_questions,
+        "metadata": {
+            "total": total or len(all_questions),
+        },
+    }
 
 
 def infer_day(index: int) -> int:
@@ -149,7 +174,7 @@ def normalize_question(question: Dict[str, Any]) -> Dict[str, Any]:
 
 def main() -> int:
     ensure_exam_exists()
-    payload = fetch_questions_payload()
+    payload = fetch_all_questions_payload()
 
     questions_raw = payload.get("questions", [])
     metadata = payload.get("metadata", {})
@@ -171,7 +196,7 @@ def main() -> int:
         "total_questions": total,
         "has_answer_key": True,
         "official_page_url": OFFICIAL_PAGE_URL,
-        "imported_from": QUESTIONS_URL,
+        "imported_from": QUESTIONS_BASE_URL,
         "imported_at": datetime.now(timezone.utc).isoformat(),
         "questions": normalized_questions,
     }
