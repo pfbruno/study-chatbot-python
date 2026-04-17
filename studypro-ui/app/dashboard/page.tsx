@@ -7,6 +7,7 @@ import {
   BookOpen,
   Clock3,
   FileText,
+  GraduationCap,
   History,
   Layers3,
   Loader2,
@@ -323,18 +324,8 @@ export default function DashboardPage() {
 
   const evolutionData = useMemo(() => {
     const months = [
-      "Jan",
-      "Fev",
-      "Mar",
-      "Abr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Set",
-      "Out",
-      "Nov",
-      "Dez",
+      "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
+      "Jul", "Ago", "Set", "Out", "Nov", "Dez",
     ]
     const target = clamp(accuracyPercent || 52, 40, 95)
     const average = clamp(baselinePercent, 35, 90)
@@ -660,6 +651,46 @@ export default function DashboardPage() {
 
       {(reviewSummary || reviewFlashcards.length > 0) && (
         <section className="grid gap-6 xl:grid-cols-2">
+          <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                  <GraduationCap className="size-5 text-blue-300" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-semibold text-white">
+                    Continuar na Área de Estudo
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-400">
+                    Seu hub de revisão já está pronto
+                  </p>
+                </div>
+              </div>
+
+              <Link
+                href="/dashboard/estudo"
+                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              >
+                Abrir área
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              <InfoStat
+                label="Resumo salvo"
+                value={reviewSummary ? "Sim" : "Não"}
+              />
+              <InfoStat
+                label="Flashcards"
+                value={String(reviewFlashcards.length)}
+              />
+              <InfoStat
+                label="Último treino"
+                value={latestSimulation ? "Disponível" : "N/D"}
+              />
+            </div>
+          </article>
+
           {reviewSummary ? (
             <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
               <div className="flex items-center justify-between gap-4">
