@@ -7,6 +7,7 @@ import {
   Clock,
   Crown,
   Filter,
+  GraduationCap,
   Loader2,
   Search,
   Star,
@@ -16,7 +17,6 @@ import {
 
 import {
   getExamByTypeAndYear,
-  getExamTypes,
   type ExamDetail,
 } from "@/lib/api"
 
@@ -68,17 +68,6 @@ type SimuladoCard = {
 
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 
-const subjects = [
-  "Todas",
-  "Biologia",
-  "Matemática",
-  "Física",
-  "Química",
-  "História",
-  "Geografia",
-  "Português",
-]
-
 const difficulties = [
   { value: "all", label: "Todas" },
   { value: "easy", label: "Fácil" },
@@ -120,6 +109,9 @@ function normalizeSubject(subject?: string | null): string {
   if (value.includes("hist")) return "História"
   if (value.includes("geog")) return "Geografia"
   if (value.includes("port")) return "Português"
+  if (value.includes("ling")) return "Linguagens"
+  if (value.includes("human")) return "Ciências Humanas"
+  if (value.includes("nature")) return "Ciências da Natureza"
 
   return subject
 }
@@ -136,62 +128,110 @@ function inferDifficultyFromScore(score: number): Difficulty {
   return "hard"
 }
 
-function buildOfficialCard(detail: ExamDetail): SimuladoCard {
-  const normalizedType = detail.exam_type.toUpperCase()
-  const year = detail.year
-  const questionCount = detail.question_count
-  const primarySubject = "Biologia"
+function groupHistoryByTitle(history: SimulationHistoryEntry[]) {
+  const grouped = new Map<string, SimulationHistoryEntry[]>()
+
+  for (const item of history) {
+    const key = `${item.title}::${item.exam_type}::${item.year}`
+    const bucket = grouped.get(key) ?? []
+    bucket.push(item)
+    grouped.set(key, bucket)
+  }
+
+  return grouped
+}
+
+function buildOfficialCard(
+  detail: ExamDetail,
+  history: SimulationHistoryEntry[]
+): SimuladoCard {
+  const relatedHistory = history.filter(
+    (item) =>
+      item.exam_type.toLowerCase() === detail.exam_type.toLowerCase() &&
+      item.year === detail.year
+  )
+
+  const uniqueSubjects = Array.from(
+    new Set(
+      relatedHistory
+        .flatMap((item) => item.subjects_summary ?? [])
+        .map((subject) => normalizeSubject(subject.subject))
+        .filter(Boolean)
+    )
+  )
+
+  const avgScore =
+    relatedHistory.length > 0
+      ? relatedHistory.reduce((acc, item) => acc + item.score_percentage, 0) /
+        relatedHistory.length
+      : 0
 
   return {
     id: `official-${detail.exam_type}-${detail.year}`,
     kind: "official_exam",
-    title: `${normalizedType} ${year} — Prova Oficial`,
+    title: `${detail.title} — Prova Oficial`,
     description:
       detail.description ||
-      `Prova oficial completa de ${normalizedType} ${year} para resolução e revisão.`,
-    subject: primarySubject,
-    subjects: ["Biologia", "Física", "Química", "Matemática", "Português"],
-    difficulty: inferDifficultyFromQuestionCount(questionCount),
-    tags: [normalizedType, "Oficial"],
-    questionCount,
-    duration: Math.max(30, Math.round(questionCount * 1.5)),
-    timesCompleted: 1,
-    rating: 5,
+      `Prova oficial completa de ${detail.exam_type.toUpperCase()} ${detail.year}.`,
+    subject: uniqueSubjects[0] ?? "Geral",
+    subjects: uniqueSubjects.length > 0 ? uniqueSubjects : ["Geral"],
+    difficulty: inferDifficultyFromQuestionCount(detail.question_count),
+    tags: [detail.exam_type.toUpperCase(), "Oficial"],
+    questionCount: detail.question_count,
+    duration: Math.max(30, Math.round(detail.question_count * 1.5)),
+    timesCompleted: relatedHistory.length,
+    rating: Number(Math.max(0, Math.min(5, avgScore / 20)).toFixed(1)),
     author: "Base oficial",
-    createdAt: `${year}-01-01`,
+    createdAt: `${detail.year}-01-01`,
     href: `/dashboard/provas/${detail.exam_type}/${detail.year}`,
   }
 }
 
-function buildHistoryCard(item: SimulationHistoryEntry): SimuladoCard {
-  const sortedSubjects = [...item.subjects_summary].sort(
-    (a, b) => b.total - a.total
-  )
-  const primarySubject = normalizeSubject(sortedSubjects[0]?.subject || "Geral")
-  const subjectsUsed = sortedSubjects
-    .slice(0, 3)
-    .map((subject) => normalizeSubject(subject.subject))
+function buildHistoryCards(history: SimulationHistoryEntry[]): SimuladoCard[] {
+  const grouped = groupHistoryByTitle(history)
+  const cards: SimuladoCard[] = []
 
-  return {
-    id: `history-${item.id}`,
-    kind: "generated_simulation",
-    title: item.title,
-    description: `Simulado já resolvido com ${item.correct_answers} acerto(s), ${item.wrong_answers} erro(s) e ${item.unanswered_count} em branco.`,
-    subject: primarySubject,
-    subjects: subjectsUsed.length > 0 ? subjectsUsed : [primarySubject],
-    difficulty: inferDifficultyFromScore(item.score_percentage),
-    tags: [
-      item.exam_type.toUpperCase(),
-      item.mode === "balanced" ? "Balanceado" : "Aleatório",
-    ],
-    questionCount: item.total_questions,
-    duration: Math.max(20, Math.round(item.total_questions * 2.5)),
-    timesCompleted: 1,
-    rating: Number((Math.max(1, item.score_percentage / 20)).toFixed(1)),
-    author: "Seu histórico",
-    createdAt: item.saved_at,
-    href: "/dashboard/simulados/resultado",
+  for (const [, items] of grouped) {
+    const latest = [...items].sort(
+      (a, b) =>
+        new Date(b.saved_at).getTime() - new Date(a.saved_at).getTime()
+    )[0]
+
+    const subjects = Array.from(
+      new Set(
+        items
+          .flatMap((item) => item.subjects_summary ?? [])
+          .map((subject) => normalizeSubject(subject.subject))
+          .filter(Boolean)
+      )
+    )
+
+    const averageScore =
+      items.reduce((acc, item) => acc + item.score_percentage, 0) / items.length
+
+    cards.push({
+      id: `history-${latest.id}`,
+      kind: "generated_simulation",
+      title: latest.title,
+      description: `Simulado real já resolvido ${items.length} vez(es). Último resultado: ${latest.correct_answers} acerto(s), ${latest.wrong_answers} erro(s) e ${latest.unanswered_count} em branco.`,
+      subject: subjects[0] ?? "Geral",
+      subjects: subjects.length > 0 ? subjects : ["Geral"],
+      difficulty: inferDifficultyFromScore(averageScore),
+      tags: [
+        latest.exam_type.toUpperCase(),
+        latest.mode === "balanced" ? "Balanceado" : "Aleatório",
+      ],
+      questionCount: latest.total_questions,
+      duration: Math.max(20, Math.round(latest.total_questions * 2.5)),
+      timesCompleted: items.length,
+      rating: Number(Math.max(0, Math.min(5, averageScore / 20)).toFixed(1)),
+      author: "Seu histórico",
+      createdAt: latest.saved_at,
+      href: "/dashboard/simulados/resultado",
+    })
   }
+
+  return cards
 }
 
 export default function SimuladosPage() {
@@ -212,51 +252,30 @@ export default function SimuladosPage() {
         setLoading(true)
         setError("")
 
-        const [types, localHistoryRaw] = await Promise.all([
-          getExamTypes(),
-          Promise.resolve(localStorage.getItem(SIMULATION_HISTORY_KEY)),
-        ])
+        const historyRaw = localStorage.getItem(SIMULATION_HISTORY_KEY)
+        let history: SimulationHistoryEntry[] = []
 
-        const officialCandidates = types.filter(
-          (item) =>
-            String(item.type).toLowerCase() === "enem" &&
-            Number(item.year) === 2022
-        )
-
-        const officialCards: SimuladoCard[] = []
-
-        for (const candidate of officialCandidates) {
+        if (historyRaw) {
           try {
-            const detail = await getExamByTypeAndYear(
-              String(candidate.type),
-              Number(candidate.year)
-            )
-            officialCards.push(buildOfficialCard(detail))
-          } catch {
-            // ignora falha individual e segue com o restante
-          }
-        }
-
-        let historyCards: SimuladoCard[] = []
-
-        if (localHistoryRaw) {
-          try {
-            const parsed = JSON.parse(localHistoryRaw) as SimulationHistoryEntry[]
+            const parsed = JSON.parse(historyRaw) as SimulationHistoryEntry[]
             if (Array.isArray(parsed)) {
-              historyCards = parsed.map(buildHistoryCard)
+              history = parsed
             }
           } catch {
             localStorage.removeItem(SIMULATION_HISTORY_KEY)
           }
         }
 
-        const merged = [...officialCards, ...historyCards]
-        setCards(merged)
+        const officialExam = await getExamByTypeAndYear("enem", 2022)
+        const officialCard = buildOfficialCard(officialExam, history)
+        const historyCards = buildHistoryCards(history)
+
+        setCards([officialCard, ...historyCards])
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
-            : "Não foi possível carregar os simulados."
+            : "Não foi possível carregar os simulados reais."
         )
       } finally {
         setLoading(false)
@@ -265,6 +284,14 @@ export default function SimuladosPage() {
 
     void loadRealCards()
   }, [])
+
+  const availableSubjects = useMemo(() => {
+    const values = Array.from(
+      new Set(cards.flatMap((item) => item.subjects).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"))
+
+    return ["Todas", ...values]
+  }, [cards])
 
   const filtered = useMemo(() => {
     return [...cards]
@@ -297,10 +324,19 @@ export default function SimuladosPage() {
   return (
     <div className="space-y-6">
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.45)]">
-        <h1 className="text-4xl font-bold tracking-tight text-white">Simulados</h1>
-        <p className="mt-2 text-xl text-[#7ea0d6]">
-          Treine com simulados reais e acompanhe sua evolução
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-500/10">
+            <GraduationCap className="size-5 text-blue-300" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight text-white">
+              Simulados
+            </h1>
+            <p className="mt-2 text-xl text-[#7ea0d6]">
+              Treine com a base real do ENEM 2022 e acompanhe sua evolução
+            </p>
+          </div>
+        </div>
 
         <div className="mt-8 rounded-[22px] border border-white/10 bg-[#0a1428] p-3">
           <div className="grid gap-3 xl:grid-cols-[1.35fr_0.5fr_0.45fr_0.5fr]">
@@ -321,7 +357,7 @@ export default function SimuladosPage() {
                 onChange={(e) => setSubject(e.target.value)}
                 className="h-14 w-full appearance-none rounded-2xl border border-white/10 bg-[#081224] pl-14 pr-10 text-base font-medium text-white outline-none focus:border-[#2f7cff]/50"
               >
-                {subjects.map((item) => (
+                {availableSubjects.map((item) => (
                   <option key={item} value={item} className="bg-[#081224]">
                     {item}
                   </option>
@@ -333,7 +369,9 @@ export default function SimuladosPage() {
               <select
                 value={difficulty}
                 onChange={(e) =>
-                  setDifficulty(e.target.value as (typeof difficulties)[number]["value"])
+                  setDifficulty(
+                    e.target.value as (typeof difficulties)[number]["value"]
+                  )
                 }
                 className="h-14 w-full appearance-none rounded-2xl border border-white/10 bg-[#081224] px-4 pr-10 text-base font-medium text-white outline-none focus:border-[#2f7cff]/50"
               >
