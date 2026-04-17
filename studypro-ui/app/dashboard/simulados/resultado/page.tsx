@@ -12,6 +12,7 @@ import {
   ClipboardList,
   Layers3,
   RotateCcw,
+  Sparkles,
 } from "lucide-react"
 
 type SimulationMode = "balanced" | "random"
@@ -202,6 +203,11 @@ export default function ResultadoSimuladoPage() {
       .slice(0, 3)
   }, [result])
 
+  const weakestSubjectsText = useMemo(() => {
+    if (weakestSubjects.length === 0) return "não identificadas"
+    return weakestSubjects.map((item) => item.subject).join(", ")
+  }, [weakestSubjects])
+
   const reviewCards = useMemo<ReviewCard[]>(() => {
     if (!result) return []
 
@@ -216,7 +222,7 @@ export default function ResultadoSimuladoPage() {
         return {
           id: `${entry.question_number}-${entry.status}`,
           subject: entry.subject,
-          questionNumber: entry.question_number,
+          questionNumber: entry.questionNumber ?? entry.question_number,
           front: `Questão ${entry.question_number} • ${entry.subject}: qual alternativa correta e por que sua escolha precisa ser revista?`,
           back: `Resposta correta: ${entry.correct_answer} — ${correctOptionText}. ${
             entry.user_answer
@@ -241,6 +247,20 @@ export default function ResultadoSimuladoPage() {
     const subjectNames = weakestSubjects.map((item) => item.subject).join(", ")
     return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, refazer questões semelhantes e gerar um novo treino direcionado.`
   }, [result, weakestSubjects])
+
+  const summaryPrompt = useMemo(() => {
+    if (!result) return ""
+    return `Gere um resumo de revisão com base no meu último simulado do ${result.exam_type.toUpperCase()} ${result.year}. Tive ${result.score_percentage.toFixed(
+      1
+    )}% de aproveitamento, ${result.correct_answers} acertos, ${result.wrong_answers} erros e ${result.unanswered_count} em branco. Minhas principais disciplinas para revisar são: ${weakestSubjectsText}.`
+  }, [result, weakestSubjectsText])
+
+  const flashcardsPrompt = useMemo(() => {
+    if (!result) return ""
+    return `Gere flashcards de revisão com base no meu último simulado do ${result.exam_type.toUpperCase()} ${result.year}. Tive ${result.score_percentage.toFixed(
+      1
+    )}% de aproveitamento. Foque principalmente nas disciplinas: ${weakestSubjectsText}. Considere meus erros e questões em branco como prioridade.`
+  }, [result, weakestSubjectsText])
 
   function handleNewSimulation() {
     sessionStorage.removeItem(ACTIVE_SIMULATION_KEY)
@@ -362,6 +382,40 @@ export default function ResultadoSimuladoPage() {
           value={String(result.annulled_count)}
           tone="neutral"
         />
+      </section>
+
+      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
+              <Sparkles className="size-4" />
+              Revisão com IA
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold text-white">
+              Transforme este resultado em material de estudo
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Use o chat para gerar um resumo ou flashcards com base no seu desempenho.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row">
+            <Link
+              href={`/dashboard/chat?prompt=${encodeURIComponent(summaryPrompt)}`}
+              className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+            >
+              Gerar resumo com IA
+            </Link>
+
+            <Link
+              href={`/dashboard/chat?prompt=${encodeURIComponent(flashcardsPrompt)}`}
+              className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Gerar flashcards com IA
+            </Link>
+          </div>
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
