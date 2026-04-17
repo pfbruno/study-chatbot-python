@@ -2,34 +2,22 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import { ArrowRight, BookOpen, FileText, GraduationCap, Loader2 } from "lucide-react"
+import { FileText, GraduationCap, Loader2 } from "lucide-react"
 
-import { getExamTypes } from "@/lib/api"
+import { getExamByTypeAndYear, getExamYears, type ExamDetail } from "@/lib/api"
 
-type FlatExamItem = {
-  id?: number
-  type?: string
-  label?: string
-  year?: number
-  title?: string
-}
-
-type GroupedExam = {
-  key: string
-  label: string
-  totalYears: number
-  totalExams: number
-  latestYear: number | null
-}
-
-function formatExamLabel(value: string) {
-  return value
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase())
+type ExamListItem = {
+  year: number
+  title: string
+  description: string
+  question_count: number
+  has_answer_key: boolean
+  official_page_url?: string | null
 }
 
 export default function ProvasPage() {
-  const [items, setItems] = useState<FlatExamItem[]>([])
+  const [years, setYears] = useState<number[]>([])
+  const [enem2022, setEnem2022] = useState<ExamDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
@@ -38,8 +26,18 @@ export default function ProvasPage() {
       try {
         setLoading(true)
         setError("")
-        const data = await getExamTypes()
-        setItems(Array.isArray(data) ? (data as FlatExamItem[]) : [])
+
+        const yearsResponse = await getExamYears()
+        const normalizedYears = Array.isArray(yearsResponse?.years)
+          ? yearsResponse.years
+          : []
+
+        setYears(normalizedYears)
+
+        if (normalizedYears.includes(2022)) {
+          const exam2022 = await getExamByTypeAndYear("enem", 2022)
+          setEnem2022(exam2022)
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Erro ao carregar provas."
@@ -49,54 +47,30 @@ export default function ProvasPage() {
       }
     }
 
-    loadExams()
+    void loadExams()
   }, [])
 
-  const groupedExams = useMemo<GroupedExam[]>(() => {
-    const map = new Map<string, GroupedExam & { yearsSet: Set<number> }>()
+  const availableItems = useMemo<ExamListItem[]>(() => {
+    if (!enem2022) return []
 
-    for (const item of items) {
-      const key = String(item.type || "enem").toLowerCase()
-      const year = typeof item.year === "number" ? item.year : null
-
-      if (!map.has(key)) {
-        map.set(key, {
-          key,
-          label: item.label || formatExamLabel(key),
-          totalYears: 0,
-          totalExams: 0,
-          latestYear: year,
-          yearsSet: new Set<number>(),
-        })
-      }
-
-      const current = map.get(key)!
-      current.totalExams += 1
-
-      if (year !== null) {
-        current.yearsSet.add(year)
-        current.latestYear =
-          current.latestYear === null ? year : Math.max(current.latestYear, year)
-      }
-    }
-
-    return Array.from(map.values())
-      .map((item) => ({
-        key: item.key,
-        label: item.label,
-        totalExams: item.totalExams,
-        totalYears: item.yearsSet.size,
-        latestYear: item.latestYear,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"))
-  }, [items])
+    return [
+      {
+        year: enem2022.year,
+        title: enem2022.title,
+        description: enem2022.description,
+        question_count: enem2022.question_count,
+        has_answer_key: enem2022.has_answer_key,
+        official_page_url: enem2022.official_page_url,
+      },
+    ]
+  }, [enem2022])
 
   if (loading) {
     return (
-      <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
+      <div className="rounded-[32px] border border-white/10 bg-[#071225] p-6 text-slate-300">
         <div className="flex items-center gap-3">
           <Loader2 className="size-4 animate-spin" />
-          Carregando catálogo de provas...
+          Carregando provas...
         </div>
       </div>
     )
@@ -104,125 +78,115 @@ export default function ProvasPage() {
 
   if (error) {
     return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+      <div className="rounded-[24px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
         {error}
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
-      <section className="glass-panel rounded-[32px] p-6 md:p-8">
-        <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
-          <div>
-            <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
+    <div className="space-y-6">
+      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
+              <GraduationCap className="size-4" />
               Provas oficiais
             </div>
 
-            <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-              Escolha a instituição e avance para os anos disponíveis
+            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
+              Área de provas
             </h1>
 
-            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
-              Esta etapa preserva o consumo do catálogo atual de provas e reorganiza
-              a navegação do aluno em um fluxo mais claro: instituição, ano, prova e correção.
+            <p className="mt-4 text-lg leading-8 text-slate-300">
+              Resolva provas oficiais completas e use os resultados para revisão
+              e novos simulados.
             </p>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
-            <p className="text-sm text-muted-foreground">Fluxo da jornada</p>
-
-            <div className="mt-5 space-y-4">
-              {[
-                "1. Escolher a instituição",
-                "2. Selecionar o ano",
-                "3. Visualizar a prova e marcar respostas",
-                "4. Corrigir automaticamente quando houver gabarito",
-              ].map((step) => (
-                <div
-                  key={step}
-                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300"
-                >
-                  {step}
-                </div>
-              ))}
+          <div className="w-full xl:max-w-[360px]">
+            <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <p className="text-sm text-slate-400">Instituição</p>
+              <div className="mt-2 text-2xl font-bold text-white">ENEM</div>
+              <p className="mt-3 text-sm text-slate-300">
+                {years.length} ano(s) disponível(is) no catálogo
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-2 xl:grid-cols-3">
-        {groupedExams.length === 0 ? (
-          <div className="glass-panel rounded-[28px] p-6 text-sm text-slate-300">
-            Nenhuma instituição encontrada no catálogo.
-          </div>
-        ) : (
-          groupedExams.map((exam) => (
+      {availableItems.length === 0 ? (
+        <section className="rounded-[24px] border border-white/10 bg-[#071225] p-6 text-slate-300">
+          Nenhuma prova oficial disponível no momento.
+        </section>
+      ) : (
+        <section className="grid gap-6 xl:grid-cols-2">
+          {availableItems.map((exam) => (
             <article
-              key={exam.key}
-              className="glass-panel rounded-[28px] p-6 transition-transform duration-200 hover:-translate-y-1"
+              key={exam.year}
+              className="rounded-[32px] border border-white/10 bg-[#071225] p-6"
             >
-              <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70">
-                {exam.key === "enem" ? (
-                  <GraduationCap className="size-5 text-primary" />
-                ) : (
-                  <BookOpen className="size-5 text-primary" />
-                )}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <FileText className="size-5 text-blue-300" />
+                  </div>
+
+                  <div>
+                    <h2 className="text-2xl font-semibold text-white">
+                      {exam.title}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Ano {exam.year}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-white">
+                  {exam.question_count} questões
+                </div>
               </div>
 
-              <h2 className="mt-5 text-2xl font-semibold text-white">
-                {exam.label}
-              </h2>
+              <p className="mt-5 text-sm leading-7 text-slate-300">
+                {exam.description}
+              </p>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
-                <InfoChip label="Anos" value={String(exam.totalYears)} />
-                <InfoChip label="Provas" value={String(exam.totalExams)} />
-                <InfoChip
-                  label="Mais recente"
-                  value={exam.latestYear ? String(exam.latestYear) : "—"}
-                />
+              <div className="mt-5 flex flex-wrap gap-2">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                  Gabarito {exam.has_answer_key ? "disponível" : "indisponível"}
+                </span>
+
+                {exam.official_page_url ? (
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+                    Fonte oficial cadastrada
+                  </span>
+                ) : null}
               </div>
 
-              <Link
-                href={`/dashboard/provas/${encodeURIComponent(exam.key)}`}
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
-              >
-                Explorar anos
-                <ArrowRight className="size-4" />
-              </Link>
+              <div className="mt-6 flex flex-col gap-3 md:flex-row">
+                <Link
+                  href={`/dashboard/provas/enem/2022`}
+                  className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                >
+                  Resolver prova
+                </Link>
+
+                {exam.official_page_url ? (
+                  <a
+                    href={exam.official_page_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                  >
+                    Ver fonte oficial
+                  </a>
+                ) : null}
+              </div>
             </article>
-          ))
-        )}
-      </section>
-
-      <section className="glass-panel rounded-[32px] p-6">
-        <div className="flex items-start gap-3">
-          <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70">
-            <FileText className="size-5 text-accent" />
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold text-white">
-              Observação técnica
-            </h2>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
-              A listagem foi reorganizada localmente a partir do retorno atual do
-              catálogo, sem alterar `lib/api.ts` nem o backend.
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
-  )
-}
-
-function InfoChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-2 text-lg font-semibold text-white">{value}</p>
+          ))}
+        </section>
+      )}
     </div>
   )
 }
