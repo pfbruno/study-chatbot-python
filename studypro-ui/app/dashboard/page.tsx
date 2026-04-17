@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   BarChart3,
   BookOpen,
@@ -31,6 +32,7 @@ import {
 
 import { AUTH_TOKEN_KEY } from "@/lib/api"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
+import { useBillingStatus } from "@/hooks/use-billing-status"
 
 type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes"
 type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade"
@@ -105,16 +107,21 @@ function getDailyGoal(dataQuestions: number) {
 }
 
 function getLocalStreak(dataStreak: number) {
+  if (typeof window === "undefined") return dataStreak || 0
   if (dataStreak > 0) return dataStreak
+
   const stored = localStorage.getItem("studypro_local_streak")
   if (!stored) {
     localStorage.setItem("studypro_local_streak", "2")
     return 2
   }
+
   return Number(stored) || 2
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+
   const [token, setToken] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashboardTab>("evolucao")
   const [goal, setGoal] = useState<StudyGoal | null>(null)
@@ -130,6 +137,11 @@ export default function DashboardPage() {
   }, [])
 
   const { data, loading, error } = useDashboardData(token)
+  const {
+    data: billing,
+    loading: billingLoading,
+    error: billingError,
+  } = useBillingStatus(token)
 
   const accuracyRate = useMemo(() => {
     if (!data.questions) return 0
@@ -157,6 +169,19 @@ export default function DashboardPage() {
     const sec = String(seconds % 60).padStart(2, "0")
     return `${min}:${sec}`
   }, [data.questions, accuracyPercent])
+
+  const currentPlan = billing?.user.plan ?? data.plan ?? "free"
+  const isPro = currentPlan === "pro"
+
+  const simulationUsage = billing?.usage.simulations_generated_today ?? 0
+  const simulationLimit = billing?.usage.daily_limit
+  const simulationRemaining = billing?.usage.remaining_today
+  const canGenerateSimulation = billing?.usage.can_generate ?? true
+
+  const hasAdvancedAnalytics =
+    billing?.entitlements.can_access_advanced_analytics ?? isPro
+  const hasSmartInsights =
+    billing?.entitlements.can_access_smart_insights ?? isPro
 
   const topCards = useMemo(
     () => [
@@ -208,15 +233,36 @@ export default function DashboardPage() {
   )
 
   const evolutionData = useMemo(() => {
-    const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+    const months = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+    ]
     const target = clamp(accuracyPercent || 52, 40, 95)
     const average = clamp(baselinePercent, 35, 90)
 
     return months.map((month, index) => {
       const progress = index / 11
       const wave = Math.sin(index * 1.2) * 3
-      const userValue = clamp(Math.round(48 + progress * (target - 48) + wave), 40, 95)
-      const avgValue = clamp(Math.round(average + Math.sin(index * 0.7) * 1.2), 35, 90)
+      const userValue = clamp(
+        Math.round(48 + progress * (target - 48) + wave),
+        40,
+        95
+      )
+      const avgValue = clamp(
+        Math.round(average + Math.sin(index * 0.7) * 1.2),
+        35,
+        90
+      )
 
       return {
         month,
@@ -289,6 +335,19 @@ export default function DashboardPage() {
     setGoal(null)
   }
 
+  function handlePrimaryAction() {
+    if (!isPro && !canGenerateSimulation) {
+      router.push("/pricing")
+      return
+    }
+
+    router.push("/dashboard/simulados")
+  }
+
+  function handleUpgrade() {
+    router.push("/pricing")
+  }
+
   if (!goalLoaded) {
     return (
       <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
@@ -317,7 +376,7 @@ export default function DashboardPage() {
 
               <p className="mt-4 text-lg leading-8 text-slate-300">
                 Escolha um foco inicial para organizar melhor seu painel,
-                direcionar seus estudos e aumentar a chance de conversão depois.
+                direcionar seus estudos e preparar a jornada de conversão.
               </p>
             </div>
 
@@ -326,7 +385,7 @@ export default function DashboardPage() {
               <ul className="mt-4 space-y-3 text-slate-300">
                 <li>• Dashboard mais orientado para ação</li>
                 <li>• Próximos passos mais claros</li>
-                <li>• Base pronta para futura personalização</li>
+                <li>• Base pronta para monetização contextual</li>
               </ul>
             </div>
           </div>
@@ -398,9 +457,12 @@ export default function DashboardPage() {
             <div className="mt-6 flex flex-wrap gap-3">
               <button
                 type="button"
+                onClick={handlePrimaryAction}
                 className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
               >
-                {getNextAction(goal)}
+                {!isPro && !canGenerateSimulation
+                  ? "Desbloquear Pro"
+                  : getNextAction(goal)}
               </button>
 
               <button
@@ -439,11 +501,29 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-sm text-amber-100/80">Plano atual</p>
-                  <h2 className="mt-2 text-xl font-semibold text-white">Free</h2>
+                  <h2 className="mt-2 text-xl font-semibold uppercase text-white">
+                    {billingLoading ? "Carregando..." : currentPlan}
+                  </h2>
+
                   <p className="mt-2 text-sm leading-6 text-amber-100">
-                    Você está usando a versão gratuita. Desbloqueie mais estudos,
-                    simulados e uso intenso da plataforma.
+                    {isPro
+                      ? "Seu plano PRO está ativo. Os recursos premium já estão liberados."
+                      : simulationLimit === null
+                      ? "Seu plano gratuito está ativo."
+                      : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
                   </p>
+
+                  {!isPro && typeof simulationRemaining === "number" ? (
+                    <p className="mt-2 text-sm text-amber-50/90">
+                      Restante hoje: {simulationRemaining}
+                    </p>
+                  ) : null}
+
+                  {billingError ? (
+                    <p className="mt-2 text-xs text-amber-100/80">
+                      {billingError}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
@@ -451,16 +531,44 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="mt-5 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-              >
-                Desbloquear Pro
-              </button>
+              {!isPro ? (
+                <button
+                  type="button"
+                  onClick={handleUpgrade}
+                  className="mt-5 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                >
+                  Desbloquear Pro
+                </button>
+              ) : null}
             </div>
           </div>
         </div>
       </section>
+
+      {!isPro && !canGenerateSimulation ? (
+        <section className="rounded-[24px] border border-rose-500/20 bg-rose-500/10 p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm text-rose-200/80">Limite do plano gratuito</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">
+                Você atingiu o limite diário de simulados
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-rose-100">
+                Continue estudando com acesso ampliado, sem depender do limite
+                diário do plano free.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleUpgrade}
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+            >
+              Ir para o PRO
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <div className="flex items-start gap-3">
@@ -513,7 +621,7 @@ export default function DashboardPage() {
       <section className="grid gap-4 md:grid-cols-3">
         <QuickActionCard
           label="Próxima ação"
-          value={getNextAction(goal)}
+          value={!isPro && !canGenerateSimulation ? "Fazer upgrade" : getNextAction(goal)}
           helper="Use este atalho para continuar o fluxo de estudo."
         />
         <QuickActionCard
@@ -557,81 +665,133 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-          <h2 className="text-2xl font-semibold text-white">
-            Evolução de Acertos vs Média da Plataforma
-          </h2>
+      <section className="relative grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <div
+          className={
+            hasAdvancedAnalytics
+              ? ""
+              : "pointer-events-none select-none blur-[2px] opacity-40"
+          }
+        >
+          <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+              <h2 className="text-2xl font-semibold text-white">
+                Evolução de Acertos vs Média da Plataforma
+              </h2>
 
-          <div className="mt-6 h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={evolutionData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" />
-                <XAxis dataKey="month" stroke="#7c8aa5" tickLine={false} axisLine={false} />
-                <YAxis stroke="#7c8aa5" tickLine={false} axisLine={false} domain={[40, 90]} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#081224",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: 16,
-                    color: "#fff",
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="voce"
-                  name="Você"
-                  stroke="#2f7cff"
-                  strokeWidth={3}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="media"
-                  name="Média"
-                  stroke="#10b981"
-                  strokeWidth={2}
-                  dot={false}
-                  strokeDasharray="6 6"
-                />
-              </LineChart>
-            </ResponsiveContainer>
+              <div className="mt-6 h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={evolutionData}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="rgba(148,163,184,0.12)"
+                    />
+                    <XAxis
+                      dataKey="month"
+                      stroke="#7c8aa5"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="#7c8aa5"
+                      tickLine={false}
+                      axisLine={false}
+                      domain={[40, 90]}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#081224",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        borderRadius: 16,
+                        color: "#fff",
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="voce"
+                      name="Você"
+                      stroke="#2f7cff"
+                      strokeWidth={3}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="media"
+                      name="Média"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      dot={false}
+                      strokeDasharray="6 6"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </article>
+
+            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
+              <h2 className="text-2xl font-semibold text-white">
+                Radar de Habilidades
+              </h2>
+
+              <div className="mt-6 h-[320px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData}>
+                    <PolarGrid stroke="rgba(148,163,184,0.3)" />
+                    <PolarAngleAxis
+                      dataKey="subject"
+                      tick={{ fill: "#8ea3c7", fontSize: 13 }}
+                    />
+                    <PolarRadiusAxis tick={false} axisLine={false} />
+                    <Radar
+                      name="Você"
+                      dataKey="voce"
+                      stroke="#2f7cff"
+                      fill="#2f7cff"
+                      fillOpacity={0.22}
+                      strokeWidth={2}
+                    />
+                    <Radar
+                      name="Média"
+                      dataKey="media"
+                      stroke="#10b981"
+                      fill="#10b981"
+                      fillOpacity={0.18}
+                      strokeWidth={2}
+                    />
+                    <Legend />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </article>
           </div>
-        </article>
+        </div>
 
-        <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-          <h2 className="text-2xl font-semibold text-white">
-            Radar de Habilidades
-          </h2>
+        {!hasAdvancedAnalytics ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="max-w-md rounded-[24px] border border-amber-500/20 bg-[#071225] p-6 text-center shadow-xl">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-amber-500/15">
+                <Lock className="size-6 text-amber-200" />
+              </div>
 
-          <div className="mt-6 h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="rgba(148,163,184,0.3)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: "#8ea3c7", fontSize: 13 }} />
-                <PolarRadiusAxis tick={false} axisLine={false} />
-                <Radar
-                  name="Você"
-                  dataKey="voce"
-                  stroke="#2f7cff"
-                  fill="#2f7cff"
-                  fillOpacity={0.22}
-                  strokeWidth={2}
-                />
-                <Radar
-                  name="Média"
-                  dataKey="media"
-                  stroke="#10b981"
-                  fill="#10b981"
-                  fillOpacity={0.18}
-                  strokeWidth={2}
-                />
-                <Legend />
-              </RadarChart>
-            </ResponsiveContainer>
+              <h3 className="mt-4 text-2xl font-semibold text-white">
+                Analytics avançado é recurso PRO
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                Desbloqueie comparativos, leitura mais profunda do desempenho e
+                visão premium da sua evolução.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleUpgrade}
+                className="mt-5 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              >
+                Desbloquear analytics
+              </button>
+            </div>
           </div>
-        </article>
+        ) : null}
       </section>
 
       <section className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
@@ -659,8 +819,20 @@ export default function DashboardPage() {
                 }}
               />
               <Legend />
-              <Bar yAxisId="left" dataKey="questoes" name="Questões" fill="#2f7cff" radius={[6, 6, 0, 0]} />
-              <Bar yAxisId="right" dataKey="minutos" name="Minutos" fill="#10b981" radius={[6, 6, 0, 0]} />
+              <Bar
+                yAxisId="left"
+                dataKey="questoes"
+                name="Questões"
+                fill="#2f7cff"
+                radius={[6, 6, 0, 0]}
+              />
+              <Bar
+                yAxisId="right"
+                dataKey="minutos"
+                name="Minutos"
+                fill="#10b981"
+                radius={[6, 6, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -706,15 +878,52 @@ export default function DashboardPage() {
             Leitura inteligente do seu momento
           </h2>
 
-          <div className="mt-8 rounded-[24px] border border-white/10 bg-[#020b18] px-5 py-6 text-base leading-8 text-slate-300">
-            {data.insights || "Você ainda não possui tentativas registradas. Resolva uma prova ou simulado para começar a gerar insights."}
-          </div>
+          {hasSmartInsights ? (
+            <>
+              <div className="mt-8 rounded-[24px] border border-white/10 bg-[#020b18] px-5 py-6 text-base leading-8 text-slate-300">
+                {data.insights ||
+                  "Você ainda não possui tentativas registradas. Resolva uma prova ou simulado para começar a gerar insights."}
+              </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <InfoStat label="Sequência atual" value={String(localStreak)} />
-            <InfoStat label="Melhor sequência" value={String(data.best_streak)} />
-            <InfoStat label="Aproveitamento" value={`${accuracyPercent.toFixed(1)}%`} />
-          </div>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <InfoStat label="Sequência atual" value={String(localStreak)} />
+                <InfoStat
+                  label="Melhor sequência"
+                  value={String(data.best_streak)}
+                />
+                <InfoStat
+                  label="Aproveitamento"
+                  value={`${accuracyPercent.toFixed(1)}%`}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="mt-8 rounded-[24px] border border-amber-500/20 bg-amber-500/10 px-5 py-6">
+              <div className="flex items-start gap-4">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
+                  <Lock className="size-5 text-amber-200" />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-semibold text-white">
+                    Insights inteligentes liberados no PRO
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">
+                    Desbloqueie leitura premium do seu desempenho, padrões de
+                    evolução e prioridade de estudo.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleUpgrade}
+                    className="mt-4 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  >
+                    Ver plano PRO
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </article>
       </section>
 
@@ -761,10 +970,6 @@ export default function DashboardPage() {
             ))
           )}
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-        Visual alinhado ao Lovable. Os gráficos de evolução, radar e semana estão sendo derivados localmente a partir dos agregados atuais do dashboard até o backend expor séries históricas reais.
       </section>
     </div>
   )
