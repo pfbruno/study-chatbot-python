@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   CircleX,
   ClipboardList,
+  GraduationCap,
   Layers3,
   RotateCcw,
   Sparkles,
@@ -398,6 +399,40 @@ export default function ResultadoSimuladoPage() {
                 {result.correct_answers} acerto(s) em {result.valid_questions} questão(ões) válidas
               </p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+              <GraduationCap className="size-4" />
+              Continuidade de estudo
+            </div>
+
+            <h2 className="mt-4 text-2xl font-semibold text-white">
+              Sua revisão já está pronta na Área de Estudo
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Flashcards, resumos e mapa de revisão já foram preparados a partir deste resultado.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row">
+            <Link
+              href="/dashboard/estudo"
+              className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+            >
+              Ir para Área de Estudo
+            </Link>
+
+            <Link
+              href="/dashboard/flashcards"
+              className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Abrir flashcards
+            </Link>
           </div>
         </div>
       </section>
