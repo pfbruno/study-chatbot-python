@@ -34,18 +34,33 @@ export type BillingEntitlements = {
   can_compare_simulados_vs_provas: boolean;
 };
 
+export type BillingUsage = {
+  scope: "user" | "guest";
+  plan: "free" | "pro" | "guest";
+  usage_date: string;
+  simulations_generated_today: number;
+  daily_limit: number | null;
+  remaining_today: number | null;
+  can_generate: boolean;
+};
+
 export type BillingStatusResponse = {
   user: AuthUser;
-  usage: {
-    scope: "user" | "guest";
-    plan: "free" | "pro" | "guest";
-    usage_date: string;
-    simulations_generated_today: number;
-    daily_limit: number | null;
-    remaining_today: number | null;
-    can_generate: boolean;
-  };
+  usage: BillingUsage;
   entitlements: BillingEntitlements;
+};
+
+export type SimulationEntitlementResponse = {
+  authenticated: boolean;
+  user: AuthUser | null;
+  usage: BillingUsage;
+  entitlements: BillingEntitlements;
+};
+
+export type CheckoutSessionResponse = {
+  message: string;
+  checkout_session_id: string;
+  checkout_url: string;
 };
 
 export type DashboardResponse = {
@@ -193,7 +208,7 @@ export async function login(email: string, password: string) {
 export async function getMe(token?: string | null) {
   return request<{
     user: AuthUser;
-    usage: BillingStatusResponse["usage"];
+    usage: BillingUsage;
     entitlements: BillingEntitlements;
   }>("/auth/me", { token });
 }
@@ -204,6 +219,20 @@ export async function getMe(token?: string | null) {
 
 export async function getBillingStatus(token?: string | null) {
   return request<BillingStatusResponse>("/billing/status", { token });
+}
+
+export async function getSimulationEntitlement(token?: string | null) {
+  return request<SimulationEntitlementResponse>("/simulados/entitlement", {
+    token,
+  });
+}
+
+export async function createCheckoutSession(token?: string | null) {
+  return request<CheckoutSessionResponse>("/billing/checkout", {
+    method: "POST",
+    token,
+    body: {},
+  });
 }
 
 /* ===========================
