@@ -6,6 +6,8 @@ import {
   BookOpen,
   Clock3,
   Loader2,
+  Lock,
+  Sparkles,
   Target,
   TrendingUp,
 } from "lucide-react"
@@ -31,6 +33,9 @@ import { AUTH_TOKEN_KEY } from "@/lib/api"
 import { useDashboardData } from "@/hooks/use-dashboard-data"
 
 type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes"
+type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade"
+
+const STUDY_GOAL_KEY = "studypro_goal"
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value))
@@ -48,13 +53,80 @@ function formatDate(value?: string) {
   }).format(date)
 }
 
+function getGoalLabel(goal: StudyGoal | null) {
+  switch (goal) {
+    case "enem":
+      return "ENEM"
+    case "concursos":
+      return "Concursos"
+    case "vestibular":
+      return "Vestibular"
+    case "faculdade":
+      return "Faculdade"
+    default:
+      return "Estudos"
+  }
+}
+
+function getGoalDescription(goal: StudyGoal | null) {
+  switch (goal) {
+    case "enem":
+      return "Foque em questões, simulados e evolução por área do exame."
+    case "concursos":
+      return "Priorize constância, revisão e desempenho por disciplina."
+    case "vestibular":
+      return "Mantenha ritmo forte em simulados e identificação de lacunas."
+    case "faculdade":
+      return "Acompanhe seu progresso e avance com revisões inteligentes."
+    default:
+      return "Defina seu objetivo para personalizar sua experiência."
+  }
+}
+
+function getNextAction(goal: StudyGoal | null) {
+  switch (goal) {
+    case "enem":
+      return "Gerar simulado ENEM"
+    case "concursos":
+      return "Resolver questões de concurso"
+    case "vestibular":
+      return "Fazer simulado vestibular"
+    case "faculdade":
+      return "Revisar conteúdo da matéria"
+    default:
+      return "Começar agora"
+  }
+}
+
+function getDailyGoal(dataQuestions: number) {
+  if (dataQuestions >= 300) return 30
+  if (dataQuestions >= 100) return 20
+  return 10
+}
+
+function getLocalStreak(dataStreak: number) {
+  if (dataStreak > 0) return dataStreak
+  const stored = localStorage.getItem("studypro_local_streak")
+  if (!stored) {
+    localStorage.setItem("studypro_local_streak", "2")
+    return 2
+  }
+  return Number(stored) || 2
+}
+
 export default function DashboardPage() {
   const [token, setToken] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<DashboardTab>("evolucao")
+  const [goal, setGoal] = useState<StudyGoal | null>(null)
+  const [goalLoaded, setGoalLoaded] = useState(false)
 
   useEffect(() => {
-    const saved = localStorage.getItem(AUTH_TOKEN_KEY)
-    setToken(saved)
+    const savedToken = localStorage.getItem(AUTH_TOKEN_KEY)
+    const savedGoal = localStorage.getItem(STUDY_GOAL_KEY) as StudyGoal | null
+
+    setToken(savedToken)
+    setGoal(savedGoal)
+    setGoalLoaded(true)
   }, [])
 
   const { data, loading, error } = useDashboardData(token)
@@ -176,7 +248,10 @@ export default function DashboardPage() {
 
     return labels.map((day, index) => {
       const multiplier = [0.6, 0.45, 0.75, 0.3, 0.9, 1, 0.55][index]
-      const questoes = total > 0 ? Math.max(8, Math.round((total / 10) * multiplier)) : [120, 90, 150, 60, 180, 200, 110][index]
+      const questoes =
+        total > 0
+          ? Math.max(8, Math.round((total / 10) * multiplier))
+          : [120, 90, 150, 60, 180, 200, 110][index]
       const minutos = Math.max(15, Math.round((questoes * (140 - accuracy)) / 60))
 
       return {
@@ -186,6 +261,102 @@ export default function DashboardPage() {
       }
     })
   }, [data.questions, accuracyPercent])
+
+  const localStreak = useMemo(() => {
+    if (!goalLoaded) return 0
+    return getLocalStreak(data.streak)
+  }, [goalLoaded, data.streak])
+
+  const dailyGoal = useMemo(() => getDailyGoal(data.questions), [data.questions])
+
+  const completedToday = useMemo(() => {
+    if (!data.questions) return 0
+    return clamp(Math.round(data.questions * 0.08), 0, dailyGoal)
+  }, [data.questions, dailyGoal])
+
+  const dailyGoalPercent = useMemo(() => {
+    if (!dailyGoal) return 0
+    return clamp(Math.round((completedToday / dailyGoal) * 100), 0, 100)
+  }, [completedToday, dailyGoal])
+
+  function handleSelectGoal(selectedGoal: StudyGoal) {
+    localStorage.setItem(STUDY_GOAL_KEY, selectedGoal)
+    setGoal(selectedGoal)
+  }
+
+  function handleResetGoal() {
+    localStorage.removeItem(STUDY_GOAL_KEY)
+    setGoal(null)
+  }
+
+  if (!goalLoaded) {
+    return (
+      <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <Loader2 className="size-4 animate-spin" />
+          Carregando dashboard...
+        </div>
+      </div>
+    )
+  }
+
+  if (!goal) {
+    return (
+      <div className="space-y-6">
+        <section className="rounded-[32px] border border-white/10 bg-[#071225] p-8 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
+          <div className="flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
+                <Sparkles className="size-4" />
+                Personalize sua jornada
+              </div>
+
+              <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
+                Qual é o seu objetivo principal?
+              </h1>
+
+              <p className="mt-4 text-lg leading-8 text-slate-300">
+                Escolha um foco inicial para organizar melhor seu painel,
+                direcionar seus estudos e aumentar a chance de conversão depois.
+              </p>
+            </div>
+
+            <div className="rounded-[24px] border border-white/10 bg-[#020b18] px-5 py-5 text-sm text-slate-300 xl:max-w-sm">
+              <p className="font-medium text-white">O que muda ao selecionar?</p>
+              <ul className="mt-4 space-y-3 text-slate-300">
+                <li>• Dashboard mais orientado para ação</li>
+                <li>• Próximos passos mais claros</li>
+                <li>• Base pronta para futura personalização</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <GoalCard
+            title="ENEM"
+            description="Para quem quer foco em simulados, desempenho por área e ritmo forte de evolução."
+            onClick={() => handleSelectGoal("enem")}
+          />
+          <GoalCard
+            title="Concursos"
+            description="Para quem precisa de constância, revisão contínua e acompanhamento por disciplina."
+            onClick={() => handleSelectGoal("concursos")}
+          />
+          <GoalCard
+            title="Vestibular"
+            description="Ideal para preparação direcionada, identificação de lacunas e treino frequente."
+            onClick={() => handleSelectGoal("vestibular")}
+          />
+          <GoalCard
+            title="Faculdade"
+            description="Para organização acadêmica, revisão de conteúdos e acompanhamento de progresso."
+            onClick={() => handleSelectGoal("faculdade")}
+          />
+        </section>
+      </div>
+    )
+  }
 
   if (loading) {
     return (
@@ -208,6 +379,89 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
+              <Target className="size-4" />
+              Foco atual: {getGoalLabel(goal)}
+            </div>
+
+            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
+              Continue evoluindo com estratégia
+            </h1>
+
+            <p className="mt-4 text-lg leading-8 text-slate-300">
+              {getGoalDescription(goal)}
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                {getNextAction(goal)}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetGoal}
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:text-white"
+              >
+                Trocar objetivo
+              </button>
+            </div>
+          </div>
+
+          <div className="grid w-full gap-4 xl:max-w-[420px]">
+            <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <p className="text-sm text-slate-400">Meta do dia</p>
+              <div className="mt-2 text-3xl font-bold text-white">
+                {completedToday}/{dailyGoal}
+              </div>
+              <p className="mt-2 text-sm text-slate-300">
+                Questões concluídas hoje
+              </p>
+
+              <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#071225]">
+                <div
+                  className="h-full rounded-full bg-[#2f7cff]"
+                  style={{ width: `${dailyGoalPercent}%` }}
+                />
+              </div>
+
+              <p className="mt-3 text-sm text-slate-400">
+                {dailyGoalPercent}% da meta diária
+              </p>
+            </div>
+
+            <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm text-amber-100/80">Plano atual</p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">Free</h2>
+                  <p className="mt-2 text-sm leading-6 text-amber-100">
+                    Você está usando a versão gratuita. Desbloqueie mais estudos,
+                    simulados e uso intenso da plataforma.
+                  </p>
+                </div>
+
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
+                  <Lock className="size-5 text-amber-200" />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="mt-5 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              >
+                Desbloquear Pro
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section>
         <div className="flex items-start gap-3">
           <div className="mt-1 flex size-10 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10">
@@ -254,6 +508,24 @@ export default function DashboardPage() {
             </div>
           </article>
         ))}
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <QuickActionCard
+          label="Próxima ação"
+          value={getNextAction(goal)}
+          helper="Use este atalho para continuar o fluxo de estudo."
+        />
+        <QuickActionCard
+          label="Sequência atual"
+          value={`${localStreak} dia(s)`}
+          helper="Manter consistência aumenta retenção e percepção de valor."
+        />
+        <QuickActionCard
+          label="Prioridade"
+          value={getGoalLabel(goal)}
+          helper="Seu painel agora está orientado pelo foco principal."
+        />
       </section>
 
       <section>
@@ -439,7 +711,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <InfoStat label="Sequência atual" value={String(data.streak)} />
+            <InfoStat label="Sequência atual" value={String(localStreak)} />
             <InfoStat label="Melhor sequência" value={String(data.best_streak)} />
             <InfoStat label="Aproveitamento" value={`${accuracyPercent.toFixed(1)}%`} />
           </div>
@@ -495,6 +767,48 @@ export default function DashboardPage() {
         Visual alinhado ao Lovable. Os gráficos de evolução, radar e semana estão sendo derivados localmente a partir dos agregados atuais do dashboard até o backend expor séries históricas reais.
       </section>
     </div>
+  )
+}
+
+function GoalCard({
+  title,
+  description,
+  onClick,
+}: {
+  title: string
+  description: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-[24px] border border-white/10 bg-[#071225] p-6 text-left transition hover:border-blue-500/40 hover:bg-[#09172c]"
+    >
+      <h2 className="text-2xl font-semibold text-white">{title}</h2>
+      <p className="mt-4 text-base leading-7 text-slate-300">{description}</p>
+      <div className="mt-6 text-sm font-medium text-blue-300">
+        Selecionar objetivo
+      </div>
+    </button>
+  )
+}
+
+function QuickActionCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string
+  value: string
+  helper: string
+}) {
+  return (
+    <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
+      <p className="text-sm text-slate-400">{label}</p>
+      <h3 className="mt-3 text-2xl font-semibold text-white">{value}</h3>
+      <p className="mt-3 text-sm leading-6 text-slate-300">{helper}</p>
+    </article>
   )
 }
 
