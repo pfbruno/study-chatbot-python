@@ -222,7 +222,7 @@ export default function ResultadoSimuladoPage() {
         return {
           id: `${entry.question_number}-${entry.status}`,
           subject: entry.subject,
-          questionNumber: entry.questionNumber ?? entry.question_number,
+          questionNumber: entry.question_number,
           front: `Questão ${entry.question_number} • ${entry.subject}: qual alternativa correta e por que sua escolha precisa ser revista?`,
           back: `Resposta correta: ${entry.correct_answer} — ${correctOptionText}. ${
             entry.user_answer
@@ -402,14 +402,14 @@ export default function ResultadoSimuladoPage() {
 
           <div className="flex flex-col gap-3 md:flex-row">
             <Link
-              href={`/dashboard/chat?prompt=${encodeURIComponent(summaryPrompt)}`}
+              href={`/dashboard/chat?autorun=1&prompt=${encodeURIComponent(summaryPrompt)}`}
               className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
             >
               Gerar resumo com IA
             </Link>
 
             <Link
-              href={`/dashboard/chat?prompt=${encodeURIComponent(flashcardsPrompt)}`}
+              href={`/dashboard/chat?autorun=1&prompt=${encodeURIComponent(flashcardsPrompt)}`}
               className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
             >
               Gerar flashcards com IA
