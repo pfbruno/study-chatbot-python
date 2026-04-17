@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   BarChart3,
@@ -82,6 +82,7 @@ function formatLocalDate(value: string) {
 
 export function ChatIA() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   const [token, setToken] = useState<string | null>(null)
@@ -122,6 +123,16 @@ export function ChatIA() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    const promptFromUrl = searchParams.get("prompt")
+    if (!promptFromUrl) return
+
+    const normalized = promptFromUrl.trim()
+    if (!normalized) return
+
+    setInput((current) => (current.trim() ? current : normalized))
+  }, [searchParams])
 
   useEffect(() => {
     async function load() {
