@@ -1,5 +1,5 @@
-import { ChatIA } from "@/components/dashboard/chat-ia";
+import { ChatIA } from "@/components/dashboard/chat-ia"
 
 export default function DashboardChatPage() {
-  return <ChatIA />;
+  return <ChatIA />
 }
