@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
+  BarChart3,
   Loader2,
   Lock,
   SendHorizonal,
@@ -28,17 +29,55 @@ type Message = {
   content: string
 }
 
+type SimulationMode = "balanced" | "random"
+
+type SimulationHistoryEntry = {
+  id: string
+  saved_at: string
+  title: string
+  exam_type: string
+  year: number
+  mode: SimulationMode
+  total_questions: number
+  correct_answers: number
+  wrong_answers: number
+  unanswered_count: number
+  score_percentage: number
+  subjects_summary: Array<{
+    subject: string
+    total: number
+    correct: number
+    wrong: number
+    blank: number
+    accuracy_percentage: number
+  }>
+}
+
 const SESSION_STORAGE_KEY = "studypro_active_simulation"
+const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 
 const QUICK_PROMPTS = [
   "Crie um simulado de 10 questões de biologia do enem",
   "Explique mitose e meiose de forma simples",
-  "Crie um simulado de 15 questões de matemática do enem 2023",
+  "Crie um simulado de 15 questões de matemática do enem 2022",
   "Quais são os principais tópicos de genética para o enem?",
 ]
 
 function messageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function formatLocalDate(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)
 }
 
 export function ChatIA() {
@@ -48,6 +87,9 @@ export function ChatIA() {
   const [token, setToken] = useState<string | null>(null)
   const [entitlement, setEntitlement] =
     useState<ChatEntitlementResponse | null>(null)
+  const [simulationHistory, setSimulationHistory] = useState<
+    SimulationHistoryEntry[]
+  >([])
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -65,7 +107,20 @@ export function ChatIA() {
 
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
+    const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
+
     setToken(storedToken)
+
+    if (rawHistory) {
+      try {
+        const parsed = JSON.parse(rawHistory) as SimulationHistoryEntry[]
+        if (Array.isArray(parsed)) {
+          setSimulationHistory(parsed)
+        }
+      } catch {
+        localStorage.removeItem(SIMULATION_HISTORY_KEY)
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -101,6 +156,12 @@ export function ChatIA() {
   const canAsk = entitlement?.usage.can_ask ?? true
   const remainingToday = entitlement?.usage.remaining_today
   const isPro = entitlement?.usage.plan === "pro"
+
+  const latestSimulation = simulationHistory[0] ?? null
+  const bestSimulationScore =
+    simulationHistory.length > 0
+      ? Math.max(...simulationHistory.map((item) => item.score_percentage))
+      : null
 
   const usageLabel = useMemo(() => {
     if (!entitlement) return "Carregando..."
@@ -231,6 +292,57 @@ export function ChatIA() {
                   : "O plano free possui limite diário de perguntas no chat."}
               </p>
             </div>
+
+            {latestSimulation ? (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                    <BarChart3 className="size-5 text-blue-300" />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-lg font-semibold text-white">
+                      Último resultado
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">
+                      {latestSimulation.title}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-400">
+                      {latestSimulation.score_percentage.toFixed(1)}% •{" "}
+                      {formatLocalDate(latestSimulation.saved_at)}
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link
+                        href="/dashboard/simulados"
+                        className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                      >
+                        Continuar treinando
+                      </Link>
+
+                      <Link
+                        href="/dashboard"
+                        className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                      >
+                        Ver dashboard
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {bestSimulationScore !== null ? (
+              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <p className="text-sm text-slate-400">Melhor nota recente</p>
+                <div className="mt-2 text-2xl font-bold text-white">
+                  {bestSimulationScore.toFixed(1)}%
+                </div>
+                <p className="mt-3 text-sm text-slate-300">
+                  Histórico local aproveitado pelo chat para manter contexto de estudo.
+                </p>
+              </div>
+            ) : null}
 
             {!isPro ? (
               <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5">
