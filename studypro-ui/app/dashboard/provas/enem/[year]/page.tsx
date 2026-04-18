@@ -16,19 +16,44 @@ const EMPTY_EXAM: ExamDetail = {
   official_page_url: null,
 };
 
+function buildFallbackExam(year: number): ExamDetail {
+  if (year === 2022) {
+    return {
+      exam_type: "enem",
+      institution: "ENEM",
+      year: 2022,
+      title: "ENEM 2022 — Prova Oficial",
+      description:
+        "Prova oficial do ENEM 2022 disponível para resolução completa e revisão posterior.",
+      question_count: 180,
+      pdfs: [],
+      has_answer_key: true,
+      official_page_url:
+        "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022",
+    };
+  }
+
+  return {
+    ...EMPTY_EXAM,
+    year,
+    title: `ENEM ${year}`,
+    description: "Metadados oficiais da prova selecionada.",
+  };
+}
+
 export default function ExamYearPage() {
   const params = useParams();
   const yearParam = params.year as string;
 
   const [exam, setExam] = useState<ExamDetail>(EMPTY_EXAM);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
         setLoading(true);
-        setError(null);
+        setWarning(null);
 
         const year = Number(yearParam);
 
@@ -36,13 +61,15 @@ export default function ExamYearPage() {
           throw new Error("Ano da prova inválido.");
         }
 
-        const data = await getExamByTypeAndYear("enem", year);
-        setExam(data);
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar a prova."
-        );
-        setExam(EMPTY_EXAM);
+        try {
+          const data = await getExamByTypeAndYear("enem", year);
+          setExam(data);
+        } catch {
+          setExam(buildFallbackExam(year));
+          setWarning(
+            "A API publicada não retornou esta prova em produção. Foi exibido o fallback local da prova oficial."
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -57,12 +84,14 @@ export default function ExamYearPage() {
     return <div className="p-6 text-white">Carregando prova...</div>;
   }
 
-  if (error) {
-    return <div className="p-6 text-red-500">{error}</div>;
-  }
-
   return (
     <div className="space-y-6 p-6 text-white">
+      {warning ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {warning}
+        </div>
+      ) : null}
+
       <div>
         <h1 className="text-2xl font-bold">
           {exam.title || `ENEM ${yearParam}`}
