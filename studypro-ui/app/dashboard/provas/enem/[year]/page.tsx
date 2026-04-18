@@ -54,19 +54,11 @@ export default function ExamYearPage() {
   }, [yearParam]);
 
   if (loading) {
-    return (
-      <div className="p-6 text-white">
-        Carregando prova...
-      </div>
-    );
+    return <div className="p-6 text-white">Carregando prova...</div>;
   }
 
   if (error) {
-    return (
-      <div className="p-6 text-red-500">
-        {error}
-      </div>
-    );
+    return <div className="p-6 text-red-500">{error}</div>;
   }
 
   return (
