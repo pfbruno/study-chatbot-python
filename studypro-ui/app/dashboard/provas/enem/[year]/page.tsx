@@ -11,7 +11,6 @@ import {
   FileText,
   GraduationCap,
   Layers3,
-  Loader2,
 } from "lucide-react";
 import { getExamByTypeAndYear, submitExamAnswers, type ExamDetail } from "@/lib/api";
 
@@ -140,6 +139,104 @@ function buildFallbackExam(year: number): ExamDetail {
 
 function buildRawQuestionsUrl(year: number) {
   return `https://raw.githubusercontent.com/pfbruno/study-chatbot-python/main/data/exams/questions/enem/${year}.json`;
+}
+
+function parseContentBlocks(text: string) {
+  const normalized = (text || "").replace(/\r\n/g, "\n");
+
+  const regexes = [
+    /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,
+    /\[imagem:\s*(https?:\/\/[^\]\s]+)\]/gi,
+  ];
+
+  const matches: Array<{ start: number; end: number; url: string }> = [];
+
+  for (const regex of regexes) {
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(normalized)) !== null) {
+      matches.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        url: match[1],
+      });
+    }
+  }
+
+  matches.sort((a, b) => a.start - b.start);
+
+  const blocks: Array<
+    | { type: "text"; value: string }
+    | { type: "image"; url: string }
+  > = [];
+
+  let cursor = 0;
+
+  for (const match of matches) {
+    if (match.start > cursor) {
+      const textPart = normalized.slice(cursor, match.start).trim();
+      if (textPart) {
+        blocks.push({ type: "text", value: textPart });
+      }
+    }
+
+    blocks.push({ type: "image", url: match.url });
+    cursor = match.end;
+  }
+
+  if (cursor < normalized.length) {
+    const textPart = normalized.slice(cursor).trim();
+    if (textPart) {
+      blocks.push({ type: "text", value: textPart });
+    }
+  }
+
+  if (blocks.length === 0 && normalized.trim()) {
+    blocks.push({ type: "text", value: normalized.trim() });
+  }
+
+  return blocks;
+}
+
+function RichContent({
+  text,
+  className = "text-base leading-8 text-slate-200",
+}: {
+  text: string;
+  className?: string;
+}) {
+  const blocks = useMemo(() => parseContentBlocks(text), [text]);
+
+  return (
+    <div className="space-y-4">
+      {blocks.map((block, index) => {
+        if (block.type === "image") {
+          return (
+            <div
+              key={`${block.url}-${index}`}
+              className="overflow-hidden rounded-2xl border border-white/10 bg-[#020b18]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={block.url}
+                alt="Imagem da questão"
+                className="max-h-[420px] w-full object-contain"
+                loading="lazy"
+              />
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={`text-${index}`}
+            className={`${className} whitespace-pre-line`}
+          >
+            {block.value}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 export default function ExamYearPage() {
@@ -742,9 +839,9 @@ export default function ExamYearPage() {
           Questão {currentQuestion.number}
         </h2>
 
-        <p className="mt-4 whitespace-pre-line text-base leading-8 text-slate-200">
-          {currentQuestion.statement}
-        </p>
+        <div className="mt-4">
+          <RichContent text={currentQuestion.statement} />
+        </div>
 
         <div className="mt-6 grid gap-3">
           {Object.entries(currentQuestion.options).map(([key, value]) => {
