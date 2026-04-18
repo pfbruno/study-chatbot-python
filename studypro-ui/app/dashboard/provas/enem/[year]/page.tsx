@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import Link from "next/link"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useParams } from "next/navigation"
 import {
   ArrowLeft,
   CheckCircle2,
@@ -11,94 +11,101 @@ import {
   FileText,
   GraduationCap,
   Layers3,
-} from "lucide-react";
-import { getExamByTypeAndYear, submitExamAnswers, type ExamDetail } from "@/lib/api";
+  Loader2,
+  Map,
+  MessageSquare,
+  Play,
+  RefreshCw,
+  ScrollText,
+} from "lucide-react"
+import { getExamByTypeAndYear, submitExamAnswers, type ExamDetail } from "@/lib/api"
 
 type ExamQuestion = {
-  number: number;
-  day?: number | null;
-  area?: string | null;
-  subject: string;
-  topic?: string | null;
-  statement: string;
-  options: Record<string, string>;
-  answer?: string | null;
-  annulled?: boolean;
-  source_pdf_label?: string | null;
-};
+  number: number
+  day?: number | null
+  area?: string | null
+  subject: string
+  topic?: string | null
+  statement: string
+  options: Record<string, string>
+  answer?: string | null
+  annulled?: boolean
+  source_pdf_label?: string | null
+}
 
 type ExamPayload = {
-  exam_type: string;
-  institution?: string;
-  year: number;
-  title: string;
-  description: string;
-  question_count: number;
-  total_questions?: number;
-  official_page_url?: string | null;
+  exam_type: string
+  institution?: string
+  year: number
+  title: string
+  description: string
+  question_count: number
+  total_questions?: number
+  official_page_url?: string | null
   pdfs?: Array<{
-    label: string;
-    url: string;
-  }>;
-  has_answer_key?: boolean;
-  questions?: ExamQuestion[];
-};
+    label: string
+    url: string
+  }>
+  has_answer_key?: boolean
+  questions?: ExamQuestion[]
+}
 
 type LocalResultByQuestion = {
-  question_number: number;
-  subject: string;
-  user_answer: string | null;
-  correct_answer: string | null;
-  status: "correct" | "wrong" | "blank" | "annulled";
-};
+  question_number: number
+  subject: string
+  user_answer: string | null
+  correct_answer: string | null
+  status: "correct" | "wrong" | "blank" | "annulled"
+}
 
 type ExamResult = {
-  title: string;
-  exam_type: string;
-  year: number;
-  total_questions: number;
-  correct_answers: number;
-  wrong_answers: number;
-  unanswered_count: number;
-  annulled_count: number;
-  score_percentage: number;
-  results_by_question: LocalResultByQuestion[];
+  title: string
+  exam_type: string
+  year: number
+  total_questions: number
+  correct_answers: number
+  wrong_answers: number
+  unanswered_count: number
+  annulled_count: number
+  score_percentage: number
+  results_by_question: LocalResultByQuestion[]
   subjects_summary: Array<{
-    subject: string;
-    total: number;
-    correct: number;
-    wrong: number;
-    blank: number;
-    annulled: number;
-    accuracy_percentage: number;
-  }>;
-};
+    subject: string
+    total: number
+    correct: number
+    wrong: number
+    blank: number
+    annulled: number
+    accuracy_percentage: number
+  }>
+}
 
 type ReviewCard = {
-  id: string;
-  subject: string;
-  questionNumber: number;
-  front: string;
-  back: string;
-};
+  id: string
+  subject: string
+  questionNumber: number
+  front: string
+  back: string
+}
 
 type ReviewSummaryPayload = {
-  title: string;
-  subtitle: string;
-  revisionSummary: string;
+  title: string
+  subtitle: string
+  revisionSummary: string
   weakestSubjects: Array<{
-    subject: string;
-    accuracy: number;
-    correct: number;
-    wrong: number;
-    blank: number;
-  }>;
-  generatedAt: string;
-};
+    subject: string
+    accuracy: number
+    correct: number
+    wrong: number
+    blank: number
+  }>
+  generatedAt: string
+}
 
-const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards";
-const REVIEW_SUMMARY_KEY = "studypro_review_summary";
-const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_";
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
+const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
+const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
 
 const EMPTY_EXAM: ExamDetail = {
   exam_type: "enem",
@@ -110,7 +117,7 @@ const EMPTY_EXAM: ExamDetail = {
   pdfs: [],
   has_answer_key: false,
   official_page_url: null,
-};
+}
 
 function buildFallbackExam(year: number): ExamDetail {
   if (year === 2022) {
@@ -126,7 +133,7 @@ function buildFallbackExam(year: number): ExamDetail {
       has_answer_key: true,
       official_page_url:
         "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022",
-    };
+    }
   }
 
   return {
@@ -134,77 +141,68 @@ function buildFallbackExam(year: number): ExamDetail {
     year,
     title: `ENEM ${year}`,
     description: "Metadados oficiais da prova selecionada.",
-  };
+  }
 }
 
 function buildRawQuestionsUrl(year: number) {
-  return `https://raw.githubusercontent.com/pfbruno/study-chatbot-python/main/data/exams/questions/enem/${year}.json`;
+  return `https://raw.githubusercontent.com/pfbruno/study-chatbot-python/main/data/exams/questions/enem/${year}.json`
 }
 
 function parseContentBlocks(text: string) {
-  const normalized = (text || "").replace(/\r\n/g, "\n");
-
+  const normalized = (text || "").replace(/\r\n/g, "\n")
   const regexes = [
     /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,
     /\[imagem:\s*(https?:\/\/[^\]\s]+)\]/gi,
-  ];
+  ]
 
-  const matches: Array<{ start: number; end: number; url: string }> = [];
+  const matches: Array<{ start: number; end: number; url: string }> = []
 
   for (const regex of regexes) {
-    let match: RegExpExecArray | null;
+    let match: RegExpExecArray | null
     while ((match = regex.exec(normalized)) !== null) {
       matches.push({
         start: match.index,
         end: match.index + match[0].length,
         url: match[1],
-      });
+      })
     }
   }
 
-  matches.sort((a, b) => a.start - b.start);
+  matches.sort((a, b) => a.start - b.start)
 
-  const blocks: Array<
-    | { type: "text"; value: string }
-    | { type: "image"; url: string }
-  > = [];
-
-  let cursor = 0;
+  const blocks: Array<{ type: "text"; value: string } | { type: "image"; url: string }> = []
+  let cursor = 0
 
   for (const match of matches) {
     if (match.start > cursor) {
-      const textPart = normalized.slice(cursor, match.start).trim();
-      if (textPart) {
-        blocks.push({ type: "text", value: textPart });
-      }
+      const textPart = normalized.slice(cursor, match.start).trim()
+      if (textPart) blocks.push({ type: "text", value: textPart })
     }
 
-    blocks.push({ type: "image", url: match.url });
-    cursor = match.end;
+    blocks.push({ type: "image", url: match.url })
+    cursor = match.end
   }
 
   if (cursor < normalized.length) {
-    const textPart = normalized.slice(cursor).trim();
-    if (textPart) {
-      blocks.push({ type: "text", value: textPart });
-    }
+    const textPart = normalized.slice(cursor).trim()
+    if (textPart) blocks.push({ type: "text", value: textPart })
   }
 
   if (blocks.length === 0 && normalized.trim()) {
-    blocks.push({ type: "text", value: normalized.trim() });
+    blocks.push({ type: "text", value: normalized.trim() })
   }
 
-  return blocks;
+  return blocks
 }
 
 function RichContent({
   text,
   className = "text-base leading-8 text-slate-200",
 }: {
-  text: string;
-  className?: string;
+  text: string
+  className?: string
 }) {
-  const blocks = useMemo(() => parseContentBlocks(text), [text]);
+  const blocks = useMemo(() => parseContentBlocks(text), [text])
 
   return (
     <div className="space-y-4">
@@ -223,77 +221,87 @@ function RichContent({
                 loading="lazy"
               />
             </div>
-          );
+          )
         }
 
         return (
-          <div
-            key={`text-${index}`}
-            className={`${className} whitespace-pre-line`}
-          >
+          <div key={`text-${index}`} className={`${className} whitespace-pre-line`}>
             {block.value}
           </div>
-        );
+        )
       })}
     </div>
-  );
+  )
+}
+
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-white/10">
+      <div
+        className="h-full rounded-full bg-[#4b8df7]"
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+      />
+    </div>
+  )
 }
 
 export default function ExamYearPage() {
-  const params = useParams();
-  const yearParam = params.year as string;
-  const examYear = Number(yearParam);
+  const params = useParams()
+  const yearParam = params.year as string
+  const examYear = Number(yearParam)
 
-  const [exam, setExam] = useState<ExamDetail>(EMPTY_EXAM);
-  const [questions, setQuestions] = useState<ExamQuestion[]>([]);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [exam, setExam] = useState<ExamDetail>(EMPTY_EXAM)
+  const [questions, setQuestions] = useState<ExamQuestion[]>([])
+  const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [hasStarted, setHasStarted] = useState(false)
 
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [warning, setWarning] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ExamResult | null>(null);
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [warning, setWarning] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [result, setResult] = useState<ExamResult | null>(null)
 
-  const resultStorageKey = `${OFFICIAL_EXAM_RESULT_PREFIX}enem_${examYear}`;
+  const resolverRef = useRef<HTMLDivElement | null>(null)
+
+  const resultStorageKey = `${OFFICIAL_EXAM_RESULT_PREFIX}enem_${examYear}`
+  const progressStorageKey = `${OFFICIAL_EXAM_PROGRESS_PREFIX}enem_${examYear}`
 
   useEffect(() => {
     async function load() {
       try {
-        setLoading(true);
-        setWarning(null);
-        setError(null);
+        setLoading(true)
+        setWarning(null)
+        setError(null)
 
         if (!Number.isInteger(examYear)) {
-          throw new Error("Ano da prova inválido.");
+          throw new Error("Ano da prova inválido.")
         }
 
-        let loadedExam: ExamDetail;
+        let loadedExam: ExamDetail
 
         try {
-          loadedExam = await getExamByTypeAndYear("enem", examYear);
+          loadedExam = await getExamByTypeAndYear("enem", examYear)
         } catch {
-          loadedExam = buildFallbackExam(examYear);
+          loadedExam = buildFallbackExam(examYear)
           setWarning(
             "A API publicada não retornou esta prova em produção. Foi exibido o fallback local da prova oficial."
-          );
+          )
         }
 
         const rawResponse = await fetch(buildRawQuestionsUrl(examYear), {
           cache: "no-store",
-        });
+        })
 
         if (!rawResponse.ok) {
-          throw new Error("Não foi possível carregar a base local de questões.");
+          throw new Error("Não foi possível carregar a base local de questões.")
         }
 
-        const rawPayload = (await rawResponse.json()) as ExamPayload;
-        const rawQuestions = Array.isArray(rawPayload.questions)
-          ? rawPayload.questions
-          : [];
+        const rawPayload = (await rawResponse.json()) as ExamPayload
+        const rawQuestions = Array.isArray(rawPayload.questions) ? rawPayload.questions : []
 
         if (rawQuestions.length === 0) {
-          throw new Error("Nenhuma questão disponível para esta prova.");
+          throw new Error("Nenhuma questão disponível para esta prova.")
         }
 
         setExam({
@@ -307,63 +315,114 @@ export default function ExamYearPage() {
             loadedExam.question_count || rawPayload.question_count || rawQuestions.length,
           official_page_url:
             loadedExam.official_page_url || rawPayload.official_page_url || null,
-        });
+        })
 
-        setQuestions(rawQuestions);
+        setQuestions(rawQuestions)
+
+        const savedProgressRaw = localStorage.getItem(progressStorageKey)
+        if (savedProgressRaw) {
+          try {
+            const saved = JSON.parse(savedProgressRaw) as {
+              answers?: Record<number, string>
+              currentIndex?: number
+              hasStarted?: boolean
+            }
+
+            if (saved.answers && typeof saved.answers === "object") {
+              setAnswers(saved.answers)
+            }
+
+            if (typeof saved.currentIndex === "number") {
+              setCurrentIndex(saved.currentIndex)
+            }
+
+            if (saved.hasStarted) {
+              setHasStarted(true)
+            }
+          } catch {
+            localStorage.removeItem(progressStorageKey)
+          }
+        }
+
+        const savedResultRaw = localStorage.getItem(resultStorageKey)
+        if (savedResultRaw) {
+          try {
+            setResult(JSON.parse(savedResultRaw) as ExamResult)
+          } catch {
+            localStorage.removeItem(resultStorageKey)
+          }
+        }
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Erro ao carregar a prova."
-        );
+        setError(err instanceof Error ? err.message : "Erro ao carregar a prova.")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
     if (yearParam) {
-      void load();
+      void load()
     }
-  }, [examYear, yearParam]);
+  }, [examYear, progressStorageKey, resultStorageKey, yearParam])
 
-  const currentQuestion = questions[currentIndex] ?? null;
+  useEffect(() => {
+    if (!questions.length) return
 
-  const answeredCount = useMemo(() => {
-    return Object.keys(answers).filter((key) => Boolean(answers[Number(key)])).length;
-  }, [answers]);
+    localStorage.setItem(
+      progressStorageKey,
+      JSON.stringify({
+        answers,
+        currentIndex,
+        hasStarted,
+      })
+    )
+  }, [answers, currentIndex, hasStarted, progressStorageKey, questions.length])
+
+  const currentQuestion = questions[currentIndex] ?? null
+
+  const answeredCount = useMemo(
+    () => Object.keys(answers).filter((key) => Boolean(answers[Number(key)])).length,
+    [answers]
+  )
+
+  const progressPercent = useMemo(() => {
+    if (!questions.length) return 0
+    return Math.round((answeredCount / questions.length) * 100)
+  }, [answeredCount, questions.length])
 
   const weakestSubjects = useMemo(() => {
-    if (!result) return [];
+    if (!result) return []
     return [...result.subjects_summary]
       .sort((a, b) => a.accuracy_percentage - b.accuracy_percentage)
-      .slice(0, 3);
-  }, [result]);
+      .slice(0, 3)
+  }, [result])
 
   const reviewSummaryText = useMemo(() => {
-    if (!result) return "";
+    if (!result) return ""
 
     if (result.correct_answers === result.total_questions - result.annulled_count) {
-      return "Excelente desempenho. Seu próximo passo deve ser manutenção de desempenho com revisão leve e novo treino de consolidação.";
+      return "Excelente desempenho. Seu próximo passo deve ser manutenção de desempenho com revisão leve e novo treino de consolidação."
     }
 
     if (weakestSubjects.length === 0) {
-      return "Priorize revisar as questões incorretas e em branco antes de avançar para um novo treino.";
+      return "Priorize revisar as questões incorretas e em branco antes de avançar para um novo treino."
     }
 
-    const subjectNames = weakestSubjects.map((item) => item.subject).join(", ");
-    return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, consolidar conceitos centrais e voltar para um novo treino com foco nessas disciplinas.`;
-  }, [result, weakestSubjects]);
+    const subjectNames = weakestSubjects.map((item) => item.subject).join(", ")
+    return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, consolidar conceitos centrais e voltar para um novo treino com foco nessas disciplinas.`
+  }, [result, weakestSubjects])
 
   const reviewCards = useMemo<ReviewCard[]>(() => {
-    if (!result) return [];
+    if (!result) return []
 
     return result.results_by_question
       .filter((entry) => entry.status === "wrong" || entry.status === "blank")
       .slice(0, 12)
       .map((entry) => {
-        const question = questions.find((item) => item.number === entry.question_number);
+        const question = questions.find((item) => item.number === entry.question_number)
         const correctText =
           entry.correct_answer && question?.options?.[entry.correct_answer]
             ? question.options[entry.correct_answer]
-            : "Resposta correta indisponível";
+            : "Resposta correta indisponível"
 
         return {
           id: `enem-${examYear}-${entry.question_number}-${entry.status}`,
@@ -375,12 +434,12 @@ export default function ExamYearPage() {
               ? `Sua resposta foi ${entry.user_answer}.`
               : "A questão ficou em branco."
           } Revise o enunciado, as alternativas e o conteúdo-base desta disciplina.`,
-        };
-      });
-  }, [examYear, questions, result]);
+        }
+      })
+  }, [examYear, questions, result])
 
   useEffect(() => {
-    if (!result) return;
+    if (!result) return
 
     const summaryPayload: ReviewSummaryPayload = {
       title: `${result.title} — Resumo de revisão`,
@@ -394,31 +453,49 @@ export default function ExamYearPage() {
         blank: subject.blank,
       })),
       generatedAt: new Date().toISOString(),
-    };
+    }
 
-    localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summaryPayload));
-    localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(reviewCards));
-  }, [result, reviewCards, reviewSummaryText, weakestSubjects]);
+    localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summaryPayload))
+    localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(reviewCards))
+  }, [result, reviewCards, reviewSummaryText, weakestSubjects])
+
+  function scrollToResolver() {
+    resolverRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  function handleStartOrContinue() {
+    setHasStarted(true)
+    setTimeout(scrollToResolver, 50)
+  }
+
+  function handleReset() {
+    setAnswers({})
+    setCurrentIndex(0)
+    setResult(null)
+    setHasStarted(false)
+    localStorage.removeItem(progressStorageKey)
+    localStorage.removeItem(resultStorageKey)
+  }
 
   function handleSelectAnswer(questionNumber: number, option: string) {
     setAnswers((current) => ({
       ...current,
       [questionNumber]: option,
-    }));
+    }))
   }
 
   function handlePrev() {
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
+    setCurrentIndex((prev) => Math.max(0, prev - 1))
   }
 
   function handleNext() {
-    setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1));
+    setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))
   }
 
   function buildLocalResult(): ExamResult {
     const resultsByQuestion: LocalResultByQuestion[] = questions.map((question) => {
-      const userAnswer = answers[question.number] ?? null;
-      const correctAnswer = question.answer ?? null;
+      const userAnswer = answers[question.number] ?? null
+      const correctAnswer = question.answer ?? null
 
       if (question.annulled) {
         return {
@@ -427,7 +504,7 @@ export default function ExamYearPage() {
           user_answer: userAnswer,
           correct_answer: correctAnswer,
           status: "annulled",
-        };
+        }
       }
 
       if (!userAnswer) {
@@ -437,7 +514,7 @@ export default function ExamYearPage() {
           user_answer: null,
           correct_answer: correctAnswer,
           status: "blank",
-        };
+        }
       }
 
       if (correctAnswer && userAnswer === correctAnswer) {
@@ -447,7 +524,7 @@ export default function ExamYearPage() {
           user_answer: userAnswer,
           correct_answer: correctAnswer,
           status: "correct",
-        };
+        }
       }
 
       return {
@@ -456,36 +533,22 @@ export default function ExamYearPage() {
         user_answer: userAnswer,
         correct_answer: correctAnswer,
         status: "wrong",
-      };
-    });
+      }
+    })
 
     const validQuestions = resultsByQuestion.filter(
       (item) => item.status !== "annulled"
-    );
+    )
 
-    const correctAnswers = resultsByQuestion.filter(
-      (item) => item.status === "correct"
-    ).length;
-    const wrongAnswers = resultsByQuestion.filter(
-      (item) => item.status === "wrong"
-    ).length;
-    const unansweredCount = resultsByQuestion.filter(
-      (item) => item.status === "blank"
-    ).length;
-    const annulledCount = resultsByQuestion.filter(
-      (item) => item.status === "annulled"
-    ).length;
+    const correctAnswers = resultsByQuestion.filter((item) => item.status === "correct").length
+    const wrongAnswers = resultsByQuestion.filter((item) => item.status === "wrong").length
+    const unansweredCount = resultsByQuestion.filter((item) => item.status === "blank").length
+    const annulledCount = resultsByQuestion.filter((item) => item.status === "annulled").length
 
     const grouped = new Map<
       string,
-      {
-        total: number;
-        correct: number;
-        wrong: number;
-        blank: number;
-        annulled: number;
-      }
-    >();
+      { total: number; correct: number; wrong: number; blank: number; annulled: number }
+    >()
 
     for (const item of resultsByQuestion) {
       const current = grouped.get(item.subject) ?? {
@@ -494,15 +557,15 @@ export default function ExamYearPage() {
         wrong: 0,
         blank: 0,
         annulled: 0,
-      };
+      }
 
-      current.total += 1;
-      if (item.status === "correct") current.correct += 1;
-      if (item.status === "wrong") current.wrong += 1;
-      if (item.status === "blank") current.blank += 1;
-      if (item.status === "annulled") current.annulled += 1;
+      current.total += 1
+      if (item.status === "correct") current.correct += 1
+      if (item.status === "wrong") current.wrong += 1
+      if (item.status === "blank") current.blank += 1
+      if (item.status === "annulled") current.annulled += 1
 
-      grouped.set(item.subject, current);
+      grouped.set(item.subject, current)
     }
 
     return {
@@ -520,7 +583,7 @@ export default function ExamYearPage() {
           : 0,
       results_by_question: resultsByQuestion,
       subjects_summary: Array.from(grouped.entries()).map(([subject, item]) => {
-        const validTotal = item.total - item.annulled;
+        const validTotal = item.total - item.annulled
         return {
           subject,
           total: item.total,
@@ -530,26 +593,26 @@ export default function ExamYearPage() {
           annulled: item.annulled,
           accuracy_percentage:
             validTotal > 0 ? Number(((item.correct / validTotal) * 100).toFixed(1)) : 0,
-        };
+        }
       }),
-    };
+    }
   }
 
   async function handleSubmit() {
-    if (questions.length === 0 || submitting) return;
+    if (questions.length === 0 || submitting) return
 
     try {
-      setSubmitting(true);
-      setError(null);
+      setSubmitting(true)
+      setError(null)
 
       const payload = questions.map((question) => ({
         number: question.number,
         question_number: question.number,
         answer: answers[question.number] ?? null,
-      }));
+      }))
 
       try {
-        const remoteResult = await submitExamAnswers("enem", examYear, payload);
+        const remoteResult = await submitExamAnswers("enem", examYear, payload)
         const normalized: ExamResult = {
           title: exam.title || `ENEM ${examYear} — Prova Oficial`,
           exam_type: "enem",
@@ -569,209 +632,215 @@ export default function ExamYearPage() {
             Array.isArray((remoteResult as any)?.subjects_summary)
               ? (remoteResult as any).subjects_summary
               : buildLocalResult().subjects_summary,
-        };
+        }
 
-        localStorage.setItem(resultStorageKey, JSON.stringify(normalized));
-        setResult(normalized);
+        localStorage.setItem(resultStorageKey, JSON.stringify(normalized))
+        setResult(normalized)
       } catch {
-        const localResult = buildLocalResult();
-        localStorage.setItem(resultStorageKey, JSON.stringify(localResult));
-        setResult(localResult);
+        const localResult = buildLocalResult()
+        localStorage.setItem(resultStorageKey, JSON.stringify(localResult))
+        setResult(localResult)
       }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Não foi possível corrigir a prova."
-      );
+      )
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
   }
 
   if (loading) {
-    return <div className="p-6 text-white">Carregando prova...</div>;
+    return (
+      <div className="rounded-[32px] border border-white/10 bg-[#071225] p-6 text-slate-300">
+        <div className="flex items-center gap-3">
+          <Loader2 className="size-4 animate-spin" />
+          Carregando prova...
+        </div>
+      </div>
+    )
   }
 
-  if (error && !currentQuestion && !result) {
-    return <div className="p-6 text-red-500">{error}</div>;
+  if (error && !questions.length && !result) {
+    return (
+      <div className="rounded-[24px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+        {error}
+      </div>
+    )
   }
 
   if (result) {
     return (
-      <div className="space-y-6 p-6 text-white">
+      <div className="space-y-6">
         {warning ? (
           <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
             {warning}
           </div>
         ) : null}
 
-        <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+        <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
             <CheckCircle2 className="size-4" />
-            Correção concluída
+            Prova finalizada
           </div>
 
-          <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-            {result.title}
+          <h1 className="mt-5 text-5xl font-bold tracking-tight text-white">
+            ENEM {examYear}
           </h1>
 
-          <p className="mt-4 text-lg text-slate-300">
-            Aproveitamento: {result.score_percentage.toFixed(1)}%
+          <p className="mt-4 text-2xl text-[#7ea0d6]">
+            Desempenho:{" "}
+            <span className="font-semibold text-white">
+              {result.score_percentage.toFixed(1)}%
+            </span>{" "}
+            de acerto
           </p>
-        </section>
-
-        <section className="rounded-[32px] border border-emerald-500/20 bg-emerald-500/10 p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
-                <GraduationCap className="size-4" />
-                Revisão integrada
-              </div>
-
-              <h2 className="mt-4 text-2xl font-semibold text-white">
-                Sua Área de Estudo foi atualizada com esta prova
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-emerald-50/90">
-                Resumo de revisão e flashcards foram gerados automaticamente a partir do seu desempenho.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 md:flex-row">
-              <Link
-                href="/dashboard/estudo"
-                className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-              >
-                Ir para Área de Estudo
-              </Link>
-
-              {reviewCards.length > 0 ? (
-                <Link
-                  href="/dashboard/flashcards"
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-                >
-                  <Layers3 className="size-4" />
-                  Abrir flashcards
-                </Link>
-              ) : null}
-            </div>
-          </div>
         </section>
 
         <section className="grid gap-4 md:grid-cols-4">
           <StatCard label="Acertos" value={String(result.correct_answers)} />
           <StatCard label="Erros" value={String(result.wrong_answers)} />
           <StatCard label="Em branco" value={String(result.unanswered_count)} />
-          <StatCard label="Anuladas" value={String(result.annulled_count)} />
+          <StatCard label="Aproveitamento" value={`${result.score_percentage.toFixed(1)}%`} />
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-            <h2 className="text-2xl font-semibold text-white">
-              Resumo de revisão
+        <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+          <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+            <h2 className="text-3xl font-bold tracking-tight text-white">
+              Desempenho por disciplina
             </h2>
-
-            <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
-              {reviewSummaryText}
-            </div>
+            <p className="mt-2 text-base text-[#7ea0d6]">
+              Acertos por área de conhecimento
+            </p>
 
             <div className="mt-6 space-y-4">
-              {weakestSubjects.map((subject) => (
-                <div
-                  key={subject.subject}
-                  className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">
-                        {subject.subject}
-                      </h3>
-                      <p className="mt-1 text-sm text-slate-400">
-                        {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-white">
-                        {subject.accuracy_percentage.toFixed(1)}%
-                      </div>
-                      <div className="text-sm text-slate-400">acurácia</div>
-                    </div>
+              {result.subjects_summary.map((subject) => (
+                <div key={subject.subject} className="space-y-2">
+                  <div className="flex items-center justify-between gap-4 text-base">
+                    <span className="font-semibold text-white">{subject.subject}</span>
+                    <span className="text-[#7ea0d6]">
+                      {subject.correct}/{subject.total} • {subject.accuracy_percentage.toFixed(1)}%
+                    </span>
                   </div>
+                  <ProgressBar value={subject.accuracy_percentage} />
                 </div>
               ))}
             </div>
           </article>
 
-          <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-            <h2 className="text-2xl font-semibold text-white">
-              Flashcards gerados
+          <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+            <h2 className="text-3xl font-bold tracking-tight text-white">
+              Prioridades de revisão
             </h2>
+            <p className="mt-2 text-base text-[#7ea0d6]">
+              Disciplinas com pior desempenho
+            </p>
 
             <div className="mt-6 space-y-4">
-              {reviewCards.length === 0 ? (
-                <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm text-slate-300">
-                  Nenhum flashcard foi necessário. Seu desempenho não gerou pendências de revisão.
-                </div>
-              ) : (
-                reviewCards.slice(0, 4).map((card) => (
-                  <div
-                    key={card.id}
-                    className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
-                  >
-                    <div className="text-sm font-medium text-blue-300">
-                      {card.subject} • Questão {card.questionNumber}
+              {weakestSubjects.map((subject, index) => (
+                <div
+                  key={subject.subject}
+                  className="flex items-center justify-between rounded-[22px] border border-white/10 bg-[#0a1428] px-4 py-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl font-bold text-yellow-300">
+                      {index + 1}
                     </div>
-                    <p className="mt-3 text-sm leading-7 text-slate-300">
-                      {card.front}
-                    </p>
+                    <div>
+                      <div className="text-xl font-semibold text-white">
+                        {subject.subject}
+                      </div>
+                      <div className="text-sm text-[#7ea0d6]">
+                        {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
+                      </div>
+                    </div>
                   </div>
-                ))
-              )}
+
+                  <div className="text-xl font-bold text-rose-400">
+                    {subject.accuracy_percentage.toFixed(1)}%
+                  </div>
+                </div>
+              ))}
+
+              <Link
+                href="/dashboard/estudo"
+                className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
+              >
+                Iniciar revisão guiada
+              </Link>
             </div>
           </article>
         </section>
 
-        <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-          <h2 className="text-2xl font-semibold text-white">
-            Desempenho por disciplina
+        <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+          <h2 className="text-3xl font-bold tracking-tight text-white">
+            Sua revisão já está pronta
           </h2>
+          <p className="mt-2 text-base text-[#7ea0d6]">
+            Conecte o resultado à sua área de estudo
+          </p>
 
-          <div className="mt-6 space-y-4">
-            {result.subjects_summary.map((subject) => (
-              <div
-                key={subject.subject}
-                className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
-              >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      {subject.subject}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-400">
-                      {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">
-                      {subject.accuracy_percentage.toFixed(1)}%
-                    </div>
-                    <div className="text-sm text-slate-400">
-                      {subject.total} questão(ões)
-                    </div>
-                  </div>
-                </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Link
+              href="/dashboard/flashcards"
+              className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
+            >
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
+                <Layers3 className="size-6 text-[#79a6ff]" />
               </div>
-            ))}
+              <div className="mt-4 text-2xl font-bold text-white">Gerar flashcards</div>
+              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                Cards com IA das questões que você errou
+              </div>
+            </Link>
+
+            <Link
+              href="/dashboard/resumos"
+              className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-emerald-500/30"
+            >
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
+                <ScrollText className="size-6 text-emerald-300" />
+              </div>
+              <div className="mt-4 text-2xl font-bold text-white">Resumo personalizado</div>
+              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                Resumo focado nos seus pontos fracos
+              </div>
+            </Link>
+
+            <Link
+              href="/dashboard/estudo"
+              className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(168,85,247,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-purple-500/30"
+            >
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
+                <Map className="size-6 text-purple-300" />
+              </div>
+              <div className="mt-4 text-2xl font-bold text-white">Mapa mental</div>
+              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                Visualize conceitos centrais das matérias revisadas
+              </div>
+            </Link>
+
+            <Link
+              href="/dashboard/chat-ia"
+              className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
+            >
+              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
+                <MessageSquare className="size-6 text-[#79a6ff]" />
+              </div>
+              <div className="mt-4 text-2xl font-bold text-white">Tirar dúvidas com IA</div>
+              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                Converse sobre as questões da prova
+              </div>
+            </Link>
           </div>
         </section>
 
         <section className="flex flex-col gap-3 md:flex-row">
           <Link
-            href="/dashboard/provas"
+            href="/dashboard/provas/enem"
             className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
           >
-            Voltar para provas
+            Voltar ao ENEM
           </Link>
 
           <Link
@@ -782,133 +851,277 @@ export default function ExamYearPage() {
           </Link>
         </section>
       </div>
-    );
-  }
-
-  if (!currentQuestion) {
-    return <div className="p-6 text-red-500">Nenhuma questão disponível para esta prova.</div>;
+    )
   }
 
   return (
-    <div className="space-y-6 p-6 text-white">
+    <div className="space-y-8">
       {warning ? (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           {warning}
         </div>
       ) : null}
 
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
+      <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8">
+        <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#2f7cff]/25 bg-[#2f7cff]/10 px-4 py-2 text-sm text-[#79a6ff]">
               <FileText className="size-4" />
               Prova oficial
             </div>
 
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-              {exam.title || `ENEM ${examYear} — Prova Oficial`}
+            <h1 className="mt-6 text-5xl font-bold tracking-tight text-white">
+              ENEM {examYear}
             </h1>
-
-            <p className="mt-4 text-lg leading-8 text-slate-300">
+            <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
               {exam.description || "Prova oficial disponível para resolução completa."}
             </p>
-          </div>
 
-          <div className="w-full xl:max-w-[360px]">
-            <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-              <p className="text-sm text-slate-400">Progresso</p>
-              <div className="mt-2 text-3xl font-bold text-white">
-                {answeredCount}/{questions.length}
-              </div>
-              <p className="mt-3 text-sm text-slate-300">
-                Questão {currentIndex + 1} de {questions.length}
-              </p>
+            <div className="mt-8 grid gap-4 md:grid-cols-3">
+              <InfoCard label="Instituição" value={exam.institution || "ENEM"} />
+              <InfoCard label="Ano" value={String(exam.year || examYear)} />
+              <InfoCard label="Questões" value={String(exam.question_count || questions.length)} />
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3 md:flex-row">
+              <button
+                type="button"
+                onClick={handleStartOrContinue}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-6 py-4 text-xl font-semibold text-white transition hover:opacity-90"
+              >
+                <Play className="size-5" />
+                {answeredCount > 0 || hasStarted ? "Continuar prova" : "Iniciar prova"}
+              </button>
+
+              {(answeredCount > 0 || hasStarted || result) && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#030b1d] px-6 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
+                >
+                  <RefreshCw className="size-5" />
+                  Reiniciar tentativa
+                </button>
+              )}
             </div>
           </div>
+
+          <div className="grid gap-6">
+            <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+              <h2 className="text-3xl font-bold tracking-tight text-white">
+                Recursos disponíveis
+              </h2>
+
+              <div className="mt-6 space-y-5">
+                <ResourceRow label="Gabarito oficial" available={Boolean(exam.has_answer_key)} />
+                <ResourceRow label="PDF da prova original" available={Boolean(exam.pdfs?.length || exam.official_page_url)} />
+                <ResourceRow label="Comentários por IA" available />
+                <ResourceRow label="Análise por disciplina" available />
+                <ResourceRow label="Geração de flashcards" available />
+              </div>
+            </section>
+
+            <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+              <h2 className="text-3xl font-bold tracking-tight text-white">
+                Sua revisão já está pronta
+              </h2>
+              <p className="mt-2 text-base text-[#7ea0d6]">
+                Conecte o resultado à sua área de estudo
+              </p>
+
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                <Link
+                  href="/dashboard/flashcards"
+                  className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
+                >
+                  <div className="text-2xl font-bold text-white">Gerar flashcards</div>
+                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                    Cards com IA das questões que você errou
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/resumos"
+                  className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-emerald-500/30"
+                >
+                  <div className="text-2xl font-bold text-white">Resumo personalizado</div>
+                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                    Resumo focado nos seus pontos fracos
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/estudo"
+                  className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(168,85,247,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-purple-500/30"
+                >
+                  <div className="text-2xl font-bold text-white">Mapa mental</div>
+                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                    Visualize conceitos centrais das matérias revisadas
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard/chat-ia"
+                  className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
+                >
+                  <div className="text-2xl font-bold text-white">Tirar dúvidas com IA</div>
+                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
+                    Converse sobre as questões da prova
+                  </div>
+                </Link>
+              </div>
+            </section>
+          </div>
         </div>
       </section>
 
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-        <div className="flex flex-wrap gap-3 text-sm text-slate-300">
-          <Badge>{currentQuestion.subject}</Badge>
-          {currentQuestion.area ? <Badge>{currentQuestion.area}</Badge> : null}
-          {currentQuestion.day ? <Badge>{currentQuestion.day}º dia</Badge> : null}
-        </div>
+      {hasStarted ? (
+        <section ref={resolverRef} className="space-y-6">
+          <div className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 text-lg text-white"
+                >
+                  <ArrowLeft className="size-5" />
+                  Sair
+                </button>
 
-        <h2 className="mt-5 text-2xl font-semibold text-white">
-          Questão {currentQuestion.number}
-        </h2>
+                <div className="hidden h-8 w-px bg-white/10 xl:block" />
 
-        <div className="mt-4">
-          <RichContent text={currentQuestion.statement} />
-        </div>
+                <div className="text-sm text-slate-400">
+                  Salvamento automático
+                </div>
+              </div>
 
-        <div className="mt-6 grid gap-3">
-          {Object.entries(currentQuestion.options).map(([key, value]) => {
-            const selected = answers[currentQuestion.number] === key;
+              <div className="flex flex-wrap gap-3">
+                <div className="rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white">
+                  Folha de respostas {answeredCount}/{questions.length}
+                </div>
 
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleSelectAnswer(currentQuestion.number, key)}
-                className={`rounded-2xl border px-4 py-4 text-left text-sm transition ${
-                  selected
-                    ? "border-blue-400/50 bg-blue-400/10 text-white"
-                    : "border-white/10 bg-[#020b18] text-slate-300 hover:bg-white/5"
-                }`}
-              >
-                <span className="font-semibold">{key}</span> — {value}
-              </button>
-            );
-          })}
-        </div>
-      </section>
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={submitting}
+                  className="rounded-2xl bg-emerald-400 px-5 py-3 text-lg font-semibold text-[#071225] transition hover:opacity-90 disabled:opacity-60"
+                >
+                  {submitting ? "Corrigindo..." : "Finalizar"}
+                </button>
+              </div>
+            </div>
+          </div>
 
-      <section className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-col gap-3 md:flex-row">
-          <button
-            type="button"
-            onClick={handlePrev}
-            disabled={currentIndex === 0}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-50"
-          >
-            <ChevronLeft className="size-4" />
-            Anterior
-          </button>
+          {currentQuestion ? (
+            <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
+              <div className="flex flex-wrap gap-3 text-sm text-slate-300">
+                {currentQuestion.day ? <Badge>{`${currentQuestion.day}º dia`}</Badge> : null}
+                <Badge>{currentQuestion.area || "Área"}</Badge>
+                <Badge>{currentQuestion.subject}</Badge>
+              </div>
 
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={currentIndex >= questions.length - 1}
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:opacity-50"
-          >
-            Próxima
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
+              <div className="mt-6 grid gap-6 xl:grid-cols-[56px_1fr]">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0f2a51] text-2xl font-bold text-[#79a6ff]">
+                  {currentQuestion.number}
+                </div>
 
-        <div className="flex flex-col gap-3 md:flex-row">
-          <Link
-            href="/dashboard/provas"
-            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-          >
-            <ArrowLeft className="size-4" />
-            Voltar
-          </Link>
+                <div className="space-y-6">
+                  <RichContent text={currentQuestion.statement} className="text-[19px] leading-10 text-white" />
 
-          <button
-            type="button"
-            onClick={() => void handleSubmit()}
-            disabled={submitting}
-            className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90 disabled:opacity-50"
-          >
-            {submitting ? "Corrigindo..." : "Finalizar e corrigir"}
-          </button>
-        </div>
-      </section>
+                  <div className="grid gap-4">
+                    {Object.entries(currentQuestion.options).map(([key, value]) => {
+                      const selected = answers[currentQuestion.number] === key
+
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handleSelectAnswer(currentQuestion.number, key)}
+                          className={`rounded-[24px] border px-5 py-5 text-left text-xl transition ${
+                            selected
+                              ? "border-[#2f7cff]/40 bg-[#2f7cff]/10 text-white"
+                              : "border-white/10 bg-[#081224] text-white hover:bg-[#0a1730]"
+                          }`}
+                        >
+                          <div className="flex gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#132544] font-bold text-[#79a6ff]">
+                              {key}
+                            </div>
+                            <div className="flex-1 leading-9">{value}</div>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <button
+                      type="button"
+                      onClick={handlePrev}
+                      disabled={currentIndex === 0}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730] disabled:opacity-50"
+                    >
+                      <ChevronLeft className="size-5" />
+                      Anterior
+                    </button>
+
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-transparent px-5 py-4 text-xl font-semibold text-white transition hover:bg-white/5"
+                    >
+                      Marcar para revisão
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      disabled={currentIndex >= questions.length - 1}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-5 py-4 text-xl font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                    >
+                      Próxima
+                      <ChevronRight className="size-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : null}
+        </section>
+      ) : null}
     </div>
-  );
+  )
+}
+
+function InfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
+      <div className="text-sm text-slate-400">{label}</div>
+      <div className="mt-3 text-4xl font-bold tracking-tight text-white">{value}</div>
+    </div>
+  )
+}
+
+function ResourceRow({
+  label,
+  available,
+}: {
+  label: string
+  available: boolean
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="text-2xl text-white">{label}</div>
+      <div
+        className={`rounded-full px-3 py-1 text-sm font-medium ${
+          available
+            ? "bg-emerald-500/15 text-emerald-300"
+            : "bg-white/5 text-slate-400"
+        }`}
+      >
+        {available ? "Disponível" : "Indisponível"}
+      </div>
+    </div>
+  )
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
@@ -916,7 +1129,7 @@ function Badge({ children }: { children: React.ReactNode }) {
     <div className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-200">
       {children}
     </div>
-  );
+  )
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -925,5 +1138,5 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="text-sm text-slate-400">{label}</p>
       <h3 className="mt-3 text-3xl font-bold text-white">{value}</h3>
     </article>
-  );
+  )
 }
