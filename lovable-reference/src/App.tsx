@@ -22,6 +22,14 @@ import StudyArea from "./pages/app/StudyArea";
 import Community from "./pages/app/Community";
 import StudyGroups from "./pages/app/StudyGroups";
 import LiveClasses from "./pages/app/LiveClasses";
+import Achievements from "./pages/app/Achievements";
+import Ranking from "./pages/app/Ranking";
+import Challenges from "./pages/app/Challenges";
+import ExamsCatalog from "./pages/app/exams/ExamsCatalog";
+import InstitutionHub from "./pages/app/exams/InstitutionHub";
+import ExamDetail from "./pages/app/exams/ExamDetail";
+import ExamResolver from "./pages/app/exams/ExamResolver";
+import ExamResult from "./pages/app/exams/ExamResult";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +54,11 @@ const App = () => (
             <Route path="simulados/:id" element={<SimuladoDetail />} />
             <Route path="simulados/:id/resolver" element={<SimuladoResolver />} />
             <Route path="simulados/:id/resultado" element={<SimuladoResult />} />
+            <Route path="provas" element={<ExamsCatalog />} />
+            <Route path="provas/:institutionId" element={<InstitutionHub />} />
+            <Route path="provas/:institutionId/:year" element={<ExamDetail />} />
+            <Route path="provas/:institutionId/:year/resolver" element={<ExamResolver />} />
+            <Route path="provas/:institutionId/:year/resultado" element={<ExamResult />} />
             <Route path="questoes" element={<PlaceholderPage />} />
             <Route path="chat" element={<ChatIA />} />
             <Route path="estudo" element={<StudyArea />} />
@@ -54,7 +67,9 @@ const App = () => (
             <Route path="comunidade" element={<Community />} />
             <Route path="grupos" element={<StudyGroups />} />
             <Route path="aulas" element={<LiveClasses />} />
-            <Route path="conquistas" element={<PlaceholderPage />} />
+            <Route path="conquistas" element={<Achievements />} />
+            <Route path="ranking" element={<Ranking />} />
+            <Route path="desafios" element={<Challenges />} />
             <Route path="conteudos" element={<PlaceholderPage />} />
             <Route path="planos" element={<PlaceholderPage />} />
             <Route path="indicacao" element={<PlaceholderPage />} />
