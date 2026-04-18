@@ -1,112 +1,411 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
-import { ArrowRight, GraduationCap, Loader2 } from "lucide-react"
+import { useMemo, useState } from "react"
+import {
+  Calendar,
+  Clock3,
+  FileText,
+  GraduationCap,
+  Play,
+  RotateCcw,
+  Search,
+  Trophy,
+} from "lucide-react"
 
-import { getExamYears } from "@/lib/api"
+type ExamEditionStatus = "available" | "in_progress" | "completed"
 
-export default function EnemPage() {
-  const [years, setYears] = useState<number[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+type ExamEdition = {
+  year: number
+  questionCount: number
+  status: ExamEditionStatus
+  progress?: number
+  lastAccessLabel?: string
+  href: string
+}
 
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true)
-        setError("")
-        const data = await getExamYears()
-        setYears(Array.isArray(data?.years) ? data.years : [])
-      } catch (err) {
-        setYears([])
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Erro ao carregar os anos do ENEM."
-        )
-      } finally {
-        setLoading(false)
-      }
+const EDITIONS: ExamEdition[] = [
+  {
+    year: 2023,
+    questionCount: 180,
+    status: "available",
+    href: "/dashboard/provas/enem/2023",
+  },
+  {
+    year: 2022,
+    questionCount: 180,
+    status: "in_progress",
+    progress: 38,
+    lastAccessLabel: "Há 2 dias",
+    href: "/dashboard/provas/enem/2022",
+  },
+  {
+    year: 2021,
+    questionCount: 180,
+    status: "completed",
+    progress: 100,
+    lastAccessLabel: "Há 2 semanas",
+    href: "/dashboard/provas/enem/2021",
+  },
+  {
+    year: 2020,
+    questionCount: 180,
+    status: "available",
+    href: "/dashboard/provas/enem/2020",
+  },
+  {
+    year: 2019,
+    questionCount: 180,
+    status: "available",
+    href: "/dashboard/provas/enem/2019",
+  },
+]
+
+function ProgressBar({ value }: { value: number }) {
+  return (
+    <div className="h-2 overflow-hidden rounded-full bg-white/10">
+      <div
+        className="h-full rounded-full bg-[#4b8df7]"
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+      />
+    </div>
+  )
+}
+
+function getStatusBadge(status: ExamEditionStatus) {
+  if (status === "completed") {
+    return {
+      label: "Concluída",
+      className:
+        "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    }
+  }
+
+  if (status === "in_progress") {
+    return {
+      label: "Em andamento",
+      className: "border-[#2f7cff]/25 bg-[#2f7cff]/10 text-[#79a6ff]",
+    }
+  }
+
+  return {
+    label: "Disponível",
+    className: "border-white/10 bg-white/5 text-slate-300",
+  }
+}
+
+export default function EnemHubPage() {
+  const [search, setSearch] = useState("")
+  const [sort, setSort] = useState("Mais recentes primeiro")
+
+  const filteredEditions = useMemo(() => {
+    let items = [...EDITIONS]
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase()
+      items = items.filter((item) => String(item.year).includes(q))
     }
 
-    load()
-  }, [])
+    if (sort === "Mais antigas primeiro") {
+      items.sort((a, b) => a.year - b.year)
+    } else {
+      items.sort((a, b) => b.year - a.year)
+    }
 
-  if (loading) {
-    return (
-      <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <Loader2 className="size-4 animate-spin" />
-          Carregando provas do ENEM...
-        </div>
-      </div>
-    )
-  }
+    return items
+  }, [search, sort])
 
-  if (error) {
-    return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-        {error}
-      </div>
-    )
-  }
+  const inProgressEdition = filteredEditions.find(
+    (edition) => edition.status === "in_progress"
+  )
 
   return (
     <div className="space-y-8">
-      <section className="glass-panel rounded-[32px] p-6 md:p-8">
-        <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8 shadow-[0_10px_50px_-28px_rgba(59,130,246,0.45)]">
+        <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
           <div>
-            <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-              ENEM
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+              <GraduationCap className="size-4" />
+              Instituição em destaque
             </div>
 
-            <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-              Provas ENEM
-            </h1>
+            <div className="mt-6 flex items-start gap-4">
+              <div className="flex size-16 items-center justify-center rounded-3xl bg-[#0f2a51]">
+                <Trophy className="size-8 text-[#4b8df7]" />
+              </div>
 
-            <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
-              Rota especializada para acessar rapidamente os anos disponíveis do ENEM.
-            </p>
+              <div>
+                <h1 className="text-5xl font-bold tracking-tight text-white">
+                  ENEM
+                </h1>
+                <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
+                  O ENEM é a maior avaliação educacional do Brasil, aplicada
+                  anualmente pelo INEP. Resolva provas oficiais completas com
+                  gabarito, comentários e análise de desempenho por área de
+                  conhecimento.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-wrap gap-6 text-base text-[#7ea0d6]">
+              <span className="inline-flex items-center gap-2">
+                <FileText className="size-4" />
+                5 edições disponíveis
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <Trophy className="size-4" />
+                Gabarito oficial
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
-            <p className="text-sm text-muted-foreground">Total de anos</p>
-            <p className="mt-3 text-4xl font-bold text-white">{years.length}</p>
+          <div className="rounded-[28px] border border-white/10 bg-[#030b1d] p-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm uppercase tracking-[0.18em] text-[#7ea0d6]">
+                Edições disponíveis
+              </div>
+              <div className="text-sm text-[#7ea0d6]">
+                {sort}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4">
+              {filteredEditions.slice(0, 3).map((edition) => {
+                const badge = getStatusBadge(edition.status)
+
+                return (
+                  <article
+                    key={edition.year}
+                    className="rounded-[24px] border border-white/10 bg-[#071225] p-5"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
+                          Edição
+                        </div>
+                        <div className="mt-2 text-5xl font-bold tracking-tight text-white">
+                          {edition.year}
+                        </div>
+                      </div>
+
+                      <div
+                        className={`rounded-full border px-3 py-1 text-sm font-medium ${badge.className}`}
+                      >
+                        {badge.label}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
+                      <span className="inline-flex items-center gap-2">
+                        <FileText className="size-4" />
+                        {edition.questionCount} questões
+                      </span>
+
+                      {edition.lastAccessLabel ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Clock3 className="size-4" />
+                          {edition.lastAccessLabel}
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {typeof edition.progress === "number" ? (
+                      <div className="mt-5 space-y-2">
+                        <div className="flex items-center justify-between text-sm text-slate-300">
+                          <span>Progresso</span>
+                          <span>{edition.progress}%</span>
+                        </div>
+                        <ProgressBar value={edition.progress} />
+                      </div>
+                    ) : null}
+
+                    <div className="mt-6 flex gap-3">
+                      {edition.status === "completed" ? (
+                        <>
+                          <Link
+                            href={`${edition.href}/resultado`}
+                            className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#0a1730]"
+                          >
+                            Resultado
+                          </Link>
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#071225] px-4 py-3 text-white transition hover:bg-white/5"
+                          >
+                            <RotateCcw className="size-5" />
+                          </button>
+                        </>
+                      ) : (
+                        <Link
+                          href={edition.href}
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-lg font-semibold text-white transition hover:opacity-90"
+                        >
+                          <Play className="size-4" />
+                          {edition.status === "in_progress" ? "Continuar" : "Resolver"}
+                        </Link>
+                      )}
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {years.length === 0 ? (
-          <div className="glass-panel rounded-[28px] p-6 text-sm text-slate-300">
-            Nenhum ano disponível no catálogo.
+      {inProgressEdition ? (
+        <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center gap-2 text-base text-emerald-300">
+              <Calendar className="size-4" />
+              Continuar de onde parei
+            </div>
+
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div>
+                <h2 className="text-4xl font-bold tracking-tight text-white">
+                  ENEM {inProgressEdition.year}
+                </h2>
+                <p className="mt-3 max-w-3xl text-xl leading-8 text-[#7ea0d6]">
+                  Prova oficial aplicada em novembro de {inProgressEdition.year}. Inclui ambos os dias da aplicação.
+                </p>
+              </div>
+
+              <div className="text-sm text-slate-400">
+                {inProgressEdition.lastAccessLabel}
+              </div>
+            </div>
+
+            <div className="grid gap-3">
+              <div className="flex items-center justify-between text-sm text-slate-300">
+                <span>Progresso</span>
+                <span>{inProgressEdition.progress}%</span>
+              </div>
+              <ProgressBar value={inProgressEdition.progress ?? 0} />
+            </div>
+
+            <Link
+              href={inProgressEdition.href}
+              className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
+            >
+              Continuar prova
+            </Link>
           </div>
-        ) : (
-          years
-            .slice()
-            .sort((a, b) => b - a)
-            .map((year) => (
+        </section>
+      ) : null}
+
+      <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <h2 className="text-3xl font-bold tracking-tight text-white">
+            Edições disponíveis
+          </h2>
+
+          <div className="text-sm text-[#7ea0d6]">
+            {sort}
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-3 xl:grid-cols-[1fr_220px]">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-[#6f8dbd]" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar edição..."
+              className="h-14 w-full rounded-2xl border border-white/10 bg-[#081224] pl-12 pr-4 text-base text-white outline-none placeholder:text-[#6f8dbd] focus:border-[#2f7cff]/50"
+            />
+          </div>
+
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            className="h-14 w-full appearance-none rounded-2xl border border-white/10 bg-[#081224] px-4 pr-10 text-base font-medium text-white outline-none"
+          >
+            <option className="bg-[#081224]">Mais recentes primeiro</option>
+            <option className="bg-[#081224]">Mais antigas primeiro</option>
+          </select>
+        </div>
+
+        <div className="mt-8 grid gap-5 xl:grid-cols-2">
+          {filteredEditions.map((edition) => {
+            const badge = getStatusBadge(edition.status)
+
+            return (
               <article
-                key={year}
-                className="glass-panel rounded-[28px] p-6 transition-transform duration-200 hover:-translate-y-1"
+                key={edition.year}
+                className="rounded-[28px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.25)]"
               >
-                <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70">
-                  <GraduationCap className="size-5 text-primary" />
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
+                      Edição
+                    </div>
+                    <div className="mt-2 text-6xl font-bold tracking-tight text-white">
+                      {edition.year}
+                    </div>
+                  </div>
+
+                  <div
+                    className={`rounded-full border px-3 py-1 text-sm font-medium ${badge.className}`}
+                  >
+                    {badge.label}
+                  </div>
                 </div>
 
-                <h2 className="mt-5 text-3xl font-bold text-white">{year}</h2>
+                <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
+                  <span className="inline-flex items-center gap-2">
+                    <FileText className="size-4" />
+                    {edition.questionCount} questões
+                  </span>
 
-                <Link
-                  href={`/dashboard/provas/enem/${year}`}
-                  className="mt-6 inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
-                >
-                  Abrir prova
-                  <ArrowRight className="size-4" />
-                </Link>
+                  {edition.lastAccessLabel ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Clock3 className="size-4" />
+                      {edition.lastAccessLabel}
+                    </span>
+                  ) : null}
+                </div>
+
+                {typeof edition.progress === "number" ? (
+                  <div className="mt-6 space-y-3">
+                    <div className="flex items-center justify-between text-sm text-slate-300">
+                      <span>Progresso</span>
+                      <span>{edition.progress}%</span>
+                    </div>
+                    <ProgressBar value={edition.progress} />
+                  </div>
+                ) : null}
+
+                <div className="mt-7 flex gap-3">
+                  {edition.status === "completed" ? (
+                    <>
+                      <Link
+                        href={`${edition.href}/resultado`}
+                        className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
+                      >
+                        Resultado
+                      </Link>
+                      <button
+                        type="button"
+                        className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#071225] px-4 py-4 text-white transition hover:bg-white/5"
+                      >
+                        <RotateCcw className="size-5" />
+                      </button>
+                    </>
+                  ) : (
+                    <Link
+                      href={edition.href}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-4 text-xl font-semibold text-white transition hover:opacity-90"
+                    >
+                      <Play className="size-4" />
+                      {edition.status === "in_progress" ? "Continuar" : "Resolver"}
+                    </Link>
+                  )}
+                </div>
               </article>
-            ))
-        )}
+            )
+          })}
+        </div>
       </section>
     </div>
   )
