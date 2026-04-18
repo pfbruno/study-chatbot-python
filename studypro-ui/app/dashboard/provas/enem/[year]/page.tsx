@@ -9,14 +9,17 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Flag,
   GraduationCap,
   Layers3,
   Loader2,
   Map,
+  Menu,
   MessageSquare,
   Play,
   RefreshCw,
   ScrollText,
+  X,
 } from "lucide-react"
 import { getExamByTypeAndYear, submitExamAnswers, type ExamDetail } from "@/lib/api"
 
@@ -100,6 +103,13 @@ type ReviewSummaryPayload = {
     blank: number
   }>
   generatedAt: string
+}
+
+type SavedProgress = {
+  answers?: Record<number, string>
+  currentIndex?: number
+  hasStarted?: boolean
+  reviewFlags?: number[]
 }
 
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
@@ -213,7 +223,6 @@ function RichContent({
               key={`${block.url}-${index}`}
               className="overflow-hidden rounded-2xl border border-white/10 bg-[#020b18]"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={block.url}
                 alt="Imagem da questão"
@@ -245,6 +254,19 @@ function ProgressBar({ value }: { value: number }) {
   )
 }
 
+function badgeClass(kind: "answered" | "blank" | "current" | "review") {
+  if (kind === "current") {
+    return "border-[#2f7cff]/40 bg-[#2f7cff]/20 text-white"
+  }
+  if (kind === "review") {
+    return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+  }
+  if (kind === "answered") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+  }
+  return "border-white/10 bg-white/5 text-slate-300"
+}
+
 export default function ExamYearPage() {
   const params = useParams()
   const yearParam = params.year as string
@@ -253,8 +275,10 @@ export default function ExamYearPage() {
   const [exam, setExam] = useState<ExamDetail>(EMPTY_EXAM)
   const [questions, setQuestions] = useState<ExamQuestion[]>([])
   const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [reviewFlags, setReviewFlags] = useState<number[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [hasStarted, setHasStarted] = useState(false)
+  const [showAnswerSheet, setShowAnswerSheet] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -322,11 +346,7 @@ export default function ExamYearPage() {
         const savedProgressRaw = localStorage.getItem(progressStorageKey)
         if (savedProgressRaw) {
           try {
-            const saved = JSON.parse(savedProgressRaw) as {
-              answers?: Record<number, string>
-              currentIndex?: number
-              hasStarted?: boolean
-            }
+            const saved = JSON.parse(savedProgressRaw) as SavedProgress
 
             if (saved.answers && typeof saved.answers === "object") {
               setAnswers(saved.answers)
@@ -338,6 +358,10 @@ export default function ExamYearPage() {
 
             if (saved.hasStarted) {
               setHasStarted(true)
+            }
+
+            if (Array.isArray(saved.reviewFlags)) {
+              setReviewFlags(saved.reviewFlags)
             }
           } catch {
             localStorage.removeItem(progressStorageKey)
@@ -373,9 +397,10 @@ export default function ExamYearPage() {
         answers,
         currentIndex,
         hasStarted,
-      })
+        reviewFlags,
+      } satisfies SavedProgress)
     )
-  }, [answers, currentIndex, hasStarted, progressStorageKey, questions.length])
+  }, [answers, currentIndex, hasStarted, progressStorageKey, questions.length, reviewFlags])
 
   const currentQuestion = questions[currentIndex] ?? null
 
@@ -470,9 +495,11 @@ export default function ExamYearPage() {
 
   function handleReset() {
     setAnswers({})
+    setReviewFlags([])
     setCurrentIndex(0)
     setResult(null)
     setHasStarted(false)
+    setShowAnswerSheet(false)
     localStorage.removeItem(progressStorageKey)
     localStorage.removeItem(resultStorageKey)
   }
@@ -484,12 +511,26 @@ export default function ExamYearPage() {
     }))
   }
 
+  function toggleReviewFlag(questionNumber: number) {
+    setReviewFlags((current) =>
+      current.includes(questionNumber)
+        ? current.filter((item) => item !== questionNumber)
+        : [...current, questionNumber]
+    )
+  }
+
   function handlePrev() {
     setCurrentIndex((prev) => Math.max(0, prev - 1))
   }
 
   function handleNext() {
     setCurrentIndex((prev) => Math.min(questions.length - 1, prev + 1))
+  }
+
+  function goToQuestion(index: number) {
+    setCurrentIndex(index)
+    setShowAnswerSheet(false)
+    setTimeout(scrollToResolver, 50)
   }
 
   function buildLocalResult(): ExamResult {
@@ -837,10 +878,10 @@ export default function ExamYearPage() {
 
         <section className="flex flex-col gap-3 md:flex-row">
           <Link
-            href="/dashboard/provas/enem"
+            href={`/dashboard/provas/enem/${examYear}`}
             className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
           >
-            Voltar ao ENEM
+            Voltar à prova
           </Link>
 
           <Link
@@ -914,7 +955,10 @@ export default function ExamYearPage() {
 
               <div className="mt-6 space-y-5">
                 <ResourceRow label="Gabarito oficial" available={Boolean(exam.has_answer_key)} />
-                <ResourceRow label="PDF da prova original" available={Boolean(exam.pdfs?.length || exam.official_page_url)} />
+                <ResourceRow
+                  label="PDF da prova original"
+                  available={Boolean(exam.pdfs?.length || exam.official_page_url)}
+                />
                 <ResourceRow label="Comentários por IA" available />
                 <ResourceRow label="Análise por disciplina" available />
                 <ResourceRow label="Geração de flashcards" available />
@@ -975,44 +1019,52 @@ export default function ExamYearPage() {
         </div>
       </section>
 
-      {hasStarted ? (
-        <section ref={resolverRef} className="space-y-6">
-          <div className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex items-center gap-4">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-2 text-lg text-white"
-                >
-                  <ArrowLeft className="size-5" />
-                  Sair
-                </button>
+      {hasStarted && currentQuestion ? (
+        <section ref={resolverRef} className="grid gap-6 xl:grid-cols-[1fr_320px]">
+          <div className="space-y-6">
+            <div className="rounded-[28px] border border-white/10 bg-[#071225] p-5">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div className="flex flex-wrap items-center gap-4">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 text-lg text-white"
+                  >
+                    <ArrowLeft className="size-5" />
+                    Sair
+                  </button>
 
-                <div className="hidden h-8 w-px bg-white/10 xl:block" />
+                  <div className="hidden h-8 w-px bg-white/10 xl:block" />
 
-                <div className="text-sm text-slate-400">
-                  Salvamento automático
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <div className="rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white">
-                  Folha de respostas {answeredCount}/{questions.length}
+                  <div className="text-sm text-slate-400">
+                    Salvamento automático
+                  </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={submitting}
-                  className="rounded-2xl bg-emerald-400 px-5 py-3 text-lg font-semibold text-[#071225] transition hover:opacity-90 disabled:opacity-60"
-                >
-                  {submitting ? "Corrigindo..." : "Finalizar"}
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAnswerSheet(true)}
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#0a1730]"
+                  >
+                    <Menu className="size-5" />
+                    Folha de respostas
+                    <span className="rounded-full bg-[#132544] px-2 py-0.5 text-sm text-[#79a6ff]">
+                      {answeredCount}/{questions.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => void handleSubmit()}
+                    disabled={submitting}
+                    className="rounded-2xl bg-emerald-400 px-5 py-3 text-lg font-semibold text-[#071225] transition hover:opacity-90 disabled:opacity-60"
+                  >
+                    {submitting ? "Corrigindo..." : "Finalizar"}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {currentQuestion ? (
             <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
               <div className="flex flex-wrap gap-3 text-sm text-slate-300">
                 {currentQuestion.day ? <Badge>{`${currentQuestion.day}º dia`}</Badge> : null}
@@ -1067,8 +1119,14 @@ export default function ExamYearPage() {
 
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-transparent px-5 py-4 text-xl font-semibold text-white transition hover:bg-white/5"
+                      onClick={() => toggleReviewFlag(currentQuestion.number)}
+                      className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-xl font-semibold transition ${
+                        reviewFlags.includes(currentQuestion.number)
+                          ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+                          : "border-white/10 bg-transparent text-white hover:bg-white/5"
+                      }`}
                     >
+                      <Flag className="size-5" />
                       Marcar para revisão
                     </button>
 
@@ -1085,10 +1143,124 @@ export default function ExamYearPage() {
                 </div>
               </div>
             </section>
-          ) : null}
+          </div>
+
+          <aside className="hidden xl:block">
+            <AnswerSheetPanel
+              questions={questions}
+              answers={answers}
+              reviewFlags={reviewFlags}
+              currentIndex={currentIndex}
+              onSelectIndex={goToQuestion}
+            />
+          </aside>
         </section>
       ) : null}
+
+      {showAnswerSheet ? (
+        <div className="fixed inset-0 z-50 bg-black/60 p-4 backdrop-blur-sm xl:hidden">
+          <div className="mx-auto h-full max-w-md overflow-y-auto rounded-[28px] border border-white/10 bg-[#071225] p-5">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <div className="text-xl font-bold text-white">Folha de respostas</div>
+                <div className="text-sm text-[#7ea0d6]">
+                  {answeredCount}/{questions.length} respondidas
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowAnswerSheet(false)}
+                className="rounded-2xl border border-white/10 bg-white/5 p-3 text-white"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <AnswerSheetPanel
+              questions={questions}
+              answers={answers}
+              reviewFlags={reviewFlags}
+              currentIndex={currentIndex}
+              onSelectIndex={goToQuestion}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
+  )
+}
+
+function AnswerSheetPanel({
+  questions,
+  answers,
+  reviewFlags,
+  currentIndex,
+  onSelectIndex,
+}: {
+  questions: ExamQuestion[]
+  answers: Record<number, string>
+  reviewFlags: number[]
+  currentIndex: number
+  onSelectIndex: (index: number) => void
+}) {
+  const answeredCount = Object.keys(answers).filter((key) => Boolean(answers[Number(key)])).length
+
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-[#071225] p-5">
+      <div className="mb-5">
+        <div className="text-2xl font-bold text-white">Folha de respostas</div>
+        <div className="mt-1 text-sm text-[#7ea0d6]">
+          {answeredCount}/{questions.length} respondidas
+        </div>
+      </div>
+
+      <div className="grid grid-cols-5 gap-3">
+        {questions.map((question, index) => {
+          const isCurrent = index === currentIndex
+          const isAnswered = Boolean(answers[question.number])
+          const isReview = reviewFlags.includes(question.number)
+
+          const style = isCurrent
+            ? badgeClass("current")
+            : isReview
+            ? badgeClass("review")
+            : isAnswered
+            ? badgeClass("answered")
+            : badgeClass("blank")
+
+          return (
+            <button
+              key={question.number}
+              type="button"
+              onClick={() => onSelectIndex(index)}
+              className={`flex h-12 items-center justify-center rounded-2xl border text-sm font-semibold transition hover:opacity-90 ${style}`}
+            >
+              {question.number}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="mt-5 flex flex-wrap gap-4 text-xs text-[#7ea0d6]">
+        <span className="inline-flex items-center gap-2">
+          <span className="size-3 rounded-full bg-emerald-400" />
+          Respondida
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="size-3 rounded-full bg-yellow-300" />
+          Revisão
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="size-3 rounded-full bg-[#4b8df7]" />
+          Atual
+        </span>
+        <span className="inline-flex items-center gap-2">
+          <span className="size-3 rounded-full bg-slate-400" />
+          Pendente
+        </span>
+      </div>
+    </section>
   )
 }
 
