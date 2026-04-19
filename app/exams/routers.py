@@ -7,11 +7,13 @@ from app.exams.schemas import ExamSubmitRequest
 from app.exams.service import (
     get_exam_answer_sheet,
     get_exam_details,
+    get_exam_details_by_source_year,
     get_exam_latest_attempt,
     get_user_exam_analytics,
     import_enem_year,
     list_exams,
     submit_exam_sheet,
+    submit_exam_sheet_by_source_year,
 )
 from app.repositories_hook import record_hook_activity_event_repo
 
@@ -53,6 +55,14 @@ def get_exam_endpoint(exam_id: int) -> dict:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@router.get("/exams/{source}/{year}")
+def get_exam_by_source_year_endpoint(source: str, year: int) -> dict:
+    try:
+        return get_exam_details_by_source_year(source=source, year=year)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.get("/exams/{exam_id}/structure")
 def get_exam_structure_endpoint(exam_id: int) -> dict:
     try:
@@ -85,7 +95,6 @@ def submit_exam(
 ) -> dict:
     try:
         user = _current_user_optional(authorization)
-
         result = submit_exam_sheet(
             exam_id,
             payload.answers,
@@ -109,7 +118,48 @@ def submit_exam(
             )
 
         return result
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
+
+@router.post("/exams/{source}/{year}/submit")
+def submit_exam_by_source_year(
+    source: str,
+    year: int,
+    payload: ExamSubmitRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    try:
+        user = _current_user_optional(authorization)
+        result = submit_exam_sheet_by_source_year(
+            source=source,
+            year=year,
+            answers=payload.answers,
+            user_id=int(user["id"]) if user else None,
+            time_spent_seconds=payload.time_spent_seconds,
+        )
+
+        if user:
+            record_hook_activity_event_repo(
+                user_id=int(user["id"]),
+                event_type="exam_completed",
+                subject=(result.get("subject_breakdown") or [{}])[0].get("subject"),
+                score_percentage=float(result["score_percentage"]),
+                time_spent_seconds=payload.time_spent_seconds,
+                metadata={
+                    "questions_answered": int(result["total_questions"]),
+                    "minutes_studied": int((payload.time_spent_seconds or 0) / 60),
+                    "source": source,
+                    "year": year,
+                    "wrong_questions_count": len(result.get("wrong_questions") or []),
+                },
+            )
+
+        return result
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
@@ -140,6 +190,7 @@ def exams_analytics_overview(
         raise HTTPException(status_code=401, detail="Autenticação obrigatória.")
 
     analytics = get_user_exam_analytics(int(user["id"]))
+
     is_pro = str(user.get("plan", "")).lower() == "pro" and str(
         user.get("subscription_status", "")
     ).lower() in {"active", "trialing", "past_due"}

@@ -15,6 +15,7 @@ def _now_iso() -> str:
 def create_exam_tables() -> None:
     conn = connect()
     cursor = conn.cursor()
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exams_catalog (
@@ -31,6 +32,7 @@ def create_exam_tables() -> None:
         )
         """
     )
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_days (
@@ -44,6 +46,7 @@ def create_exam_tables() -> None:
         )
         """
     )
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_booklets (
@@ -59,6 +62,7 @@ def create_exam_tables() -> None:
         )
         """
     )
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_answer_keys (
@@ -70,6 +74,7 @@ def create_exam_tables() -> None:
         )
         """
     )
+
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS exam_attempts (
@@ -89,12 +94,14 @@ def create_exam_tables() -> None:
         )
         """
     )
+
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_exam_attempts_exam_submitted ON exam_attempts(exam_id, submitted_at)"
     )
     cursor.execute(
         "CREATE INDEX IF NOT EXISTS idx_exam_attempts_user_submitted ON exam_attempts(user_id, submitted_at)"
     )
+
     conn.commit()
     conn.close()
 
@@ -137,13 +144,17 @@ def upsert_exam_structure(
             now,
         ),
     )
+
     cursor.execute(
         "SELECT id FROM exams_catalog WHERE source = %s AND year = %s",
         (source, year),
     )
     exam_id = int(cursor.fetchone()["id"])
 
-    cursor.execute("DELETE FROM exam_booklets WHERE day_id IN (SELECT id FROM exam_days WHERE exam_id = %s)", (exam_id,))
+    cursor.execute(
+        "DELETE FROM exam_booklets WHERE day_id IN (SELECT id FROM exam_days WHERE exam_id = %s)",
+        (exam_id,),
+    )
     cursor.execute("DELETE FROM exam_days WHERE exam_id = %s", (exam_id,))
 
     for day in days:
@@ -156,10 +167,13 @@ def upsert_exam_structure(
             (exam_id, day["label"], int(day["order"]), now, now),
         )
         day_id = int(cursor.fetchone()["id"])
+
         for booklet in day.get("booklets", []):
             cursor.execute(
                 """
-                INSERT INTO exam_booklets (day_id, color, pdf_url, answer_key_url, official_page_url, created_at, updated_at)
+                INSERT INTO exam_booklets (
+                    day_id, color, pdf_url, answer_key_url, official_page_url, created_at, updated_at
+                )
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
@@ -187,12 +201,14 @@ def upsert_exam_structure(
 
     conn.commit()
     conn.close()
+
     return {"id": exam_id, "source": source, "year": year}
 
 
 def list_exams_structured(source: str | None = None) -> list[dict[str, Any]]:
     conn = connect()
     cursor = conn.cursor()
+
     if source:
         cursor.execute(
             "SELECT * FROM exams_catalog WHERE source = %s ORDER BY year DESC",
@@ -200,6 +216,7 @@ def list_exams_structured(source: str | None = None) -> list[dict[str, Any]]:
         )
     else:
         cursor.execute("SELECT * FROM exams_catalog ORDER BY source, year DESC")
+
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
@@ -208,25 +225,57 @@ def list_exams_structured(source: str | None = None) -> list[dict[str, Any]]:
 def get_exam_structure(exam_id: int) -> dict[str, Any] | None:
     conn = connect()
     cursor = conn.cursor()
+
     cursor.execute("SELECT * FROM exams_catalog WHERE id = %s", (exam_id,))
     exam = cursor.fetchone()
+
     if not exam:
         conn.close()
         return None
 
     exam_dict = dict(exam)
-    cursor.execute("SELECT * FROM exam_days WHERE exam_id = %s ORDER BY day_order ASC", (exam_id,))
+
+    cursor.execute(
+        "SELECT * FROM exam_days WHERE exam_id = %s ORDER BY day_order ASC",
+        (exam_id,),
+    )
     days = [dict(row) for row in cursor.fetchall()]
+
     for day in days:
-        cursor.execute("SELECT * FROM exam_booklets WHERE day_id = %s ORDER BY color ASC", (day["id"],))
+        cursor.execute(
+            "SELECT * FROM exam_booklets WHERE day_id = %s ORDER BY color ASC",
+            (day["id"],),
+        )
         day["booklets"] = [dict(row) for row in cursor.fetchall()]
 
-    cursor.execute("SELECT answers_json FROM exam_answer_keys WHERE exam_id = %s", (exam_id,))
+    cursor.execute(
+        "SELECT answers_json FROM exam_answer_keys WHERE exam_id = %s",
+        (exam_id,),
+    )
     answer_key_row = cursor.fetchone()
+
     exam_dict["answer_key"] = json.loads(answer_key_row["answers_json"]) if answer_key_row else []
     exam_dict["days"] = days
+
     conn.close()
     return exam_dict
+
+
+def get_exam_structure_by_source_year(source: str, year: int) -> dict[str, Any] | None:
+    conn = connect()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id FROM exams_catalog WHERE LOWER(source) = LOWER(%s) AND year = %s",
+        (source, year),
+    )
+    row = cursor.fetchone()
+    conn.close()
+
+    if not row:
+        return None
+
+    return get_exam_structure(int(row["id"]))
 
 
 def create_exam_attempt(
@@ -244,6 +293,7 @@ def create_exam_attempt(
 ) -> int:
     conn = connect()
     cursor = conn.cursor()
+
     cursor.execute(
         """
         INSERT INTO exam_attempts (
@@ -278,6 +328,7 @@ def create_exam_attempt(
             json.dumps(wrong_questions),
         ),
     )
+
     attempt_id = int(cursor.fetchone()["id"])
     conn.commit()
     conn.close()
@@ -287,10 +338,10 @@ def create_exam_attempt(
 def get_latest_exam_attempt(exam_id: int, user_id: int) -> dict[str, Any] | None:
     conn = connect()
     cursor = conn.cursor()
+
     cursor.execute(
         """
-        SELECT *
-        FROM exam_attempts
+        SELECT * FROM exam_attempts
         WHERE exam_id = %s AND user_id = %s
         ORDER BY submitted_at DESC
         LIMIT 1
@@ -299,8 +350,10 @@ def get_latest_exam_attempt(exam_id: int, user_id: int) -> dict[str, Any] | None
     )
     row = cursor.fetchone()
     conn.close()
+
     if not row:
         return None
+
     data = dict(row)
     data["answers"] = json.loads(data.pop("answers_json"))
     data["subject_breakdown"] = json.loads(data.pop("subject_breakdown_json"))
@@ -311,6 +364,7 @@ def get_latest_exam_attempt(exam_id: int, user_id: int) -> dict[str, Any] | None
 def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
     conn = connect()
     cursor = conn.cursor()
+
     cursor.execute(
         """
         SELECT
@@ -337,6 +391,7 @@ def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
         (user_id,),
     )
     best = cursor.fetchone()
+
     cursor.execute(
         """
         SELECT exam_id, score_percentage
@@ -348,7 +403,9 @@ def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
         (user_id,),
     )
     worst = cursor.fetchone()
+
     conn.close()
+
     return {
         "attempts_count": int(summary["attempts_count"]),
         "average_score": round(float(summary["average_score"]), 2),
@@ -363,6 +420,7 @@ def get_exam_analytics_overview(user_id: int) -> dict[str, Any]:
 def list_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict[str, Any]]:
     conn = connect()
     cursor = conn.cursor()
+
     cursor.execute(
         """
         SELECT exam_attempts.*, exams_catalog.title, exams_catalog.source, exams_catalog.year
@@ -374,6 +432,7 @@ def list_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict[str, An
         """,
         (user_id, limit),
     )
+
     rows = []
     for row in cursor.fetchall():
         item = dict(row)
@@ -381,6 +440,7 @@ def list_recent_exam_attempts(user_id: int, limit: int = 5) -> list[dict[str, An
         item["wrong_questions"] = json.loads(item.pop("wrong_questions_json"))
         item["answers"] = json.loads(item.pop("answers_json"))
         rows.append(item)
+
     conn.close()
     return rows
 

@@ -6,6 +6,7 @@ from app.exams.models import (
     create_exam_tables,
     get_exam_analytics_overview,
     get_exam_structure,
+    get_exam_structure_by_source_year,
     get_latest_exam_attempt,
     list_exams_structured,
     list_recent_exam_attempts,
@@ -27,6 +28,14 @@ def list_exams(source: str | None = None) -> list[dict]:
 def get_exam_details(exam_id: int) -> dict:
     create_exam_tables()
     exam = get_exam_structure(exam_id)
+    if not exam:
+        raise FileNotFoundError("Prova não encontrada.")
+    return exam
+
+
+def get_exam_details_by_source_year(source: str, year: int) -> dict:
+    create_exam_tables()
+    exam = get_exam_structure_by_source_year(source=source, year=year)
     if not exam:
         raise FileNotFoundError("Prova não encontrada.")
     return exam
@@ -89,13 +98,11 @@ def submit_exam_sheet(
                 "blank": 0,
             },
         )
-
         subject_stats[subject]["total"] += 1
-        user_answer = answers[index]
 
         normalized_user = (
-            user_answer.upper().strip()
-            if isinstance(user_answer, str) and user_answer.strip()
+            answers[index].upper().strip()
+            if isinstance(answers[index], str) and answers[index].strip()
             else None
         )
         normalized_correct = (
@@ -152,18 +159,13 @@ def submit_exam_sheet(
 
     valid_questions = len([item for item in answer_key if item is not None])
     score_percentage = (
-        round((correct_answers / valid_questions) * 100, 2)
-        if valid_questions
-        else 0.0
+        round((correct_answers / valid_questions) * 100, 2) if valid_questions else 0.0
     )
 
     subject_breakdown = [
         {
             "subject": subject,
-            "accuracy": round(
-                (values["correct"] / max(1, values["total"])) * 100,
-                2,
-            ),
+            "accuracy": round((values["correct"] / max(1, values["total"])) * 100, 2),
             "correct": values["correct"],
             "wrong": values["wrong"],
             "blank": values["blank"],
@@ -209,6 +211,23 @@ def submit_exam_sheet(
         "wrong_questions": wrong_questions,
         "results_by_question": results_by_question,
     }
+
+
+def submit_exam_sheet_by_source_year(
+    source: str,
+    year: int,
+    answers: list[str | None],
+    user_id: int | None = None,
+    time_spent_seconds: float | None = None,
+) -> dict:
+    exam = get_exam_details_by_source_year(source=source, year=year)
+    exam_id = int(exam["id"])
+    return submit_exam_sheet(
+        exam_id=exam_id,
+        answers=answers,
+        user_id=user_id,
+        time_spent_seconds=time_spent_seconds,
+    )
 
 
 def get_exam_latest_attempt(exam_id: int, user_id: int) -> dict | None:
