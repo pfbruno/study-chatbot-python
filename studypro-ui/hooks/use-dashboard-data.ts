@@ -1,22 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getDashboardData } from "@/lib/api";
+import {
+  getDashboardData,
+  type AuthUser,
+  type BillingEntitlements,
+  type BillingUsage,
+  type DashboardRecentAttempt,
+} from "@/lib/api";
 
 type DashboardData = {
   questions: number;
   correct: number;
   wrong: number;
   insights: string;
-  streak: number;
-  best_streak: number;
-  plan: "free" | "pro";
-  recent_attempts: Array<{
-    exam_id?: number;
-    title?: string;
-    score_percentage?: number;
-    created_at?: string;
-  }>;
+  average_score: number;
+  attempts_count: number;
+  recent_attempts: DashboardRecentAttempt[];
+  user: AuthUser | null;
+  usage: BillingUsage | null;
+  entitlements: BillingEntitlements | null;
 };
 
 const EMPTY_DASHBOARD: DashboardData = {
@@ -24,10 +27,12 @@ const EMPTY_DASHBOARD: DashboardData = {
   correct: 0,
   wrong: 0,
   insights: "Ainda não há dados suficientes para gerar insights.",
-  streak: 0,
-  best_streak: 0,
-  plan: "free",
+  average_score: 0,
+  attempts_count: 0,
   recent_attempts: [],
+  user: null,
+  usage: null,
+  entitlements: null,
 };
 
 export function useDashboardData(token: string | null) {
@@ -57,6 +62,9 @@ export function useDashboardData(token: string | null) {
           setData({
             ...EMPTY_DASHBOARD,
             ...result,
+            recent_attempts: Array.isArray(result.recent_attempts)
+              ? result.recent_attempts
+              : [],
           });
         }
       } catch (err) {
