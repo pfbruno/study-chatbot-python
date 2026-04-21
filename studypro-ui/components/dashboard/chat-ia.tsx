@@ -5,24 +5,17 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   BarChart3,
-  BookOpen,
   Bot,
   Brain,
   Check,
   Command,
   Copy,
   FileText,
-  FlaskConical,
-  Globe,
-  GraduationCap,
   History,
   Layers3,
-  Lightbulb,
-  ListChecks,
   Loader2,
   Lock,
   MessageSquare,
-  Pencil,
   Plus,
   Search,
   SendHorizonal,
@@ -30,6 +23,7 @@ import {
   ThumbsDown,
   ThumbsUp,
   Wand2,
+  X,
 } from "lucide-react"
 
 import {
@@ -53,7 +47,6 @@ type Message = {
 type ChatSession = {
   id: string
   title: string
-  subject?: string
   updatedAt: string
   messages: Message[]
 }
@@ -119,94 +112,37 @@ Exemplos:
 - "Monte um cronograma de estudos de 4 semanas"
 - "Transforme este tema em flashcards"`
 
-
 const QUICK_PROMPTS = [
-  {
-    icon: FlaskConical,
-    label: "Química",
-    hint: "Resumo rápido",
-    prompt: "Faça um resumo completo sobre ligações químicas",
-  },
-  {
-    icon: BookOpen,
-    label: "Biologia",
-    hint: "Explicação",
-    prompt: "Explique mitose e meiose de forma simples e didática",
-  },
-  {
-    icon: Pencil,
-    label: "Redação",
-    hint: "Estratégia",
-    prompt: "Me dê dicas para fazer uma boa introdução na redação do ENEM",
-  },
-  {
-    icon: Brain,
-    label: "Cronograma",
-    hint: "Plano de estudo",
-    prompt: "Monte um cronograma de estudos de 4 semanas para o ENEM",
-  },
-  {
-    icon: Globe,
-    label: "Geografia",
-    hint: "Tema cobrado",
-    prompt: "Explique os principais biomas brasileiros e suas características",
-  },
-  {
-    icon: ListChecks,
-    label: "Questões",
-    hint: "Treino",
-    prompt: "Gere 5 questões estilo ENEM com gabarito sobre genética",
-  },
+  "Explique mitose e meiose de forma simples",
+  "Crie um simulado de 10 questões de biologia do enem",
+  "Monte um cronograma de estudos de 4 semanas para o ENEM",
+  "Gere 5 questões estilo ENEM com gabarito sobre genética",
 ]
 
 const SHORTCUTS = [
   {
-    icon: FileText,
     label: "Resumir conteúdo",
     prompt: "Crie um resumo estruturado sobre o seguinte tema:",
   },
   {
-    icon: BookOpen,
     label: "Explicar tema",
     prompt: "Explique de forma didática, com exemplos, o tema:",
   },
   {
-    icon: ListChecks,
     label: "Criar questões",
     prompt: "Gere 5 questões estilo ENEM com gabarito sobre:",
   },
   {
-    icon: Brain,
     label: "Montar cronograma",
     prompt: "Monte um cronograma de estudos semanal para:",
   },
   {
-    icon: Wand2,
-    label: "Revisar erros",
-    prompt: "Quero revisar meus erros recentes em:",
-  },
-  {
-    icon: Layers3,
     label: "Gerar flashcards",
     prompt: "Crie 10 flashcards (pergunta/resposta) sobre:",
   },
-]
-
-const CAPABILITIES = [
   {
-    icon: Lightbulb,
-    title: "Explicações didáticas",
-    description: "Conceitos complexos explicados de forma simples e direta.",
-  },
-  {
-    icon: FileText,
-    title: "Resumos inteligentes",
-    description: "Transforme qualquer conteúdo em revisão objetiva para prova.",
-  },
-  {
-    icon: Brain,
-    title: "Plano de estudo",
-    description: "Cronogramas e estratégias conforme seu objetivo.",
+    label: "Revisar erros",
+    prompt: "Quero revisar meus erros recentes em:",
   },
 ]
 
@@ -434,6 +370,8 @@ export function ChatIA() {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false)
+  const [showRightPanel, setShowRightPanel] = useState(false)
 
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
@@ -556,6 +494,10 @@ export function ChatIA() {
     )}px`
   }, [input])
 
+  useEffect(() => {
+    setShowMobileSidebar(false)
+  }, [activeSessionId])
+
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? null,
     [sessions, activeSessionId]
@@ -589,7 +531,7 @@ export function ChatIA() {
     return "Plano gratuito"
   }, [entitlement, isPro, remainingToday])
 
-  const capabilitiesVisible =
+  const isEmptyState =
     !activeSession || activeSession.messages.length <= 1
 
   function createNewChat(prefill?: string) {
@@ -598,23 +540,14 @@ export function ChatIA() {
       id: sessionId(),
       title: prefill ? extractSessionTitle(prefill) : "Nova conversa",
       updatedAt: now,
-      messages: prefill
-        ? [
-            {
-              id: messageId(),
-              role: "assistant",
-              content: INITIAL_ASSISTANT_MESSAGE,
-              createdAt: now,
-            },
-          ]
-        : [
-            {
-              id: messageId(),
-              role: "assistant",
-              content: INITIAL_ASSISTANT_MESSAGE,
-              createdAt: now,
-            },
-          ],
+      messages: [
+        {
+          id: messageId(),
+          role: "assistant",
+          content: INITIAL_ASSISTANT_MESSAGE,
+          createdAt: now,
+        },
+      ],
     }
 
     setSessions((current) => sortSessions([newSession, ...current]))
@@ -642,6 +575,7 @@ export function ChatIA() {
 
   function handleShortcut(prompt: string) {
     setInput(prompt)
+    setShowMobileSidebar(false)
   }
 
   function updateSessionMessages(
@@ -788,13 +722,7 @@ export function ChatIA() {
 
     hasAutoRunExecutedRef.current = true
     void executePrompt(promptFromUrl)
-  }, [
-    searchParams,
-    loadingEntitlement,
-    canAsk,
-    sending,
-    activeSessionId,
-  ])
+  }, [searchParams, loadingEntitlement, canAsk, sending, activeSessionId])
 
   async function handleSubmit() {
     if (!input.trim() || sending) return
@@ -808,364 +736,161 @@ export function ChatIA() {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
-        <div className="border-b border-white/10 p-4">
+    <div className="relative h-[calc(100vh-9rem)] min-h-[720px]">
+      {showMobileSidebar ? (
+        <div className="fixed inset-0 z-40 bg-black/60 xl:hidden">
           <button
             type="button"
-            onClick={() => createNewChat()}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95"
-          >
-            <Plus className="size-4" />
-            Nova conversa
-          </button>
+            className="absolute inset-0"
+            onClick={() => setShowMobileSidebar(false)}
+            aria-label="Fechar painel lateral"
+          />
+          <div className="absolute inset-y-0 left-0 w-[92vw] max-w-[360px] border-r border-white/10 bg-[#071225] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+              <div className="text-sm font-semibold text-white">Conversas</div>
+              <button
+                type="button"
+                onClick={() => setShowMobileSidebar(false)}
+                className="inline-flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
 
-          <div className="relative mt-3">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar conversas..."
-              className="h-10 w-full rounded-2xl border border-white/10 bg-[#020b18] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500/40"
-            />
+            <div className="h-[calc(100%-73px)] overflow-y-auto p-4">
+              <LeftPanel
+                search={search}
+                setSearch={setSearch}
+                sessions={filteredSessions}
+                activeSessionId={activeSessionId}
+                createNewChat={createNewChat}
+                setActiveSessionId={setActiveSessionId}
+                deleteSession={deleteSession}
+                handleShortcut={handleShortcut}
+                isPro={isPro}
+              />
+            </div>
           </div>
         </div>
+      ) : null}
 
-        <div className="space-y-5 p-4">
-          <div>
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Atalhos de estudo
-              </h3>
-              <Sparkles className="size-3.5 text-blue-300" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {SHORTCUTS.map((shortcut) => (
-                <button
-                  key={shortcut.label}
-                  type="button"
-                  onClick={() => handleShortcut(shortcut.prompt)}
-                  className="group rounded-2xl border border-white/10 bg-[#020b18] p-3 text-left transition hover:border-blue-500/30 hover:bg-white/[0.04]"
-                >
-                  <div className="flex size-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20">
-                    <shortcut.icon className="size-4" />
-                  </div>
-                  <div className="mt-3 text-xs font-medium text-white">
-                    {shortcut.label}
-                  </div>
-                </button>
-              ))}
-            </div>
+      <div className="grid h-full gap-5 xl:grid-cols-[320px_minmax(0,1fr)_300px]">
+        <aside className="hidden h-full overflow-hidden rounded-[28px] border border-white/10 bg-[#071225] xl:block">
+          <div className="h-full overflow-y-auto p-4">
+            <LeftPanel
+              search={search}
+              setSearch={setSearch}
+              sessions={filteredSessions}
+              activeSessionId={activeSessionId}
+              createNewChat={createNewChat}
+              setActiveSessionId={setActiveSessionId}
+              deleteSession={deleteSession}
+              handleShortcut={handleShortcut}
+              isPro={isPro}
+            />
           </div>
+        </aside>
 
-          <div>
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Conversas
-              </h3>
-              <History className="size-3.5 text-slate-500" />
-            </div>
+        <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
+          <div className="border-b border-white/10 px-4 py-4 md:px-5">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowMobileSidebar(true)}
+                className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 xl:hidden"
+              >
+                <History className="size-4" />
+              </button>
 
-            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
-              {filteredSessions.map((session) => {
-                const active = session.id === activeSessionId
-
-                return (
-                  <div
-                    key={session.id}
-                    className={`group rounded-2xl border px-3 py-3 transition ${
-                      active
-                        ? "border-blue-500/30 bg-blue-500/10"
-                        : "border-white/10 bg-[#020b18] hover:border-white/15 hover:bg-white/[0.04]"
-                    }`}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setActiveSessionId(session.id)}
-                      className="w-full text-left"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div
-                          className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl ${
-                            active
-                              ? "bg-blue-500/20 text-blue-300"
-                              : "bg-white/5 text-slate-400"
-                          }`}
-                        >
-                          <MessageSquare className="size-4" />
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-white">
-                            {session.title}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-400">
-                            {formatLocalDate(session.updatedAt)}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-
-                    {sessions.length > 1 ? (
-                      <div className="mt-3 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => deleteSession(session.id)}
-                          className="rounded-xl px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300"
-                        >
-                          Remover
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-4">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex size-9 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-200">
-                <Lock className="size-4" />
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
+                <Bot className="size-5" />
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
-                  Plano atual
+                <div className="flex items-center gap-2">
+                  <h1 className="truncate text-lg font-semibold text-white">
+                    {activeSession?.title || "Chat IA"}
+                  </h1>
+                  <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
+                    beta
+                  </span>
                 </div>
-                <div className="mt-2 text-lg font-semibold text-white">
-                  {isPro ? "PRO" : "FREE"}
-                </div>
-                <p className="mt-2 text-sm leading-6 text-amber-100">
-                  {isPro
-                    ? "Seu chat já está com recursos ampliados."
-                    : "Desbloqueie insights, uso ampliado e experiência premium."}
+                <p className="truncate text-sm text-slate-400">
+                  Tire dúvidas, peça materiais e use IA aplicada ao seu estudo.
                 </p>
-                {!isPro ? (
-                  <Link
-                    href="/pricing"
-                    className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                  >
-                    Ver plano Pro
-                  </Link>
-                ) : null}
               </div>
+
+              <button
+                type="button"
+                onClick={() => setShowRightPanel((prev) => !prev)}
+                className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 xl:hidden"
+              >
+                <BarChart3 className="size-4" />
+              </button>
             </div>
           </div>
-        </div>
-      </aside>
 
-      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
-        <div className="border-b border-white/10 px-5 py-4 md:px-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
-                  <Bot className="size-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-lg font-semibold text-white md:text-xl">
-                      {activeSession?.title || "Chat IA"}
-                    </h1>
-                    <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
-                      beta
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-400">
-                    Tire dúvidas, gere materiais e use IA aplicada ao seu estudo.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 md:block">
-              {loadingEntitlement ? "Carregando..." : usageLabel}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex min-h-[760px] flex-col">
-            <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
-              {capabilitiesVisible ? (
-                <div className="mx-auto max-w-4xl space-y-10 pb-6">
-                  <div className="space-y-4 text-center">
-                    <div className="relative inline-flex">
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#2f7cff] to-cyan-400 opacity-40 blur-2xl" />
-                      <div className="relative flex size-16 items-center justify-center rounded-[24px] bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_20px_60px_-20px_rgba(59,130,246,0.95)]">
-                        <Sparkles className="size-8" />
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-5">
+            {isEmptyState ? (
+              <div className="mx-auto max-w-3xl">
+                <div className="mb-6 rounded-[28px] border border-white/10 bg-[#020b18] p-6">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="max-w-xl">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-300">
+                        <Sparkles className="size-3.5" />
+                        Início rápido
                       </div>
-                    </div>
-
-                    <div>
-                      <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+                      <h2 className="mt-4 text-2xl font-bold text-white">
                         Como posso ajudar nos seus estudos hoje?
                       </h2>
-                      <p className="mx-auto mt-3 max-w-2xl text-base leading-8 text-slate-300">
-                        Tire dúvidas, peça resumos, gere questões, monte
-                        cronogramas ou crie simulados em linguagem natural.
+                      <p className="mt-2 text-sm leading-7 text-slate-300">
+                        Tire dúvidas, gere resumos, monte cronogramas, crie
+                        questões e peça simulados em linguagem natural.
                       </p>
                     </div>
-                  </div>
 
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {CAPABILITIES.map((capability) => (
-                      <div
-                        key={capability.title}
-                        className="rounded-2xl border border-white/10 bg-[#020b18] p-4 transition hover:border-blue-500/30 hover:bg-white/[0.04]"
-                      >
-                        <div className="mb-3 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20">
-                          <capability.icon className="size-4" />
-                        </div>
-                        <h3 className="text-sm font-semibold text-white">
-                          {capability.title}
-                        </h3>
-                        <p className="mt-2 text-sm leading-6 text-slate-400">
-                          {capability.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="space-y-3">
-                    <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-                      <Sparkles className="size-4 text-blue-300" />
-                      Sugestões para começar
-                    </h3>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {QUICK_PROMPTS.map((item) => (
-                        <button
-                          key={item.prompt}
-                          type="button"
-                          onClick={() => handleShortcut(item.prompt)}
-                          className="group rounded-2xl border border-white/10 bg-[#020b18] p-4 text-left transition hover:border-blue-500/30 hover:bg-white/[0.04]"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20">
-                              <item.icon className="size-4" />
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <div className="text-sm font-semibold text-white">
-                                  {item.label}
-                                </div>
-                                <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
-                                  {item.hint}
-                                </span>
-                              </div>
-
-                              <p className="mt-2 text-sm leading-6 text-slate-300">
-                                {item.prompt}
-                              </p>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                      {loadingEntitlement ? "Carregando..." : usageLabel}
                     </div>
                   </div>
                 </div>
-              ) : null}
 
-              <div className={`${capabilitiesVisible ? "mt-10" : ""} mx-auto max-w-4xl space-y-5`}>
-                {activeSession?.messages.map((message) => {
-                  if (message.role === "user") {
-                    return (
-                      <div key={message.id} className="flex justify-end">
-                        <div className="max-w-[88%] md:max-w-[76%]">
-                          <div className="rounded-3xl rounded-br-md bg-gradient-to-br from-[#2f7cff] to-blue-500 px-4 py-3 text-sm leading-7 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
-                            {message.content}
-                          </div>
-                          <div className="mt-1 pr-2 text-right text-[11px] text-slate-500">
-                            {formatTime(message.createdAt)}
-                          </div>
-                        </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {QUICK_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => handleShortcut(prompt)}
+                      className="rounded-2xl border border-white/10 bg-[#020b18] p-4 text-left transition hover:border-blue-500/30 hover:bg-white/[0.04]"
+                    >
+                      <div className="text-sm font-semibold text-white">
+                        {prompt}
                       </div>
-                    )
-                  }
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
+            <div className={`${isEmptyState ? "mt-8" : ""} mx-auto max-w-3xl space-y-5`}>
+              {activeSession?.messages.map((message) => {
+                if (message.role === "user") {
                   return (
-                    <div key={message.id} className="flex justify-start">
-                      <div className="max-w-[92%] md:max-w-[84%]">
-                        <div className="mb-2 flex items-center gap-2">
-                          <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
-                            <Bot className="size-4" />
-                          </div>
-                          <div className="text-xs font-semibold text-white">
-                            StudyPro IA
-                          </div>
-                          <div className="text-[11px] text-slate-500">
-                            {formatTime(message.createdAt)}
-                          </div>
+                    <div key={message.id} className="flex justify-end">
+                      <div className="max-w-[88%] md:max-w-[76%]">
+                        <div className="rounded-3xl rounded-br-md bg-gradient-to-br from-[#2f7cff] to-blue-500 px-4 py-3 text-sm leading-7 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
+                          {message.content}
                         </div>
-
-                        <div className="rounded-3xl rounded-tl-md border border-white/10 bg-[#020b18] px-4 py-4 text-sm shadow-sm">
-                          <div className="space-y-1">{renderContent(message.content)}</div>
-                        </div>
-
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => copyMessage(message)}
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                          >
-                            {copiedMessageId === message.id ? (
-                              <Check className="size-3.5 text-emerald-300" />
-                            ) : (
-                              <Copy className="size-3.5" />
-                            )}
-                            Copiar
-                          </button>
-
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                          >
-                            <FileText className="size-3.5" />
-                            Resumo
-                          </button>
-
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                          >
-                            <Layers3 className="size-3.5" />
-                            Flashcards
-                          </button>
-
-                          <button
-                            type="button"
-                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                          >
-                            <ListChecks className="size-3.5" />
-                            Questões
-                          </button>
-
-                          <div className="ml-auto flex items-center gap-1">
-                            <button
-                              type="button"
-                              className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
-                            >
-                              <ThumbsUp className="size-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
-                            >
-                              <ThumbsDown className="size-3.5" />
-                            </button>
-                          </div>
+                        <div className="mt-1 pr-2 text-right text-[11px] text-slate-500">
+                          {formatTime(message.createdAt)}
                         </div>
                       </div>
                     </div>
                   )
-                })}
+                }
 
-                {sending ? (
-                  <div className="flex justify-start">
+                return (
+                  <div key={message.id} className="flex justify-start">
                     <div className="max-w-[92%] md:max-w-[84%]">
                       <div className="mb-2 flex items-center gap-2">
                         <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
@@ -1175,106 +900,196 @@ export function ChatIA() {
                           StudyPro IA
                         </div>
                         <div className="text-[11px] text-slate-500">
-                          pensando...
+                          {formatTime(message.createdAt)}
                         </div>
                       </div>
 
-                      <div className="rounded-3xl rounded-tl-md border border-white/10 bg-[#020b18] px-4 py-4">
-                        <div className="flex gap-1.5">
-                          <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:0ms]" />
-                          <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:150ms]" />
-                          <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:300ms]" />
+                      <div className="rounded-3xl rounded-tl-md border border-white/10 bg-[#020b18] px-4 py-4 text-sm shadow-sm">
+                        <div className="space-y-1">{renderContent(message.content)}</div>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => copyMessage(message)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                        >
+                          {copiedMessageId === message.id ? (
+                            <Check className="size-3.5 text-emerald-300" />
+                          ) : (
+                            <Copy className="size-3.5" />
+                          )}
+                          Copiar
+                        </button>
+
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                        >
+                          <FileText className="size-3.5" />
+                          Resumo
+                        </button>
+
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                        >
+                          <Layers3 className="size-3.5" />
+                          Flashcards
+                        </button>
+
+                        <div className="ml-auto flex items-center gap-1">
+                          <button
+                            type="button"
+                            className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <ThumbsUp className="size-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <ThumbsDown className="size-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                ) : null}
+                )
+              })}
 
-                <div ref={bottomRef} />
-              </div>
-            </div>
-
-            <div className="border-t border-white/10 bg-[#071225] px-4 py-4 md:px-6">
-              {error ? (
-                <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-                  {error}
-                </div>
-              ) : null}
-
-              {!canAsk ? (
-                <div className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <p className="text-sm text-amber-100/80">
-                        Limite do plano gratuito
-                      </p>
-                      <h3 className="mt-1 text-lg font-semibold text-white">
-                        Você atingiu o limite diário do chat
-                      </h3>
+              {sending ? (
+                <div className="flex justify-start">
+                  <div className="max-w-[92%] md:max-w-[84%]">
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
+                        <Bot className="size-4" />
+                      </div>
+                      <div className="text-xs font-semibold text-white">
+                        StudyPro IA
+                      </div>
+                      <div className="text-[11px] text-slate-500">
+                        pensando...
+                      </div>
                     </div>
 
-                    <Link
-                      href="/pricing"
-                      className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                    >
-                      Ir para o PRO
-                    </Link>
+                    <div className="rounded-3xl rounded-tl-md border border-white/10 bg-[#020b18] px-4 py-4">
+                      <div className="flex gap-1.5">
+                        <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:0ms]" />
+                        <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:150ms]" />
+                        <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:300ms]" />
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null}
 
-              <div className="rounded-[28px] border border-white/10 bg-[#020b18] p-3">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" && !event.shiftKey) {
-                      event.preventDefault()
-                      void handleSubmit()
-                    }
-                  }}
-                  placeholder="Pergunte qualquer coisa sobre seus estudos... (Shift + Enter para quebrar linha)"
-                  disabled={sending || !canAsk}
-                  rows={1}
-                  className="max-h-[220px] min-h-[72px] w-full resize-none bg-transparent px-2 py-2 text-sm leading-7 text-white outline-none placeholder:text-slate-500"
-                />
-
-                <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                    >
-                      <Command className="size-3.5" />
-                      Comandos
-                    </button>
-
-                    <span className="text-xs text-slate-500">
-                      Ex.: "Crie um simulado de 10 questões de biologia do enem"
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => void handleSubmit()}
-                    disabled={sending || !canAsk || !input.trim()}
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {sending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <SendHorizonal className="size-4" />
-                    )}
-                    Enviar
-                  </button>
-                </div>
-              </div>
+              <div ref={bottomRef} />
             </div>
           </div>
 
-          <aside className="border-t border-white/10 bg-[#020b18] xl:border-l xl:border-t-0">
-            <div className="space-y-4 p-4">
+          <div className="border-t border-white/10 bg-[#071225] px-4 py-4 md:px-5">
+            {error ? (
+              <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                {error}
+              </div>
+            ) : null}
+
+            {!canAsk ? (
+              <div className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="text-sm text-amber-100/80">
+                      Limite do plano gratuito
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold text-white">
+                      Você atingiu o limite diário do chat
+                    </h3>
+                  </div>
+
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  >
+                    Ir para o PRO
+                  </Link>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="mx-auto max-w-3xl rounded-[28px] border border-white/10 bg-[#020b18] p-3">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault()
+                    void handleSubmit()
+                  }
+                }}
+                placeholder="Pergunte qualquer coisa sobre seus estudos... (Shift + Enter para quebrar linha)"
+                disabled={sending || !canAsk}
+                rows={1}
+                className="max-h-[220px] min-h-[72px] w-full resize-none bg-transparent px-2 py-2 text-sm leading-7 text-white outline-none placeholder:text-slate-500"
+              />
+
+              <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <Command className="size-3.5" />
+                    Comandos
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleShortcut("Crie um simulado de 10 questões de biologia do enem")}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                  >
+                    <Wand2 className="size-3.5" />
+                    Exemplo rápido
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={sending || !canAsk || !input.trim()}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {sending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <SendHorizonal className="size-4" />
+                  )}
+                  Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside
+          className={`${
+            showRightPanel ? "fixed inset-y-0 right-0 z-30 w-[92vw] max-w-[320px] bg-[#020b18] shadow-2xl xl:static xl:w-auto xl:bg-transparent xl:shadow-none" : "hidden"
+          } xl:block`}
+        >
+          <div className="h-full overflow-y-auto rounded-[28px] border border-white/10 bg-[#020b18] p-4">
+            <div className="mb-4 flex items-center justify-between xl:hidden">
+              <div className="text-sm font-semibold text-white">Painel</div>
+              <button
+                type="button"
+                onClick={() => setShowRightPanel(false)}
+                className="inline-flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
               <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
                 <div className="text-sm text-slate-400">Uso do chat</div>
                 <div className="mt-2 text-2xl font-bold text-white">
@@ -1287,49 +1102,11 @@ export function ChatIA() {
                 </p>
               </div>
 
-              {latestSimulation ? (
-                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
-                      <BarChart3 className="size-5" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-semibold text-white">
-                        Último resultado
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        {latestSimulation.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-400">
-                        {latestSimulation.score_percentage.toFixed(1)}% •{" "}
-                        {formatLocalDate(latestSimulation.saved_at)}
-                      </p>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Link
-                          href="/dashboard/simulados"
-                          className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                        >
-                          Simulados
-                        </Link>
-                        <Link
-                          href="/dashboard"
-                          className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                        >
-                          Dashboard
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
               {(reviewSummary || reviewFlashcards.length > 0) && (
                 <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
-                      <GraduationCap className="size-5" />
+                      <Brain className="size-5" />
                     </div>
 
                     <div className="min-w-0 flex-1">
@@ -1340,7 +1117,7 @@ export function ChatIA() {
                         Seus materiais de revisão já estão organizados.
                       </p>
 
-                      <div className="mt-4 grid gap-3 grid-cols-2">
+                      <div className="mt-4 grid grid-cols-2 gap-3">
                         <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                           <div className="text-xs text-slate-400">Resumo</div>
                           <div className="mt-1 text-sm font-semibold text-white">
@@ -1379,6 +1156,29 @@ export function ChatIA() {
                 </div>
               )}
 
+              {latestSimulation ? (
+                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
+                      <BarChart3 className="size-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base font-semibold text-white">
+                        Último resultado
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        {latestSimulation.title}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {latestSimulation.score_percentage.toFixed(1)}% •{" "}
+                        {formatLocalDate(latestSimulation.saved_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {bestSimulationScore !== null ? (
                 <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
                   <div className="text-sm text-slate-400">Melhor nota recente</div>
@@ -1386,14 +1186,190 @@ export function ChatIA() {
                     {bestSimulationScore.toFixed(1)}%
                   </div>
                   <p className="mt-3 text-sm leading-6 text-slate-300">
-                    Histórico local aproveitado pelo chat para manter contexto de estudo.
+                    Histórico local usado como apoio para continuidade do estudo.
                   </p>
                 </div>
               ) : null}
+
+              {!isPro ? (
+                <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex size-9 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-200">
+                      <Lock className="size-4" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
+                        Upgrade
+                      </div>
+                      <div className="mt-2 text-lg font-semibold text-white">
+                        Plano Pro
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-amber-100">
+                        Desbloqueie uso ampliado, insights e experiência premium.
+                      </p>
+                      <Link
+                        href="/pricing"
+                        className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                      >
+                        Ver plano Pro
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
-          </aside>
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}
+
+function LeftPanel({
+  search,
+  setSearch,
+  sessions,
+  activeSessionId,
+  createNewChat,
+  setActiveSessionId,
+  deleteSession,
+  handleShortcut,
+  isPro,
+}: {
+  search: string
+  setSearch: (value: string) => void
+  sessions: ChatSession[]
+  activeSessionId: string
+  createNewChat: (prefill?: string) => void
+  setActiveSessionId: (value: string) => void
+  deleteSession: (id: string) => void
+  handleShortcut: (prompt: string) => void
+  isPro: boolean
+}) {
+  return (
+    <div className="space-y-5">
+      <button
+        type="button"
+        onClick={() => createNewChat()}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95"
+      >
+        <Plus className="size-4" />
+        Nova conversa
+      </button>
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar conversas..."
+          className="h-10 w-full rounded-2xl border border-white/10 bg-[#020b18] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500/40"
+        />
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <Sparkles className="size-3.5" />
+          Atalhos de estudo
         </div>
-      </section>
+
+        <div className="grid grid-cols-2 gap-2">
+          {SHORTCUTS.map((shortcut) => (
+            <button
+              key={shortcut.label}
+              type="button"
+              onClick={() => handleShortcut(shortcut.prompt)}
+              className="rounded-2xl border border-white/10 bg-[#020b18] p-3 text-left transition hover:border-blue-500/30 hover:bg-white/[0.04]"
+            >
+              <div className="text-xs font-semibold text-white">
+                {shortcut.label}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+          <History className="size-3.5" />
+          Conversas
+        </div>
+
+        <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+          {sessions.map((session) => {
+            const active = session.id === activeSessionId
+
+            return (
+              <div
+                key={session.id}
+                className={`group rounded-2xl border px-3 py-3 transition ${
+                  active
+                    ? "border-blue-500/30 bg-blue-500/10"
+                    : "border-white/10 bg-[#020b18] hover:border-white/15 hover:bg-white/[0.04]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveSessionId(session.id)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl ${
+                        active
+                          ? "bg-blue-500/20 text-blue-300"
+                          : "bg-white/5 text-slate-400"
+                      }`}
+                    >
+                      <MessageSquare className="size-4" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-white">
+                        {session.title}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">
+                        {formatLocalDate(session.updatedAt)}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
+                {sessions.length > 1 ? (
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => deleteSession(session.id)}
+                      className="rounded-xl px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {!isPro ? (
+        <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
+            Plano atual
+          </div>
+          <div className="mt-2 text-lg font-semibold text-white">FREE</div>
+          <p className="mt-2 text-sm leading-6 text-amber-100">
+            Desbloqueie uso ampliado e experiência premium.
+          </p>
+          <Link
+            href="/pricing"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+          >
+            Ver plano Pro
+          </Link>
+        </div>
+      ) : null}
     </div>
   )
 }
