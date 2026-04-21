@@ -63,20 +63,27 @@ export type CheckoutSessionResponse = {
   checkout_url: string;
 };
 
+export type DashboardRecentAttempt = {
+  exam_id?: number;
+  title?: string;
+  score_percentage?: number;
+  created_at?: string;
+  correct_answers?: number;
+  wrong_answers?: number;
+  total_questions?: number;
+};
+
 export type DashboardResponse = {
   questions: number;
   correct: number;
   wrong: number;
   insights: string;
-  streak: number;
-  best_streak: number;
-  plan: "free" | "pro";
-  recent_attempts: Array<{
-    exam_id?: number;
-    title?: string;
-    score_percentage?: number;
-    created_at?: string;
-  }>;
+  average_score: number;
+  attempts_count: number;
+  recent_attempts: DashboardRecentAttempt[];
+  user: AuthUser | null;
+  usage: BillingUsage | null;
+  entitlements: BillingEntitlements | null;
 };
 
 export type ExamPdf = {
@@ -231,6 +238,8 @@ export async function login(email: string, password: string) {
     access_token: string;
     expires_at: string;
     user: AuthUser;
+    usage: BillingUsage;
+    entitlements: BillingEntitlements;
   }>("/auth/login", {
     method: "POST",
     body: { email, password },
