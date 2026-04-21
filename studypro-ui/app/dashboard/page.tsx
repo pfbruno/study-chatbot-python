@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   BookOpen,
@@ -14,7 +14,7 @@ import {
   Lock,
   Sparkles,
   Target,
-} from "lucide-react"
+} from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -31,250 +31,266 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
+} from "recharts";
 
-import { AUTH_TOKEN_KEY } from "@/lib/api"
-import { useDashboardData } from "@/hooks/use-dashboard-data"
-import { useBillingStatus } from "@/hooks/use-billing-status"
+import { AUTH_TOKEN_KEY } from "@/lib/api";
+import { useDashboardData } from "@/hooks/use-dashboard-data";
+import { useBillingStatus } from "@/hooks/use-billing-status";
 
-type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes"
-type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade"
-type SimulationMode = "balanced" | "random"
+type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes";
+type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade";
+type SimulationMode = "balanced" | "random";
 
 type SimulationHistoryEntry = {
-  id: string
-  saved_at: string
-  title: string
-  exam_type: string
-  year: number
-  mode: SimulationMode
-  total_questions: number
-  correct_answers: number
-  wrong_answers: number
-  unanswered_count: number
-  score_percentage: number
+  id: string;
+  saved_at: string;
+  title: string;
+  exam_type: string;
+  year: number;
+  mode: SimulationMode;
+  total_questions: number;
+  correct_answers: number;
+  wrong_answers: number;
+  unanswered_count: number;
+  score_percentage: number;
   subjects_summary: Array<{
-    subject: string
-    total: number
-    correct: number
-    wrong: number
-    blank: number
-    accuracy_percentage: number
-  }>
-}
+    subject: string;
+    total: number;
+    correct: number;
+    wrong: number;
+    blank: number;
+    accuracy_percentage: number;
+  }>;
+};
 
 type ReviewSummaryPayload = {
-  title: string
-  subtitle: string
-  revisionSummary: string
+  title: string;
+  subtitle: string;
+  revisionSummary: string;
   weakestSubjects: Array<{
-    subject: string
-    accuracy: number
-    correct: number
-    wrong: number
-    blank: number
-  }>
-  generatedAt: string
-}
+    subject: string;
+    accuracy: number;
+    correct: number;
+    wrong: number;
+    blank: number;
+  }>;
+  generatedAt: string;
+};
 
 type ReviewCard = {
-  id: string
-  subject: string
-  questionNumber: number
-  front: string
-  back: string
-}
+  id: string;
+  subject: string;
+  questionNumber: number;
+  front: string;
+  back: string;
+};
 
-const STUDY_GOAL_KEY = "studypro_goal"
-const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
-const REVIEW_SUMMARY_KEY = "studypro_review_summary"
-const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
+const STUDY_GOAL_KEY = "studypro_goal";
+const SIMULATION_HISTORY_KEY = "studypro_simulation_history";
+const REVIEW_SUMMARY_KEY = "studypro_review_summary";
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards";
+const LOCAL_STREAK_KEY = "studypro_local_streak";
+const LOCAL_BEST_STREAK_KEY = "studypro_local_best_streak";
 
 function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value))
+  return Math.max(min, Math.min(max, value));
 }
 
 function formatDate(value?: string) {
-  if (!value) return "Sem data"
+  if (!value) return "Sem data";
 
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
 
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeStyle: "short",
-  }).format(date)
+  }).format(date);
 }
 
 function getGoalLabel(goal: StudyGoal | null) {
   switch (goal) {
     case "enem":
-      return "ENEM"
+      return "ENEM";
     case "concursos":
-      return "Concursos"
+      return "Concursos";
     case "vestibular":
-      return "Vestibular"
+      return "Vestibular";
     case "faculdade":
-      return "Faculdade"
+      return "Faculdade";
     default:
-      return "Estudos"
+      return "Estudos";
   }
 }
 
 function getGoalDescription(goal: StudyGoal | null) {
   switch (goal) {
     case "enem":
-      return "Foque em questões, simulados e evolução por área do exame."
+      return "Foque em questões, simulados e evolução por área do exame.";
     case "concursos":
-      return "Priorize constância, revisão e desempenho por disciplina."
+      return "Priorize constância, revisão e desempenho por disciplina.";
     case "vestibular":
-      return "Mantenha ritmo forte em simulados e identificação de lacunas."
+      return "Mantenha ritmo forte em simulados e identificação de lacunas.";
     case "faculdade":
-      return "Acompanhe seu progresso e avance com revisões inteligentes."
+      return "Acompanhe seu progresso e avance com revisões inteligentes.";
     default:
-      return "Defina seu objetivo para personalizar sua experiência."
+      return "Defina seu objetivo para personalizar sua experiência.";
   }
 }
 
 function getNextAction(goal: StudyGoal | null) {
   switch (goal) {
     case "enem":
-      return "Gerar simulado ENEM"
+      return "Gerar simulado ENEM";
     case "concursos":
-      return "Resolver questões de concurso"
+      return "Resolver questões de concurso";
     case "vestibular":
-      return "Fazer simulado vestibular"
+      return "Fazer simulado vestibular";
     case "faculdade":
-      return "Revisar conteúdo da matéria"
+      return "Revisar conteúdo da matéria";
     default:
-      return "Começar agora"
+      return "Começar agora";
   }
 }
 
 function getDailyGoal(dataQuestions: number) {
-  if (dataQuestions >= 300) return 30
-  if (dataQuestions >= 100) return 20
-  return 10
+  if (dataQuestions >= 300) return 30;
+  if (dataQuestions >= 100) return 20;
+  return 10;
 }
 
-function getLocalStreak(dataStreak: number) {
-  if (typeof window === "undefined") return dataStreak || 0
-  if (dataStreak > 0) return dataStreak
+function getLocalStreak() {
+  if (typeof window === "undefined") return 0;
 
-  const stored = localStorage.getItem("studypro_local_streak")
+  const stored = localStorage.getItem(LOCAL_STREAK_KEY);
   if (!stored) {
-    localStorage.setItem("studypro_local_streak", "2")
-    return 2
+    localStorage.setItem(LOCAL_STREAK_KEY, "2");
+    return 2;
   }
 
-  return Number(stored) || 2
+  return Number(stored) || 2;
+}
+
+function getBestLocalStreak(currentStreak: number) {
+  if (typeof window === "undefined") return currentStreak;
+
+  const stored = Number(localStorage.getItem(LOCAL_BEST_STREAK_KEY) || "0");
+  const best = Math.max(stored, currentStreak);
+
+  localStorage.setItem(LOCAL_BEST_STREAK_KEY, String(best));
+  return best;
 }
 
 export default function DashboardPage() {
-  const [token, setToken] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<DashboardTab>("evolucao")
-  const [goal, setGoal] = useState<StudyGoal | null>(null)
-  const [goalLoaded, setGoalLoaded] = useState(false)
+  const [token, setToken] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<DashboardTab>("evolucao");
+  const [goal, setGoal] = useState<StudyGoal | null>(null);
+  const [goalLoaded, setGoalLoaded] = useState(false);
   const [simulationHistory, setSimulationHistory] = useState<
     SimulationHistoryEntry[]
-  >([])
+  >([]);
   const [reviewSummary, setReviewSummary] =
-    useState<ReviewSummaryPayload | null>(null)
-  const [reviewFlashcards, setReviewFlashcards] = useState<ReviewCard[]>([])
+    useState<ReviewSummaryPayload | null>(null);
+  const [reviewFlashcards, setReviewFlashcards] = useState<ReviewCard[]>([]);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem(AUTH_TOKEN_KEY)
-    const savedGoal = localStorage.getItem(STUDY_GOAL_KEY) as StudyGoal | null
-    const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
-    const rawSummary = localStorage.getItem(REVIEW_SUMMARY_KEY)
-    const rawFlashcards = localStorage.getItem(REVIEW_FLASHCARDS_KEY)
+    const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+    const savedGoal = localStorage.getItem(STUDY_GOAL_KEY) as StudyGoal | null;
+    const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY);
+    const rawSummary = localStorage.getItem(REVIEW_SUMMARY_KEY);
+    const rawFlashcards = localStorage.getItem(REVIEW_FLASHCARDS_KEY);
 
-    setToken(savedToken)
-    setGoal(savedGoal)
-    setGoalLoaded(true)
+    setToken(savedToken);
+    setGoal(savedGoal);
+    setGoalLoaded(true);
 
     if (rawHistory) {
       try {
-        const parsed = JSON.parse(rawHistory) as SimulationHistoryEntry[]
+        const parsed = JSON.parse(rawHistory) as SimulationHistoryEntry[];
         if (Array.isArray(parsed)) {
-          setSimulationHistory(parsed)
+          setSimulationHistory(parsed);
         }
       } catch {
-        localStorage.removeItem(SIMULATION_HISTORY_KEY)
+        localStorage.removeItem(SIMULATION_HISTORY_KEY);
       }
     }
 
     if (rawSummary) {
       try {
-        const parsed = JSON.parse(rawSummary) as ReviewSummaryPayload
+        const parsed = JSON.parse(rawSummary) as ReviewSummaryPayload;
         if (parsed?.title && parsed?.revisionSummary) {
-          setReviewSummary(parsed)
+          setReviewSummary(parsed);
         }
       } catch {
-        localStorage.removeItem(REVIEW_SUMMARY_KEY)
+        localStorage.removeItem(REVIEW_SUMMARY_KEY);
       }
     }
 
     if (rawFlashcards) {
       try {
-        const parsed = JSON.parse(rawFlashcards) as ReviewCard[]
+        const parsed = JSON.parse(rawFlashcards) as ReviewCard[];
         if (Array.isArray(parsed)) {
-          setReviewFlashcards(parsed)
+          setReviewFlashcards(parsed);
         }
       } catch {
-        localStorage.removeItem(REVIEW_FLASHCARDS_KEY)
+        localStorage.removeItem(REVIEW_FLASHCARDS_KEY);
       }
     }
-  }, [])
+  }, []);
 
-  const { data, loading, error } = useDashboardData(token)
+  const { data, loading, error } = useDashboardData(token);
   const {
     data: billing,
     loading: billingLoading,
     error: billingError,
-  } = useBillingStatus(token)
+  } = useBillingStatus(token);
 
   const accuracyRate = useMemo(() => {
-    if (!data.questions) return 0
-    return data.correct / data.questions
-  }, [data.questions, data.correct])
+    if (!data.questions) return 0;
+    return data.correct / data.questions;
+  }, [data.questions, data.correct]);
 
   const accuracyPercent = useMemo(
     () => Number((accuracyRate * 100).toFixed(1)),
     [accuracyRate]
-  )
+  );
 
   const baselinePercent = useMemo(() => {
-    if (!data.questions) return 58
-    return clamp(Math.round(accuracyPercent - 14), 35, 90)
-  }, [accuracyPercent, data.questions])
+    if (!data.questions) return 58;
+    return clamp(Math.round(accuracyPercent - 14), 35, 90);
+  }, [accuracyPercent, data.questions]);
 
   const estimatedTimePerQuestion = useMemo(() => {
-    if (!data.questions) return "N/D"
-    const seconds = clamp(Math.round(210 - accuracyPercent), 75, 240)
-    const min = Math.floor(seconds / 60)
-    const sec = String(seconds % 60).padStart(2, "0")
-    return `${min}:${sec}`
-  }, [data.questions, accuracyPercent])
+    if (!data.questions) return "N/D";
+    const seconds = clamp(Math.round(210 - accuracyPercent), 75, 240);
+    const min = Math.floor(seconds / 60);
+    const sec = String(seconds % 60).padStart(2, "0");
+    return `${min}:${sec}`;
+  }, [data.questions, accuracyPercent]);
 
-  const currentPlan = billing?.user.plan ?? data.plan ?? "free"
-  const isPro = currentPlan === "pro"
+  const currentPlan = billing?.user.plan ?? data.user?.plan ?? "free";
+  const isPro = currentPlan === "pro";
 
-  const simulationUsage = billing?.usage.simulations_generated_today ?? 0
-  const simulationLimit = billing?.usage.daily_limit
-  const simulationRemaining = billing?.usage.remaining_today
-  const canGenerateSimulation = billing?.usage.can_generate ?? true
+  const simulationUsage = billing?.usage.simulations_generated_today ?? 0;
+  const simulationLimit = billing?.usage.daily_limit ?? null;
+  const simulationRemaining = billing?.usage.remaining_today ?? null;
+  const canGenerateSimulation = billing?.usage.can_generate ?? true;
 
   const hasAdvancedAnalytics =
-    billing?.entitlements.can_access_advanced_analytics ?? isPro
-  const hasSmartInsights =
-    billing?.entitlements.can_access_smart_insights ?? isPro
+    billing?.entitlements.can_access_advanced_analytics ??
+    data.entitlements?.can_access_advanced_analytics ??
+    isPro;
 
-  const latestSimulation = simulationHistory[0] ?? null
+  const hasSmartInsights =
+    billing?.entitlements.can_access_smart_insights ??
+    data.entitlements?.can_access_smart_insights ??
+    isPro;
+
+  const latestSimulation = simulationHistory[0] ?? null;
   const bestSimulationScore =
     simulationHistory.length > 0
       ? Math.max(...simulationHistory.map((item) => item.score_percentage))
-      : null
+      : null;
 
   const topCards = useMemo(
     () => [
@@ -288,7 +304,7 @@ export default function DashboardPage() {
       {
         title: "Questões feitas",
         value: data.questions.toLocaleString("pt-BR"),
-        subtitle: `${data.recent_attempts.length} tentativa(s) recentes`,
+        subtitle: `${data.attempts_count} tentativa(s) registradas`,
         icon: <BookOpen className="size-5 text-emerald-400" />,
         iconBg: "bg-emerald-500/15",
       },
@@ -315,107 +331,154 @@ export default function DashboardPage() {
     [
       accuracyPercent,
       data.questions,
-      data.recent_attempts.length,
+      data.attempts_count,
       estimatedTimePerQuestion,
       bestSimulationScore,
       latestSimulation,
     ]
-  )
+  );
 
   const evolutionData = useMemo(() => {
     const months = [
-      "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-      "Jul", "Ago", "Set", "Out", "Nov", "Dez",
-    ]
-    const target = clamp(accuracyPercent || 52, 40, 95)
-    const average = clamp(baselinePercent, 35, 90)
+      "Jan",
+      "Fev",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+    ];
+    const target = clamp(accuracyPercent || 52, 40, 95);
+    const average = clamp(baselinePercent, 35, 90);
 
     return months.map((month, index) => {
-      const progress = index / 11
-      const wave = Math.sin(index * 1.2) * 3
+      const progress = index / 11;
+      const wave = Math.sin(index * 1.2) * 3;
       const userValue = clamp(
         Math.round(48 + progress * (target - 48) + wave),
         40,
         95
-      )
+      );
       const avgValue = clamp(
         Math.round(average + Math.sin(index * 0.7) * 1.2),
         35,
         90
-      )
+      );
 
       return {
         month,
         voce: userValue,
         media: avgValue,
-      }
-    })
-  }, [accuracyPercent, baselinePercent])
+      };
+    });
+  }, [accuracyPercent, baselinePercent]);
 
   const radarData = useMemo(() => {
-    const base = clamp(accuracyPercent || 52, 35, 95)
+    const base = clamp(accuracyPercent || 52, 35, 95);
 
     return [
-      { subject: "Mate", voce: clamp(base + 4, 25, 100), media: clamp(base - 6, 20, 100) },
-      { subject: "Biol", voce: clamp(base + 2, 25, 100), media: clamp(base - 7, 20, 100) },
-      { subject: "Quím", voce: clamp(base + 1, 25, 100), media: clamp(base - 5, 20, 100) },
-      { subject: "Físi", voce: clamp(base - 3, 25, 100), media: clamp(base - 9, 20, 100) },
-      { subject: "Port", voce: clamp(base + 6, 25, 100), media: clamp(base - 4, 20, 100) },
-      { subject: "Hist", voce: clamp(base - 1, 25, 100), media: clamp(base - 8, 20, 100) },
-      { subject: "Geog", voce: clamp(base + 1, 25, 100), media: clamp(base - 6, 20, 100) },
-      { subject: "Reda", voce: clamp(base + 5, 25, 100), media: clamp(base - 7, 20, 100) },
-    ]
-  }, [accuracyPercent])
+      {
+        subject: "Mate",
+        voce: clamp(base + 4, 25, 100),
+        media: clamp(base - 6, 20, 100),
+      },
+      {
+        subject: "Biol",
+        voce: clamp(base + 2, 25, 100),
+        media: clamp(base - 7, 20, 100),
+      },
+      {
+        subject: "Quím",
+        voce: clamp(base + 1, 25, 100),
+        media: clamp(base - 5, 20, 100),
+      },
+      {
+        subject: "Físi",
+        voce: clamp(base - 3, 25, 100),
+        media: clamp(base - 9, 20, 100),
+      },
+      {
+        subject: "Port",
+        voce: clamp(base + 6, 25, 100),
+        media: clamp(base - 4, 20, 100),
+      },
+      {
+        subject: "Hist",
+        voce: clamp(base - 1, 25, 100),
+        media: clamp(base - 8, 20, 100),
+      },
+      {
+        subject: "Geog",
+        voce: clamp(base + 1, 25, 100),
+        media: clamp(base - 6, 20, 100),
+      },
+      {
+        subject: "Reda",
+        voce: clamp(base + 5, 25, 100),
+        media: clamp(base - 7, 20, 100),
+      },
+    ];
+  }, [accuracyPercent]);
 
   const weeklyData = useMemo(() => {
-    const labels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-    const total = Math.max(data.questions, 0)
-    const accuracy = clamp(accuracyPercent || 50, 20, 95)
+    const labels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+    const total = Math.max(data.questions, 0);
+    const accuracy = clamp(accuracyPercent || 50, 20, 95);
 
     return labels.map((day, index) => {
-      const multiplier = [0.6, 0.45, 0.75, 0.3, 0.9, 1, 0.55][index]
+      const multiplier = [0.6, 0.45, 0.75, 0.3, 0.9, 1, 0.55][index];
       const questoes =
         total > 0
           ? Math.max(8, Math.round((total / 10) * multiplier))
-          : [120, 90, 150, 60, 180, 200, 110][index]
+          : [120, 90, 150, 60, 180, 200, 110][index];
       const minutos = Math.max(
         15,
         Math.round((questoes * (140 - accuracy)) / 60)
-      )
+      );
 
       return {
         day,
         questoes,
         minutos,
-      }
-    })
-  }, [data.questions, accuracyPercent])
+      };
+    });
+  }, [data.questions, accuracyPercent]);
 
   const localStreak = useMemo(() => {
-    if (!goalLoaded) return 0
-    return getLocalStreak(data.streak)
-  }, [goalLoaded, data.streak])
+    if (!goalLoaded) return 0;
+    return getLocalStreak();
+  }, [goalLoaded]);
 
-  const dailyGoal = useMemo(() => getDailyGoal(data.questions), [data.questions])
+  const bestLocalStreak = useMemo(
+    () => getBestLocalStreak(localStreak),
+    [localStreak]
+  );
+
+  const dailyGoal = useMemo(() => getDailyGoal(data.questions), [data.questions]);
 
   const completedToday = useMemo(() => {
-    if (!data.questions) return 0
-    return clamp(Math.round(data.questions * 0.08), 0, dailyGoal)
-  }, [data.questions, dailyGoal])
+    if (!data.questions) return 0;
+    return clamp(Math.round(data.questions * 0.08), 0, dailyGoal);
+  }, [data.questions, dailyGoal]);
 
   const dailyGoalPercent = useMemo(() => {
-    if (!dailyGoal) return 0
-    return clamp(Math.round((completedToday / dailyGoal) * 100), 0, 100)
-  }, [completedToday, dailyGoal])
+    if (!dailyGoal) return 0;
+    return clamp(Math.round((completedToday / dailyGoal) * 100), 0, 100);
+  }, [completedToday, dailyGoal]);
 
   function handleSelectGoal(selectedGoal: StudyGoal) {
-    localStorage.setItem(STUDY_GOAL_KEY, selectedGoal)
-    setGoal(selectedGoal)
+    localStorage.setItem(STUDY_GOAL_KEY, selectedGoal);
+    setGoal(selectedGoal);
   }
 
   function handleResetGoal() {
-    localStorage.removeItem(STUDY_GOAL_KEY)
-    setGoal(null)
+    localStorage.removeItem(STUDY_GOAL_KEY);
+    setGoal(null);
   }
 
   if (!goalLoaded) {
@@ -426,7 +489,7 @@ export default function DashboardPage() {
           Carregando dashboard...
         </div>
       </div>
-    )
+    );
   }
 
   if (!goal) {
@@ -484,7 +547,7 @@ export default function DashboardPage() {
           />
         </section>
       </div>
-    )
+    );
   }
 
   if (loading) {
@@ -495,7 +558,7 @@ export default function DashboardPage() {
           Carregando analytics do dashboard...
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -503,7 +566,7 @@ export default function DashboardPage() {
       <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
         {error}
       </div>
-    )
+    );
   }
 
   return (
@@ -582,8 +645,8 @@ export default function DashboardPage() {
                     {isPro
                       ? "Seu plano PRO está ativo. Os recursos premium já estão liberados."
                       : simulationLimit === null
-                        ? "Seu plano gratuito está ativo."
-                        : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
+                      ? "Seu plano gratuito está ativo."
+                      : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
                   </p>
 
                   {!isPro && typeof simulationRemaining === "number" ? (
@@ -1094,7 +1157,7 @@ export default function DashboardPage() {
                 <InfoStat label="Sequência atual" value={String(localStreak)} />
                 <InfoStat
                   label="Melhor sequência"
-                  value={String(data.best_streak)}
+                  value={String(bestLocalStreak)}
                 />
                 <InfoStat
                   label="Aproveitamento"
@@ -1176,7 +1239,7 @@ export default function DashboardPage() {
         </div>
       </section>
     </div>
-  )
+  );
 }
 
 function GoalCard({
@@ -1184,9 +1247,9 @@ function GoalCard({
   description,
   onClick,
 }: {
-  title: string
-  description: string
-  onClick: () => void
+  title: string;
+  description: string;
+  onClick: () => void;
 }) {
   return (
     <button
@@ -1200,7 +1263,7 @@ function GoalCard({
         Selecionar objetivo
       </div>
     </button>
-  )
+  );
 }
 
 function QuickActionCard({
@@ -1208,9 +1271,9 @@ function QuickActionCard({
   value,
   helper,
 }: {
-  label: string
-  value: string
-  helper: string
+  label: string;
+  value: string;
+  helper: string;
 }) {
   return (
     <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
@@ -1218,7 +1281,7 @@ function QuickActionCard({
       <h3 className="mt-3 text-2xl font-semibold text-white">{value}</h3>
       <p className="mt-3 text-sm leading-6 text-slate-300">{helper}</p>
     </article>
-  )
+  );
 }
 
 function TabButton({
@@ -1226,9 +1289,9 @@ function TabButton({
   onClick,
   children,
 }: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
 }) {
   return (
     <button
@@ -1243,7 +1306,7 @@ function TabButton({
     >
       {children}
     </button>
-  )
+  );
 }
 
 function InfoStat({ label, value }: { label: string; value: string }) {
@@ -1252,5 +1315,5 @@ function InfoStat({ label, value }: { label: string; value: string }) {
       <p className="text-base text-slate-400">{label}</p>
       <p className="mt-3 text-2xl font-bold text-white">{value}</p>
     </div>
-  )
+  );
 }
