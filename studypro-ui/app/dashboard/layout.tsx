@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import { DashboardSidebar } from "@/components/dashboard/sidebar"
+import { AppSidebar } from "@/components/dashboard/sidebar"
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar"
 
 const AUTH_TOKEN_KEY = "studypro_auth_token"
@@ -71,7 +71,7 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      <DashboardSidebar />
+      <AppSidebar />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <DashboardTopbar
@@ -79,7 +79,7 @@ export default function DashboardLayout({
           onSearchChange={setSearchQuery}
           user={user}
           avatarLabel={avatarLabel}
-          mobileSidebar={<DashboardSidebar />}
+          mobileSidebar={<AppSidebar />}
         />
 
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
