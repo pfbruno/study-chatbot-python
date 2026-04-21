@@ -1,26 +1,89 @@
-import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar";
-import { AppSidebar } from "@/components/dashboard/app-sidebar";
+"use client"
+
+import { useEffect, useMemo, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
+
+import { DashboardSidebar } from "@/components/dashboard/sidebar"
+import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar"
+
+const AUTH_TOKEN_KEY = "studypro_auth_token"
+const AUTH_USER_KEY = "studypro_auth_user"
+
+type DashboardUser = {
+  id?: number | string
+  name?: string
+  email?: string
+}
 
 export default function DashboardLayout({
   children,
-}: Readonly<{ children: React.ReactNode }>) {
+}: {
+  children: React.ReactNode
+}) {
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const [isReady, setIsReady] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [user, setUser] = useState<DashboardUser | null>(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    const storedUser = localStorage.getItem(AUTH_USER_KEY)
+
+    if (!token) {
+      router.replace(
+        `/login?redirect=${encodeURIComponent(pathname || "/dashboard")}`
+      )
+      return
+    }
+
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser) as DashboardUser)
+      } catch {
+        localStorage.removeItem(AUTH_USER_KEY)
+        setUser(null)
+      }
+    }
+
+    setIsReady(true)
+  }, [pathname, router])
+
+  const avatarLabel = useMemo(() => {
+    if (!user?.name) return "SP"
+
+    return user.name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("")
+  }, [user])
+
+  if (!isReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
+        Carregando área do aluno...
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-[#020817] text-white">
-      <div className="flex min-h-screen">
-        <div className="hidden lg:block">
-          <AppSidebar />
-        </div>
+    <div className="flex min-h-screen bg-background text-foreground">
+      <DashboardSidebar />
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <DashboardTopbar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <DashboardTopbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          user={user}
+          avatarLabel={avatarLabel}
+          mobileSidebar={<DashboardSidebar />}
+        />
 
-          <main className="min-w-0 flex-1">
-            <div className="mx-auto w-full max-w-[1600px] px-4 py-6 md:px-6 md:py-8">
-              {children}
-            </div>
-          </main>
-        </div>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
-  );
+  )
 }
