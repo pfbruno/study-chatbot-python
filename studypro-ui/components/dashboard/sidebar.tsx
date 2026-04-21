@@ -1,263 +1,254 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 import {
   BarChart3,
   BookOpen,
   Brain,
   CreditCard,
   FileText,
-  Home,
-  LogOut,
+  GraduationCap,
+  LayoutDashboard,
   Menu,
   MessageSquare,
-  Settings,
-  Share2,
-  User,
-  Users,
+  Sparkles,
   X,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
-const AUTH_TOKEN_KEY = "studypro_auth_token";
-const AUTH_USER_KEY = "studypro_auth_user";
-
-type SidebarUser = {
-  id?: number | string;
-  name?: string;
-  email?: string;
-  plan?: string;
-};
-
-type NavItem = {
-  name: string;
-  href?: string;
+type SidebarItem = {
+  label: string;
+  href: string;
   icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
 };
 
-const principalItems: NavItem[] = [
-  { name: "Dashboard", href: "/dashboard", icon: Home },
-  { name: "Simulados", href: "/dashboard/simulados", icon: BookOpen },
-  { name: "Questões", href: "/dashboard/provas", icon: FileText },
-  { name: "Chat IA", href: "/dashboard/chat", icon: MessageSquare },
-  { name: "Área de Estudo", href: "/dashboard/estudo", icon: Brain },
-  { name: "Analytics", href: "/dashboard", icon: BarChart3 },
-  { name: "Painel Professor", href: "/dashboard/perfil", icon: User },
+const mainItems: SidebarItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    label: "Provas",
+    href: "/dashboard/provas",
+    icon: GraduationCap,
+  },
+  {
+    label: "Simulados",
+    href: "/dashboard/simulados",
+    icon: BookOpen,
+  },
+  {
+    label: "Chat IA",
+    href: "/dashboard/chat",
+    icon: MessageSquare,
+    badge: "novo",
+  },
+  {
+    label: "Área de Estudo",
+    href: "/dashboard/estudo",
+    icon: Brain,
+  },
+  {
+    label: "Analytics",
+    href: "/dashboard/analytics",
+    icon: BarChart3,
+  },
 ];
 
-const socialItems: NavItem[] = [
-  { name: "Comunidade", icon: Users },
-  { name: "Grupos", icon: Users },
+const secondaryItems: SidebarItem[] = [
+  {
+    label: "Resumos",
+    href: "/dashboard/resumos",
+    icon: FileText,
+  },
+  {
+    label: "Flashcards",
+    href: "/dashboard/flashcards",
+    icon: Sparkles,
+  },
+  {
+    label: "Planos",
+    href: "/pricing",
+    icon: CreditCard,
+  },
 ];
 
-const accountItems: NavItem[] = [
-  { name: "Planos", href: "/pricing", icon: CreditCard },
-  { name: "Indicação", icon: Share2 },
-  { name: "Configurações", icon: Settings },
-];
+function isActiveRoute(pathname: string, href: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname.startsWith(href);
+}
 
-function NavSection({
-  title,
-  items,
+function SidebarNav({
   pathname,
   onNavigate,
 }: {
-  title: string;
-  items: NavItem[];
   pathname: string;
   onNavigate?: () => void;
 }) {
   return (
-    <div>
-      <p className="mb-4 px-3 text-sm font-medium text-white/40">{title}</p>
+    <div className="flex h-full flex-col">
+      <div className="border-b border-white/10 px-5 py-5">
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          className="flex items-center gap-3"
+        >
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-white shadow-[0_14px_40px_-18px_rgba(59,130,246,0.95)]">
+            <GraduationCap className="size-5" />
+          </div>
+          <div>
+            <div className="text-base font-semibold text-white">StudyPro</div>
+            <div className="text-xs text-slate-400">
+              Plataforma de estudos
+            </div>
+          </div>
+        </Link>
+      </div>
 
-      <div className="space-y-1.5">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive =
-            !!item.href &&
-            (pathname === item.href ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href)));
+      <div className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="mb-6">
+          <div className="px-3 pb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+            Principal
+          </div>
 
-          if (!item.href) {
-            return (
-              <button
-                key={item.name}
-                type="button"
-                onClick={onNavigate}
-                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-[1.05rem] text-white/80 transition hover:bg-white/[0.04] hover:text-white"
-              >
-                <Icon className="h-5 w-5 shrink-0" />
-                <span>{item.name}</span>
-              </button>
-            );
-          }
+          <nav className="space-y-1.5">
+            {mainItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActiveRoute(pathname, item.href);
 
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              onClick={onNavigate}
-              className={[
-                "flex items-center gap-3 rounded-2xl px-3 py-3 text-[1.05rem] transition",
-                isActive
-                  ? "bg-white/[0.06] text-white"
-                  : "text-white/80 hover:bg-white/[0.04] hover:text-white",
-              ].join(" ")}
-            >
-              <Icon className="h-5 w-5 shrink-0" />
-              <span>{item.name}</span>
-            </Link>
-          );
-        })}
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={[
+                    "flex items-center justify-between rounded-2xl px-3 py-3 transition",
+                    active
+                      ? "bg-blue-500/15 text-white ring-1 ring-blue-500/30"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white",
+                  ].join(" ")}
+                >
+                  <span className="flex items-center gap-3">
+                    <Icon className="size-4" />
+                    <span className="text-sm font-medium">{item.label}</span>
+                  </span>
+
+                  {item.badge ? (
+                    <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
+        <div>
+          <div className="px-3 pb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+            Ferramentas
+          </div>
+
+          <nav className="space-y-1.5">
+            {secondaryItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActiveRoute(pathname, item.href);
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={onNavigate}
+                  className={[
+                    "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
+                    active
+                      ? "bg-blue-500/15 text-white ring-1 ring-blue-500/30"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white",
+                  ].join(" ")}
+                >
+                  <Icon className="size-4" />
+                  <span className="text-sm font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      <div className="border-t border-white/10 p-4">
+        <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-4">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-200/80">
+            Plano atual
+          </div>
+          <div className="mt-2 text-lg font-semibold text-white">Free</div>
+          <p className="mt-2 text-sm leading-6 text-amber-50/90">
+            Desbloqueie analytics avançado, simulados premium e insights
+            inteligentes.
+          </p>
+          <Link
+            href="/pricing"
+            onClick={onNavigate}
+            className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
+          >
+            Ver plano Pro
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
 
-export function DashboardSidebar() {
+export function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<SidebarUser | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem(AUTH_USER_KEY);
-
-    if (!storedUser) {
-      setUser(null);
-      return;
-    }
-
-    try {
-      setUser(JSON.parse(storedUser) as SidebarUser);
-    } catch {
-      localStorage.removeItem(AUTH_USER_KEY);
-      setUser(null);
-    }
+    setMobileOpen(false);
   }, [pathname]);
-
-  const initials = useMemo(() => {
-    if (!user?.name) return "SP";
-
-    return user.name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase() ?? "")
-      .join("");
-  }, [user]);
-
-  function handleLogout() {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_USER_KEY);
-    setUser(null);
-    router.push("/login");
-  }
-
-  const sidebarContent = (
-    <div className="flex h-full w-[260px] flex-col border-r border-white/10 bg-[#05101f]">
-      <div className="flex items-center gap-3 px-5 py-6">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[#38bdf8] to-[#22c55e] text-[#03101f]">
-          <BookOpen className="h-5 w-5" />
-        </div>
-
-        <div>
-          <div className="text-[1.8rem] font-semibold tracking-tight text-white">
-            StudyPro
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 pb-6">
-        <div className="space-y-8">
-          <NavSection
-            title="Principal"
-            items={principalItems}
-            pathname={pathname}
-            onNavigate={() => setMobileOpen(false)}
-          />
-
-          <NavSection
-            title="Social"
-            items={socialItems}
-            pathname={pathname}
-            onNavigate={() => setMobileOpen(false)}
-          />
-
-          <NavSection
-            title=""
-            items={accountItems}
-            pathname={pathname}
-            onNavigate={() => setMobileOpen(false)}
-          />
-        </div>
-      </div>
-
-      <div className="border-t border-white/10 p-4">
-        <div className="mb-4 flex items-center gap-3 rounded-2xl bg-white/[0.03] p-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0d1f38] text-sm font-semibold text-[#7db1ff]">
-            {initials}
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-white">
-              {user?.name || "Aluno StudyPro"}
-            </p>
-            <p className="truncate text-xs text-white/45">
-              {user?.email || "Conta ativa"}
-            </p>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-[1.05rem] text-white/75 transition hover:bg-white/[0.04] hover:text-white"
-        >
-          <LogOut className="h-5 w-5 shrink-0" />
-          <span>Sair</span>
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Abrir menu"
-        className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white lg:hidden"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      <div className="lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
+          aria-label="Abrir menu"
+        >
+          <Menu className="size-5" />
+        </button>
+      </div>
 
-      <div className="hidden h-screen lg:block">{sidebarContent}</div>
+      <aside className="hidden w-[300px] shrink-0 border-r border-white/10 bg-[#050b16] lg:block">
+        <SidebarNav pathname={pathname} />
+      </aside>
 
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setMobileOpen(false)}
             aria-label="Fechar menu"
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
           />
-
-          <div className="absolute left-0 top-0 h-full">
-            <div className="relative h-full">
-              {sidebarContent}
-
+          <div className="absolute inset-y-0 left-0 w-[88vw] max-w-[340px] border-r border-white/10 bg-[#050b16] shadow-2xl">
+            <div className="flex items-center justify-end border-b border-white/10 px-4 py-4">
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
+                className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
                 aria-label="Fechar menu"
-                className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white"
               >
-                <X className="h-5 w-5" />
+                <X className="size-5" />
               </button>
             </div>
+            <SidebarNav
+              pathname={pathname}
+              onNavigate={() => setMobileOpen(false)}
+            />
           </div>
         </div>
       ) : null}
