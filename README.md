@@ -1,38 +1,70 @@
-# Study Chatbot com Análise de Dados
+# StudyPro
 
-Chatbot educacional desenvolvido em Python com FastAPI, capaz de responder perguntas, classificar temas e gerar estatísticas de uso.
+Plataforma de estudos com foco em provas, simulados, analytics, plano de estudos e monetização por assinatura.
 
-## 🔗 Acesso ao projeto
+## Acesso
 
 - Frontend: https://study-chatbot-python-uksv.vercel.app
-- API: https://study-chatbot-python.onrender.com/docs
+- Backend: https://study-chatbot-python.onrender.com
+- Docs da API: https://study-chatbot-python.onrender.com/docs
 
-## ⚙️ Tecnologias
+## Stack principal
 
-- Python
+### Frontend
+- Next.js (App Router)
+- TypeScript
+- Tailwind CSS
+- Recharts
+- Radix UI / shadcn-style components
+
+### Backend
 - FastAPI
 - SQLite
-- JavaScript
-- HTML/CSS
+- Stripe
+- Render
 
-## 🚀 Funcionalidades
+## Estrutura oficial do projeto
 
-- Chat interativo
-- Identificação de tema
-- Sugestão de estudo
-- Persistência de dados (SQLite)
-- Estatísticas de uso
+- `studypro-ui/` → aplicação frontend oficial
+- `app/` → backend FastAPI oficial
+- `lovable-reference/` → referência visual e estrutural para redesign
+- `docs/` → documentação interna do projeto
 
-## 📊 Diferencial
+## Regras de arquitetura
 
-O sistema armazena interações e gera análise de dados das perguntas feitas, permitindo identificar padrões de estudo.
+1. O produto oficial roda em `studypro-ui`.
+2. O backend oficial roda em `app`.
+3. A pasta `lovable-reference` não é a aplicação oficial e não deve receber lógica de negócio do produto.
+4. Toda nova implementação deve ser feita no `studypro-ui`, usando `lovable-reference` apenas como referência visual e de UX.
+5. Mudanças de frontend devem respeitar os contratos reais da API do backend.
 
-## 📷 Demonstração
+## Escopo atual do produto
 
-### Chat funcionando
-![Chat](https://github.com/user-attachments/assets/9ae452a1-4416-465f-8009-8b94b15f2488)
-### Interação com o usuário
-![Conversa](https://github.com/user-attachments/assets/1e6f37c8-a5bb-4952-89c6-27e7d7c1505e)
-### Estatísticas
-![Estatísticas](https://github.com/user-attachments/assets/0323f391-cf72-4e93-a66f-92031745f47f)
+- autenticação
+- dashboard
+- provas
+- simulados
+- billing
+- checkout Stripe
+- analytics
+- entitlements free/pro
+- base para chat IA e área de estudo
 
+## Próximas prioridades técnicas
+
+1. alinhar contratos frontend ↔ backend
+2. consolidar shell visual autenticado
+3. unificar navegação interna
+4. melhorar conversão e pricing
+5. refinar chat IA e área de estudo
+
+## Deploy
+
+### Frontend
+Deploy em Vercel com raiz no diretório `studypro-ui/`.
+
+### Backend
+Deploy em Render com start command apontando para:
+
+```bash
+uvicorn app.api:app --host 0.0.0.0 --port $PORT
