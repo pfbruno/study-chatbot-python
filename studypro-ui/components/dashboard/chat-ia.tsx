@@ -5,12 +5,30 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   BarChart3,
+  BookOpen,
+  Bot,
+  Brain,
+  Check,
+  Command,
+  Copy,
+  FileText,
+  FlaskConical,
+  Globe,
   GraduationCap,
+  History,
   Layers3,
+  Lightbulb,
+  ListChecks,
   Loader2,
   Lock,
+  MessageSquare,
+  Pencil,
+  Plus,
+  Search,
   SendHorizonal,
   Sparkles,
+  ThumbsDown,
+  ThumbsUp,
   Wand2,
 } from "lucide-react"
 
@@ -29,6 +47,15 @@ type Message = {
   id: string
   role: "user" | "assistant"
   content: string
+  createdAt: string
+}
+
+type ChatSession = {
+  id: string
+  title: string
+  subject?: string
+  updatedAt: string
+  messages: Message[]
 }
 
 type SimulationMode = "balanced" | "random"
@@ -81,16 +108,114 @@ const SESSION_STORAGE_KEY = "studypro_active_simulation"
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 const REVIEW_SUMMARY_KEY = "studypro_review_summary"
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
+const CHAT_SESSIONS_KEY = "studypro_chat_sessions"
+const CHAT_ACTIVE_SESSION_KEY = "studypro_chat_active_session"
+
+const INITIAL_ASSISTANT_MESSAGE = `Olá. Posso responder perguntas, explicar conteúdos e também criar simulados a partir do seu comando.
+
+Exemplos:
+- "Explique mitose e meiose de forma simples"
+- "Crie um simulado de 10 questões de biologia do enem"
+- "Monte um cronograma de estudos de 4 semanas"
+- "Transforme este tema em flashcards"`
+
 
 const QUICK_PROMPTS = [
-  "Crie um simulado de 10 questões de biologia do enem",
-  "Explique mitose e meiose de forma simples",
-  "Crie um simulado de 15 questões de matemática do enem 2022",
-  "Quais são os principais tópicos de genética para o enem?",
+  {
+    icon: FlaskConical,
+    label: "Química",
+    hint: "Resumo rápido",
+    prompt: "Faça um resumo completo sobre ligações químicas",
+  },
+  {
+    icon: BookOpen,
+    label: "Biologia",
+    hint: "Explicação",
+    prompt: "Explique mitose e meiose de forma simples e didática",
+  },
+  {
+    icon: Pencil,
+    label: "Redação",
+    hint: "Estratégia",
+    prompt: "Me dê dicas para fazer uma boa introdução na redação do ENEM",
+  },
+  {
+    icon: Brain,
+    label: "Cronograma",
+    hint: "Plano de estudo",
+    prompt: "Monte um cronograma de estudos de 4 semanas para o ENEM",
+  },
+  {
+    icon: Globe,
+    label: "Geografia",
+    hint: "Tema cobrado",
+    prompt: "Explique os principais biomas brasileiros e suas características",
+  },
+  {
+    icon: ListChecks,
+    label: "Questões",
+    hint: "Treino",
+    prompt: "Gere 5 questões estilo ENEM com gabarito sobre genética",
+  },
+]
+
+const SHORTCUTS = [
+  {
+    icon: FileText,
+    label: "Resumir conteúdo",
+    prompt: "Crie um resumo estruturado sobre o seguinte tema:",
+  },
+  {
+    icon: BookOpen,
+    label: "Explicar tema",
+    prompt: "Explique de forma didática, com exemplos, o tema:",
+  },
+  {
+    icon: ListChecks,
+    label: "Criar questões",
+    prompt: "Gere 5 questões estilo ENEM com gabarito sobre:",
+  },
+  {
+    icon: Brain,
+    label: "Montar cronograma",
+    prompt: "Monte um cronograma de estudos semanal para:",
+  },
+  {
+    icon: Wand2,
+    label: "Revisar erros",
+    prompt: "Quero revisar meus erros recentes em:",
+  },
+  {
+    icon: Layers3,
+    label: "Gerar flashcards",
+    prompt: "Crie 10 flashcards (pergunta/resposta) sobre:",
+  },
+]
+
+const CAPABILITIES = [
+  {
+    icon: Lightbulb,
+    title: "Explicações didáticas",
+    description: "Conceitos complexos explicados de forma simples e direta.",
+  },
+  {
+    icon: FileText,
+    title: "Resumos inteligentes",
+    description: "Transforme qualquer conteúdo em revisão objetiva para prova.",
+  },
+  {
+    icon: Brain,
+    title: "Plano de estudo",
+    description: "Cronogramas e estratégias conforme seu objetivo.",
+  },
 ]
 
 function messageId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function sessionId() {
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 function formatLocalDate(value: string) {
@@ -106,15 +231,194 @@ function formatLocalDate(value: string) {
   }).format(date)
 }
 
+function formatTime(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return "--:--"
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date)
+}
+
+function buildInitialSession(): ChatSession {
+  const now = new Date().toISOString()
+
+  return {
+    id: sessionId(),
+    title: "Nova conversa",
+    updatedAt: now,
+    messages: [
+      {
+        id: messageId(),
+        role: "assistant",
+        content: INITIAL_ASSISTANT_MESSAGE,
+        createdAt: now,
+      },
+    ],
+  }
+}
+
+function extractSessionTitle(input: string) {
+  const normalized = input.trim()
+  if (!normalized) return "Nova conversa"
+  return normalized.length > 48 ? `${normalized.slice(0, 48)}...` : normalized
+}
+
+function renderInline(text: string) {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g)
+
+  return parts.map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={index} className="font-semibold text-white">
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+
+    if (part.startsWith("*") && part.endsWith("*")) {
+      return (
+        <em key={index} className="italic">
+          {part.slice(1, -1)}
+        </em>
+      )
+    }
+
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={index}
+          className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-[0.85em] text-blue-200"
+        >
+          {part.slice(1, -1)}
+        </code>
+      )
+    }
+
+    return part
+  })
+}
+
+function renderContent(content: string) {
+  const lines = content.split("\n")
+  const elements: JSX.Element[] = []
+  let listBuffer: { ordered: boolean; items: string[] } | null = null
+
+  const flushList = () => {
+    if (!listBuffer) return
+
+    const Tag = listBuffer.ordered ? "ol" : "ul"
+
+    elements.push(
+      <Tag
+        key={`list-${elements.length}`}
+        className={`my-2 space-y-1.5 pl-5 ${
+          listBuffer.ordered ? "list-decimal" : "list-disc"
+        } marker:text-blue-300`}
+      >
+        {listBuffer.items.map((item, index) => (
+          <li key={index} className="leading-7 text-slate-200">
+            {renderInline(item)}
+          </li>
+        ))}
+      </Tag>
+    )
+
+    listBuffer = null
+  }
+
+  lines.forEach((line, index) => {
+    if (line.startsWith("## ")) {
+      flushList()
+      elements.push(
+        <h3 key={index} className="mb-2 mt-4 text-lg font-bold text-white">
+          {line.slice(3)}
+        </h3>
+      )
+      return
+    }
+
+    if (line.startsWith("### ")) {
+      flushList()
+      elements.push(
+        <h4 key={index} className="mb-2 mt-3 text-base font-semibold text-white">
+          {line.slice(4)}
+        </h4>
+      )
+      return
+    }
+
+    if (line.startsWith("> ")) {
+      flushList()
+      elements.push(
+        <blockquote
+          key={index}
+          className="my-2 rounded-r border-l-2 border-blue-400/70 bg-blue-500/10 px-3 py-2 text-sm text-slate-200"
+        >
+          {renderInline(line.slice(2))}
+        </blockquote>
+      )
+      return
+    }
+
+    if (line.startsWith("- ")) {
+      if (!listBuffer || listBuffer.ordered) {
+        flushList()
+        listBuffer = { ordered: false, items: [] }
+      }
+      listBuffer.items.push(line.slice(2))
+      return
+    }
+
+    if (/^\d+\.\s/.test(line)) {
+      if (!listBuffer || !listBuffer.ordered) {
+        flushList()
+        listBuffer = { ordered: true, items: [] }
+      }
+      listBuffer.items.push(line.replace(/^\d+\.\s/, ""))
+      return
+    }
+
+    if (!line.trim()) {
+      flushList()
+      elements.push(<div key={index} className="h-2" />)
+      return
+    }
+
+    flushList()
+    elements.push(
+      <p key={index} className="leading-7 text-slate-200">
+        {renderInline(line)}
+      </p>
+    )
+  })
+
+  flushList()
+  return elements
+}
+
+function sortSessions(sessions: ChatSession[]) {
+  return [...sessions].sort(
+    (a, b) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
+}
+
 export function ChatIA() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
   const hasAutoRunExecutedRef = useRef(false)
 
   const [token, setToken] = useState<string | null>(null)
   const [entitlement, setEntitlement] =
     useState<ChatEntitlementResponse | null>(null)
+
   const [simulationHistory, setSimulationHistory] = useState<
     SimulationHistoryEntry[]
   >([])
@@ -122,25 +426,22 @@ export function ChatIA() {
     useState<ReviewSummaryPayload | null>(null)
   const [reviewFlashcards, setReviewFlashcards] = useState<ReviewCard[]>([])
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: messageId(),
-      role: "assistant",
-      content:
-        "Olá. Posso responder perguntas, explicar conteúdos e também criar simulados a partir do seu comando.",
-    },
-  ])
-
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string>("")
+  const [search, setSearch] = useState("")
   const [input, setInput] = useState("")
   const [loadingEntitlement, setLoadingEntitlement] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState("")
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
 
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
     const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY)
     const rawSummary = localStorage.getItem(REVIEW_SUMMARY_KEY)
     const rawFlashcards = localStorage.getItem(REVIEW_FLASHCARDS_KEY)
+    const rawSessions = localStorage.getItem(CHAT_SESSIONS_KEY)
+    const storedActiveSessionId = localStorage.getItem(CHAT_ACTIVE_SESSION_KEY)
 
     setToken(storedToken)
 
@@ -176,7 +477,35 @@ export function ChatIA() {
         localStorage.removeItem(REVIEW_FLASHCARDS_KEY)
       }
     }
+
+    if (rawSessions) {
+      try {
+        const parsed = JSON.parse(rawSessions) as ChatSession[]
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const normalized = sortSessions(parsed)
+          setSessions(normalized)
+          setActiveSessionId(storedActiveSessionId || normalized[0].id)
+          return
+        }
+      } catch {
+        localStorage.removeItem(CHAT_SESSIONS_KEY)
+      }
+    }
+
+    const initial = buildInitialSession()
+    setSessions([initial])
+    setActiveSessionId(initial.id)
   }, [])
+
+  useEffect(() => {
+    if (!sessions.length) return
+    localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(sessions))
+  }, [sessions])
+
+  useEffect(() => {
+    if (!activeSessionId) return
+    localStorage.setItem(CHAT_ACTIVE_SESSION_KEY, activeSessionId)
+  }, [activeSessionId])
 
   useEffect(() => {
     const promptFromUrl = searchParams.get("prompt")
@@ -216,7 +545,30 @@ export function ChatIA() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, sending])
+  }, [sessions, activeSessionId, sending])
+
+  useEffect(() => {
+    if (!textareaRef.current) return
+    textareaRef.current.style.height = "auto"
+    textareaRef.current.style.height = `${Math.min(
+      textareaRef.current.scrollHeight,
+      220
+    )}px`
+  }, [input])
+
+  const activeSession = useMemo(
+    () => sessions.find((session) => session.id === activeSessionId) ?? null,
+    [sessions, activeSessionId]
+  )
+
+  const filteredSessions = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase()
+    if (!normalizedSearch) return sessions
+
+    return sessions.filter((session) =>
+      session.title.toLowerCase().includes(normalizedSearch)
+    )
+  }, [sessions, search])
 
   const canAsk = entitlement?.usage.can_ask ?? true
   const remainingToday = entitlement?.usage.remaining_today
@@ -237,24 +589,112 @@ export function ChatIA() {
     return "Plano gratuito"
   }, [entitlement, isPro, remainingToday])
 
+  const capabilitiesVisible =
+    !activeSession || activeSession.messages.length <= 1
+
+  function createNewChat(prefill?: string) {
+    const now = new Date().toISOString()
+    const newSession: ChatSession = {
+      id: sessionId(),
+      title: prefill ? extractSessionTitle(prefill) : "Nova conversa",
+      updatedAt: now,
+      messages: prefill
+        ? [
+            {
+              id: messageId(),
+              role: "assistant",
+              content: INITIAL_ASSISTANT_MESSAGE,
+              createdAt: now,
+            },
+          ]
+        : [
+            {
+              id: messageId(),
+              role: "assistant",
+              content: INITIAL_ASSISTANT_MESSAGE,
+              createdAt: now,
+            },
+          ],
+    }
+
+    setSessions((current) => sortSessions([newSession, ...current]))
+    setActiveSessionId(newSession.id)
+    setInput(prefill ?? "")
+    setError("")
+  }
+
+  function deleteSession(targetId: string) {
+    const nextSessions = sessions.filter((session) => session.id !== targetId)
+
+    if (!nextSessions.length) {
+      const initial = buildInitialSession()
+      setSessions([initial])
+      setActiveSessionId(initial.id)
+      return
+    }
+
+    setSessions(sortSessions(nextSessions))
+
+    if (activeSessionId === targetId) {
+      setActiveSessionId(nextSessions[0].id)
+    }
+  }
+
+  function handleShortcut(prompt: string) {
+    setInput(prompt)
+  }
+
+  function updateSessionMessages(
+    targetId: string,
+    updater: (session: ChatSession) => ChatSession
+  ) {
+    setSessions((current) =>
+      sortSessions(
+        current.map((session) =>
+          session.id === targetId ? updater(session) : session
+        )
+      )
+    )
+  }
+
   async function executePrompt(question: string) {
-    if (!question.trim()) return
-    if (sending) return
+    const trimmed = question.trim()
+
+    if (!trimmed || sending) return
+
+    let targetSessionId = activeSessionId
+
+    if (!targetSessionId) {
+      const initial = buildInitialSession()
+      setSessions([initial])
+      setActiveSessionId(initial.id)
+      targetSessionId = initial.id
+    }
 
     setError("")
 
     const userMessage: Message = {
       id: messageId(),
       role: "user",
-      content: question,
+      content: trimmed,
+      createdAt: new Date().toISOString(),
     }
 
-    setMessages((current) => [...current, userMessage])
+    updateSessionMessages(targetSessionId, (session) => ({
+      ...session,
+      title:
+        session.messages.filter((message) => message.role === "user").length === 0
+          ? extractSessionTitle(trimmed)
+          : session.title,
+      updatedAt: new Date().toISOString(),
+      messages: [...session.messages, userMessage],
+    }))
+
     setInput("")
     setSending(true)
 
     try {
-      const response = await sendChatMessage(question, token)
+      const response = await sendChatMessage(trimmed, token)
 
       setEntitlement({
         authenticated: response.access.authenticated,
@@ -266,14 +706,18 @@ export function ChatIA() {
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.access.user))
       }
 
-      setMessages((current) => [
-        ...current,
-        {
-          id: messageId(),
-          role: "assistant",
-          content: response.content,
-        },
-      ])
+      const assistantMessage: Message = {
+        id: messageId(),
+        role: "assistant",
+        content: response.content,
+        createdAt: new Date().toISOString(),
+      }
+
+      updateSessionMessages(targetSessionId, (session) => ({
+        ...session,
+        updatedAt: new Date().toISOString(),
+        messages: [...session.messages, assistantMessage],
+      }))
 
       if (
         response.kind === "action" &&
@@ -289,32 +733,42 @@ export function ChatIA() {
           JSON.stringify(simulation)
         )
 
-        setMessages((current) => [
-          ...current,
-          {
-            id: messageId(),
-            role: "assistant",
-            content:
-              "Simulado criado com sucesso. Vou te encaminhar para a área de resolução agora.",
-          },
-        ])
+        const finalMessage: Message = {
+          id: messageId(),
+          role: "assistant",
+          content:
+            "Simulado criado com sucesso. Vou te encaminhar para a área de resolução agora.",
+          createdAt: new Date().toISOString(),
+        }
+
+        updateSessionMessages(targetSessionId, (session) => ({
+          ...session,
+          updatedAt: new Date().toISOString(),
+          messages: [...session.messages, finalMessage],
+        }))
 
         router.push("/dashboard/simulados/resolver")
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : "Erro inesperado ao enviar mensagem."
+        err instanceof Error
+          ? err.message
+          : "Erro inesperado ao enviar mensagem."
 
       setError(message)
 
-      setMessages((current) => [
-        ...current,
-        {
-          id: messageId(),
-          role: "assistant",
-          content: message,
-        },
-      ])
+      const errorMessage: Message = {
+        id: messageId(),
+        role: "assistant",
+        content: message,
+        createdAt: new Date().toISOString(),
+      }
+
+      updateSessionMessages(targetSessionId, (session) => ({
+        ...session,
+        updatedAt: new Date().toISOString(),
+        messages: [...session.messages, errorMessage],
+      }))
     } finally {
       setSending(false)
     }
@@ -330,307 +784,614 @@ export function ChatIA() {
     if (loadingEntitlement) return
     if (!canAsk) return
     if (sending) return
+    if (!activeSessionId) return
 
     hasAutoRunExecutedRef.current = true
     void executePrompt(promptFromUrl)
-  }, [searchParams, loadingEntitlement, canAsk, sending])
+  }, [
+    searchParams,
+    loadingEntitlement,
+    canAsk,
+    sending,
+    activeSessionId,
+  ])
 
   async function handleSubmit() {
-    const question = input.trim()
-    if (!question || sending) return
-    await executePrompt(question)
+    if (!input.trim() || sending) return
+    await executePrompt(input)
   }
 
-  function handleQuickPrompt(prompt: string) {
-    setInput(prompt)
+  async function copyMessage(message: Message) {
+    await navigator.clipboard.writeText(message.content)
+    setCopiedMessageId(message.id)
+    setTimeout(() => setCopiedMessageId(null), 1800)
   }
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-              <Sparkles className="size-4" />
-              Chat IA operacional
+    <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+      <aside className="overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
+        <div className="border-b border-white/10 p-4">
+          <button
+            type="button"
+            onClick={() => createNewChat()}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95"
+          >
+            <Plus className="size-4" />
+            Nova conversa
+          </button>
+
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar conversas..."
+              className="h-10 w-full rounded-2xl border border-white/10 bg-[#020b18] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500/40"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-5 p-4">
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Atalhos de estudo
+              </h3>
+              <Sparkles className="size-3.5 text-blue-300" />
             </div>
 
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-              Pergunte, peça explicações ou crie simulados por comando
-            </h1>
-
-            <p className="mt-4 text-lg leading-8 text-slate-300">
-              Exemplos: explicar um conteúdo, resumir um tema ou criar um
-              simulado em linguagem natural.
-            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {SHORTCUTS.map((shortcut) => (
+                <button
+                  key={shortcut.label}
+                  type="button"
+                  onClick={() => handleShortcut(shortcut.prompt)}
+                  className="group rounded-2xl border border-white/10 bg-[#020b18] p-3 text-left transition hover:border-blue-500/30 hover:bg-white/[0.04]"
+                >
+                  <div className="flex size-8 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20">
+                    <shortcut.icon className="size-4" />
+                  </div>
+                  <div className="mt-3 text-xs font-medium text-white">
+                    {shortcut.label}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="grid w-full gap-4 xl:max-w-[360px]">
-            <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-              <p className="text-sm text-slate-400">Uso do chat</p>
-              <div className="mt-2 text-2xl font-bold text-white">
-                {loadingEntitlement ? "Carregando..." : usageLabel}
-              </div>
-
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                {isPro
-                  ? "Seu plano PRO está ativo no chat."
-                  : "O plano free possui limite diário de perguntas no chat."}
-              </p>
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Conversas
+              </h3>
+              <History className="size-3.5 text-slate-500" />
             </div>
 
-            {latestSimulation ? (
-              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <BarChart3 className="size-5 text-blue-300" />
-                  </div>
+            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+              {filteredSessions.map((session) => {
+                const active = session.id === activeSessionId
 
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-lg font-semibold text-white">
-                      Último resultado
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">
-                      {latestSimulation.title}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-400">
-                      {latestSimulation.score_percentage.toFixed(1)}% •{" "}
-                      {formatLocalDate(latestSimulation.saved_at)}
-                    </p>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Link
-                        href="/dashboard/simulados"
-                        className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                      >
-                        Continuar treinando
-                      </Link>
-
-                      <Link
-                        href="/dashboard"
-                        className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                      >
-                        Ver dashboard
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : null}
-
-            {(reviewSummary || reviewFlashcards.length > 0) && (
-              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <GraduationCap className="size-5 text-blue-300" />
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-lg font-semibold text-white">
-                      Área de Estudo pronta
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">
-                      Seus materiais de revisão já estão organizados.
-                    </p>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="text-sm text-slate-400">Resumo</div>
-                        <div className="mt-1 text-base font-semibold text-white">
-                          {reviewSummary ? "Disponível" : "Não"}
-                        </div>
-                      </div>
-
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="text-sm text-slate-400">Flashcards</div>
-                        <div className="mt-1 text-base font-semibold text-white">
-                          {reviewFlashcards.length}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Link
-                        href="/dashboard/estudo"
-                        className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                      >
-                        Ir para Área de Estudo
-                      </Link>
-
-                      {reviewFlashcards.length > 0 ? (
-                        <Link
-                          href="/dashboard/flashcards"
-                          className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                return (
+                  <div
+                    key={session.id}
+                    className={`group rounded-2xl border px-3 py-3 transition ${
+                      active
+                        ? "border-blue-500/30 bg-blue-500/10"
+                        : "border-white/10 bg-[#020b18] hover:border-white/15 hover:bg-white/[0.04]"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setActiveSessionId(session.id)}
+                      className="w-full text-left"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl ${
+                            active
+                              ? "bg-blue-500/20 text-blue-300"
+                              : "bg-white/5 text-slate-400"
+                          }`}
                         >
-                          <Layers3 className="size-4" />
-                          Flashcards
-                        </Link>
-                      ) : null}
+                          <MessageSquare className="size-4" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-white">
+                            {session.title}
+                          </div>
+                          <div className="mt-1 text-xs text-slate-400">
+                            {formatLocalDate(session.updatedAt)}
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+
+                    {sessions.length > 1 ? (
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => deleteSession(session.id)}
+                          className="rounded-xl px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-4">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 flex size-9 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-200">
+                <Lock className="size-4" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
+                  Plano atual
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {isPro ? "PRO" : "FREE"}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-amber-100">
+                  {isPro
+                    ? "Seu chat já está com recursos ampliados."
+                    : "Desbloqueie insights, uso ampliado e experiência premium."}
+                </p>
+                {!isPro ? (
+                  <Link
+                    href="/pricing"
+                    className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  >
+                    Ver plano Pro
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
+        <div className="border-b border-white/10 px-5 py-4 md:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
+                  <Bot className="size-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-semibold text-white md:text-xl">
+                      {activeSession?.title || "Chat IA"}
+                    </h1>
+                    <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
+                      beta
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-400">
+                    Tire dúvidas, gere materiais e use IA aplicada ao seu estudo.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="hidden rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 md:block">
+              {loadingEntitlement ? "Carregando..." : usageLabel}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="flex min-h-[760px] flex-col">
+            <div className="flex-1 overflow-y-auto px-4 py-5 md:px-6">
+              {capabilitiesVisible ? (
+                <div className="mx-auto max-w-4xl space-y-10 pb-6">
+                  <div className="space-y-4 text-center">
+                    <div className="relative inline-flex">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#2f7cff] to-cyan-400 opacity-40 blur-2xl" />
+                      <div className="relative flex size-16 items-center justify-center rounded-[24px] bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_20px_60px_-20px_rgba(59,130,246,0.95)]">
+                        <Sparkles className="size-8" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <h2 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+                        Como posso ajudar nos seus estudos hoje?
+                      </h2>
+                      <p className="mx-auto mt-3 max-w-2xl text-base leading-8 text-slate-300">
+                        Tire dúvidas, peça resumos, gere questões, monte
+                        cronogramas ou crie simulados em linguagem natural.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    {CAPABILITIES.map((capability) => (
+                      <div
+                        key={capability.title}
+                        className="rounded-2xl border border-white/10 bg-[#020b18] p-4 transition hover:border-blue-500/30 hover:bg-white/[0.04]"
+                      >
+                        <div className="mb-3 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20">
+                          <capability.icon className="size-4" />
+                        </div>
+                        <h3 className="text-sm font-semibold text-white">
+                          {capability.title}
+                        </h3>
+                        <p className="mt-2 text-sm leading-6 text-slate-400">
+                          {capability.description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+                      <Sparkles className="size-4 text-blue-300" />
+                      Sugestões para começar
+                    </h3>
+
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {QUICK_PROMPTS.map((item) => (
+                        <button
+                          key={item.prompt}
+                          type="button"
+                          onClick={() => handleShortcut(item.prompt)}
+                          className="group rounded-2xl border border-white/10 bg-[#020b18] p-4 text-left transition hover:border-blue-500/30 hover:bg-white/[0.04]"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/20">
+                              <item.icon className="size-4" />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="text-sm font-semibold text-white">
+                                  {item.label}
+                                </div>
+                                <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
+                                  {item.hint}
+                                </span>
+                              </div>
+
+                              <p className="mt-2 text-sm leading-6 text-slate-300">
+                                {item.prompt}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              ) : null}
 
-            {bestSimulationScore !== null ? (
-              <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-                <p className="text-sm text-slate-400">Melhor nota recente</p>
-                <div className="mt-2 text-2xl font-bold text-white">
-                  {bestSimulationScore.toFixed(1)}%
-                </div>
-                <p className="mt-3 text-sm text-slate-300">
-                  Histórico local aproveitado pelo chat para manter contexto de estudo.
-                </p>
-              </div>
-            ) : null}
+              <div className={`${capabilitiesVisible ? "mt-10" : ""} mx-auto max-w-4xl space-y-5`}>
+                {activeSession?.messages.map((message) => {
+                  if (message.role === "user") {
+                    return (
+                      <div key={message.id} className="flex justify-end">
+                        <div className="max-w-[88%] md:max-w-[76%]">
+                          <div className="rounded-3xl rounded-br-md bg-gradient-to-br from-[#2f7cff] to-blue-500 px-4 py-3 text-sm leading-7 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
+                            {message.content}
+                          </div>
+                          <div className="mt-1 pr-2 text-right text-[11px] text-slate-500">
+                            {formatTime(message.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
 
-            {!isPro ? (
-              <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
-                    <Lock className="size-5 text-amber-200" />
+                  return (
+                    <div key={message.id} className="flex justify-start">
+                      <div className="max-w-[92%] md:max-w-[84%]">
+                        <div className="mb-2 flex items-center gap-2">
+                          <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
+                            <Bot className="size-4" />
+                          </div>
+                          <div className="text-xs font-semibold text-white">
+                            StudyPro IA
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            {formatTime(message.createdAt)}
+                          </div>
+                        </div>
+
+                        <div className="rounded-3xl rounded-tl-md border border-white/10 bg-[#020b18] px-4 py-4 text-sm shadow-sm">
+                          <div className="space-y-1">{renderContent(message.content)}</div>
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => copyMessage(message)}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            {copiedMessageId === message.id ? (
+                              <Check className="size-3.5 text-emerald-300" />
+                            ) : (
+                              <Copy className="size-3.5" />
+                            )}
+                            Copiar
+                          </button>
+
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <FileText className="size-3.5" />
+                            Resumo
+                          </button>
+
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <Layers3 className="size-3.5" />
+                            Flashcards
+                          </button>
+
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                          >
+                            <ListChecks className="size-3.5" />
+                            Questões
+                          </button>
+
+                          <div className="ml-auto flex items-center gap-1">
+                            <button
+                              type="button"
+                              className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                            >
+                              <ThumbsUp className="size-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                            >
+                              <ThumbsDown className="size-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {sending ? (
+                  <div className="flex justify-start">
+                    <div className="max-w-[92%] md:max-w-[84%]">
+                      <div className="mb-2 flex items-center gap-2">
+                        <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
+                          <Bot className="size-4" />
+                        </div>
+                        <div className="text-xs font-semibold text-white">
+                          StudyPro IA
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          pensando...
+                        </div>
+                      </div>
+
+                      <div className="rounded-3xl rounded-tl-md border border-white/10 bg-[#020b18] px-4 py-4">
+                        <div className="flex gap-1.5">
+                          <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:0ms]" />
+                          <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:150ms]" />
+                          <span className="size-2 animate-bounce rounded-full bg-blue-400 [animation-delay:300ms]" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                ) : null}
 
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">
-                      Upgrade do chat
-                    </h2>
-                    <p className="mt-2 text-sm leading-6 text-amber-100">
-                      Quando atingir o limite gratuito, o envio é bloqueado e o
-                      upgrade passa a ser o próximo passo.
-                    </p>
+                <div ref={bottomRef} />
+              </div>
+            </div>
+
+            <div className="border-t border-white/10 bg-[#071225] px-4 py-4 md:px-6">
+              {error ? (
+                <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                  {error}
+                </div>
+              ) : null}
+
+              {!canAsk ? (
+                <div className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm text-amber-100/80">
+                        Limite do plano gratuito
+                      </p>
+                      <h3 className="mt-1 text-lg font-semibold text-white">
+                        Você atingiu o limite diário do chat
+                      </h3>
+                    </div>
 
                     <Link
                       href="/pricing"
-                      className="mt-4 inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                      className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
                     >
-                      Desbloquear PRO
+                      Ir para o PRO
                     </Link>
                   </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </section>
+              ) : null}
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        {QUICK_PROMPTS.map((prompt) => (
-          <button
-            key={prompt}
-            type="button"
-            onClick={() => handleQuickPrompt(prompt)}
-            className="rounded-[20px] border border-white/10 bg-[#071225] px-4 py-4 text-left text-sm text-slate-300 transition hover:border-blue-500/40 hover:bg-[#09172c] hover:text-white"
-          >
-            {prompt}
-          </button>
-        ))}
-      </section>
+              <div className="rounded-[28px] border border-white/10 bg-[#020b18] p-3">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault()
+                      void handleSubmit()
+                    }
+                  }}
+                  placeholder="Pergunte qualquer coisa sobre seus estudos... (Shift + Enter para quebrar linha)"
+                  disabled={sending || !canAsk}
+                  rows={1}
+                  className="max-h-[220px] min-h-[72px] w-full resize-none bg-transparent px-2 py-2 text-sm leading-7 text-white outline-none placeholder:text-slate-500"
+                />
 
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-4 md:p-6">
-        <div className="flex h-[560px] flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto pr-2">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
-              >
-                <div
-                  className={`max-w-[88%] rounded-[24px] px-4 py-3 text-sm leading-7 md:max-w-[75%] ${
-                    message.role === "user"
-                      ? "bg-[#2f7cff] text-white"
-                      : "border border-white/10 bg-[#020b18] text-slate-200"
-                  }`}
-                >
-                  {message.content}
-                </div>
-              </div>
-            ))}
+                <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <Command className="size-3.5" />
+                      Comandos
+                    </button>
 
-            {sending ? (
-              <div className="flex justify-start">
-                <div className="inline-flex items-center gap-3 rounded-[24px] border border-white/10 bg-[#020b18] px-4 py-3 text-sm text-slate-300">
-                  <Loader2 className="size-4 animate-spin" />
-                  Processando...
-                </div>
-              </div>
-            ) : null}
-
-            <div ref={bottomRef} />
-          </div>
-
-          <div className="mt-5 space-y-3 border-t border-white/10 pt-4">
-            {error ? (
-              <div className="rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-                {error}
-              </div>
-            ) : null}
-
-            {!canAsk ? (
-              <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-sm text-amber-100/80">
-                      Limite do plano gratuito
-                    </p>
-                    <h3 className="mt-1 text-lg font-semibold text-white">
-                      Você atingiu o limite diário do chat
-                    </h3>
+                    <span className="text-xs text-slate-500">
+                      Ex.: "Crie um simulado de 10 questões de biologia do enem"
+                    </span>
                   </div>
 
-                  <Link
-                    href="/pricing"
-                    className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  <button
+                    type="button"
+                    onClick={() => void handleSubmit()}
+                    disabled={sending || !canAsk || !input.trim()}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Ir para o PRO
-                  </Link>
+                    {sending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <SendHorizonal className="size-4" />
+                    )}
+                    Enviar
+                  </button>
                 </div>
               </div>
-            ) : null}
-
-            <div className="flex flex-col gap-3 md:flex-row">
-              <textarea
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault()
-                    void handleSubmit()
-                  }
-                }}
-                placeholder="Digite sua pergunta ou peça um simulado..."
-                disabled={sending || !canAsk}
-                className="min-h-[90px] flex-1 rounded-[24px] border border-white/10 bg-[#020b18] px-4 py-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500/40"
-              />
-
-              <button
-                type="button"
-                onClick={() => void handleSubmit()}
-                disabled={sending || !canAsk || !input.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-[24px] bg-[#2f7cff] px-5 py-4 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 md:self-end"
-              >
-                {sending ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <SendHorizonal className="size-4" />
-                )}
-                Enviar
-              </button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
-              <span className="inline-flex items-center gap-1">
-                <Wand2 className="size-3.5" />
-                Pode criar simulados por comando
-              </span>
-              <span>•</span>
-              <span>
-                Exemplo: “Crie um simulado de 10 questões de biologia do enem”
-              </span>
             </div>
           </div>
+
+          <aside className="border-t border-white/10 bg-[#020b18] xl:border-l xl:border-t-0">
+            <div className="space-y-4 p-4">
+              <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+                <div className="text-sm text-slate-400">Uso do chat</div>
+                <div className="mt-2 text-2xl font-bold text-white">
+                  {loadingEntitlement ? "Carregando..." : usageLabel}
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  {isPro
+                    ? "Seu plano PRO está ativo no chat."
+                    : "O plano free possui limite diário de perguntas no chat."}
+                </p>
+              </div>
+
+              {latestSimulation ? (
+                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
+                      <BarChart3 className="size-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base font-semibold text-white">
+                        Último resultado
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        {latestSimulation.title}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {latestSimulation.score_percentage.toFixed(1)}% •{" "}
+                        {formatLocalDate(latestSimulation.saved_at)}
+                      </p>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Link
+                          href="/dashboard/simulados"
+                          className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                        >
+                          Simulados
+                        </Link>
+                        <Link
+                          href="/dashboard"
+                          className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                        >
+                          Dashboard
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {(reviewSummary || reviewFlashcards.length > 0) && (
+                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
+                      <GraduationCap className="size-5" />
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base font-semibold text-white">
+                        Área de Estudo pronta
+                      </h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-300">
+                        Seus materiais de revisão já estão organizados.
+                      </p>
+
+                      <div className="mt-4 grid gap-3 grid-cols-2">
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                          <div className="text-xs text-slate-400">Resumo</div>
+                          <div className="mt-1 text-sm font-semibold text-white">
+                            {reviewSummary ? "Disponível" : "Não"}
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                          <div className="text-xs text-slate-400">Flashcards</div>
+                          <div className="mt-1 text-sm font-semibold text-white">
+                            {reviewFlashcards.length}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Link
+                          href="/dashboard/estudo"
+                          className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                        >
+                          Área de Estudo
+                        </Link>
+
+                        {reviewFlashcards.length > 0 ? (
+                          <Link
+                            href="/dashboard/flashcards"
+                            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                          >
+                            <Layers3 className="size-4" />
+                            Flashcards
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {bestSimulationScore !== null ? (
+                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+                  <div className="text-sm text-slate-400">Melhor nota recente</div>
+                  <div className="mt-2 text-2xl font-bold text-white">
+                    {bestSimulationScore.toFixed(1)}%
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">
+                    Histórico local aproveitado pelo chat para manter contexto de estudo.
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          </aside>
         </div>
       </section>
     </div>
