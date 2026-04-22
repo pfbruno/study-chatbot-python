@@ -9,10 +9,11 @@ const plans = [
     name: "Free",
     price: "R$ 0",
     period: "/mês",
-    description: "Para testar a plataforma e começar sua preparação para o ENEM.",
+    description:
+      "Para conhecer a plataforma, começar a resolver questões e validar se o fluxo combina com sua rotina.",
     features: [
       "Acesso inicial ao StudyPro",
-      "Geração limitada de simulados",
+      "Simulados com limite diário",
       "Correção automática",
       "Dashboard básico",
     ],
@@ -24,7 +25,8 @@ const plans = [
     name: "Pro",
     price: "R$ 29",
     period: "/mês",
-    description: "Para quem quer estudar com constância e transformar prática em aprovação.",
+    description:
+      "Para quem quer estudar com constância, praticar mais e transformar dados de desempenho em evolução real.",
     features: [
       "Simulados ilimitados",
       "Mais volume de treino",
@@ -48,13 +50,13 @@ export function Pricing() {
           </span>
 
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Comece no Free. Evolua no Pro.
+            Comece grátis. Evolua quando quiser.
           </h2>
 
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            O plano gratuito serve para experimentar. O plano Pro existe para
-            quem quer acelerar a preparação para o ENEM com mais prática,
-            leitura de desempenho e menos fricção.
+            O Free permite entrar rápido na plataforma. O Pro existe para quem
+            quer mais prática, mais leitura de desempenho e um caminho mais
+            forte até a aprovação.
           </p>
         </div>
 
@@ -71,7 +73,7 @@ export function Pricing() {
               {plan.highlighted ? (
                 <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-slate-950 px-3 py-1 text-xs font-semibold text-primary">
                   <Crown className="size-3.5 fill-current" />
-                  Melhor para aprovação
+                  Melhor para evolução contínua
                 </div>
               ) : null}
 
