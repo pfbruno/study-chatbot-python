@@ -401,7 +401,7 @@ export function ChatIA() {
     textareaRef.current.style.height = "auto"
     textareaRef.current.style.height = `${Math.min(
       textareaRef.current.scrollHeight,
-      220
+      180
     )}px`
   }, [input])
 
@@ -691,7 +691,7 @@ export function ChatIA() {
 
       <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
         <div className="border-b border-white/10 px-4 py-4 md:px-6">
-          <div className="mx-auto flex w-full max-w-6xl items-center gap-3">
+          <div className="mx-auto flex w-full max-w-[1200px] items-center gap-3">
             <button
               type="button"
               onClick={() => setShowSidebar(true)}
@@ -726,7 +726,7 @@ export function ChatIA() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-[1200px]">
             {isEmptyState ? (
               <div className="mb-8">
                 <div className="mb-6 rounded-[28px] border border-white/10 bg-[#020b18] p-6">
@@ -769,7 +769,7 @@ export function ChatIA() {
                 if (message.role === "user") {
                   return (
                     <div key={message.id} className="flex justify-end">
-                      <div className="max-w-[90%] md:max-w-[75%]">
+                      <div className="max-w-[92%] md:max-w-[80%] lg:max-w-[760px]">
                         <div className="rounded-3xl rounded-br-md bg-gradient-to-br from-[#2f7cff] to-blue-500 px-5 py-4 text-sm leading-7 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
                           {message.content}
                         </div>
@@ -783,7 +783,7 @@ export function ChatIA() {
 
                 return (
                   <div key={message.id} className="flex justify-start">
-                    <div className="max-w-[94%] md:max-w-[82%]">
+                    <div className="max-w-[96%] md:max-w-[88%] lg:max-w-[900px]">
                       <div className="mb-2 flex items-center gap-2">
                         <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
                           <Bot className="size-4" />
@@ -852,7 +852,7 @@ export function ChatIA() {
 
               {sending ? (
                 <div className="flex justify-start">
-                  <div className="max-w-[94%] md:max-w-[82%]">
+                  <div className="max-w-[96%] md:max-w-[88%] lg:max-w-[900px]">
                     <div className="mb-2 flex items-center gap-2">
                       <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
                         <Bot className="size-4" />
@@ -881,8 +881,8 @@ export function ChatIA() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 bg-[#071225] px-4 py-4 md:px-6">
-          <div className="mx-auto max-w-6xl">
+        <div className="border-t border-white/10 bg-[#071225] px-4 py-3 md:px-6">
+          <div className="mx-auto max-w-[1200px]">
             {error ? (
               <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                 {error}
@@ -911,7 +911,7 @@ export function ChatIA() {
               </div>
             ) : null}
 
-            <div className="rounded-[28px] border border-white/10 bg-[#020b18] p-3 shadow-[0_-12px_40px_-24px_rgba(0,0,0,0.8)]">
+            <div className="ml-auto w-full max-w-5xl rounded-[24px] border border-white/10 bg-[#020b18] p-2.5 shadow-[0_-12px_40px_-24px_rgba(0,0,0,0.8)]">
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -925,18 +925,19 @@ export function ChatIA() {
                 placeholder="Pergunte qualquer coisa sobre seus estudos... (Shift + Enter para quebrar linha)"
                 disabled={sending || !canAsk}
                 rows={1}
-                className="max-h-[220px] min-h-[72px] w-full resize-none bg-transparent px-2 py-2 text-sm leading-7 text-white outline-none placeholder:text-slate-500"
+                className="max-h-[180px] min-h-[52px] w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-6 text-white outline-none placeholder:text-slate-500"
               />
 
-              <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="mt-1.5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
                     onClick={() => createNewChat()}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+                    className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
+                    aria-label="Nova conversa"
+                    title="Nova conversa"
                   >
-                    <Plus className="size-3.5" />
-                    Nova conversa
+                    <Plus className="size-4" />
                   </button>
 
                   <button
