@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ArrowRight, BookOpen, Brain, Target } from "lucide-react"
+import { ArrowRight, BookOpen, Brain, Target, Zap } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +8,7 @@ const stats = [
   { icon: BookOpen, value: "50+", label: "provas oficiais" },
   { icon: Target, value: "10.000+", label: "questões" },
   { icon: Brain, value: "12", label: "áreas de estudo" },
+  { icon: Zap, value: "24h", label: "acesso imediato" },
 ]
 
 export function Hero() {
@@ -18,21 +19,22 @@ export function Hero() {
       <div className="absolute right-[10%] top-32 -z-10 h-72 w-72 rounded-full bg-accent/15 blur-3xl" />
 
       <div className="container-shell">
-        <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid items-center gap-14 lg:grid-cols-[1.08fr_0.92fr]">
           <div className="max-w-3xl">
             <Badge className="rounded-full border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
               Plataforma inteligente de estudos
             </Badge>
 
             <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-7xl">
-              Conquiste sua vaga com{" "}
-              <span className="text-gradient">provas reais</span>
+              Estude com foco, pratique com{" "}
+              <span className="text-gradient">provas reais</span> e evolua com
+              clareza
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
-              Pratique com questões de vestibulares e ENEM, filtre por matéria,
-              acompanhe seu desempenho e evolua com uma experiência visual mais
-              clara, rápida e orientada a resultado.
+              Resolva provas e simulados, acompanhe seu desempenho, identifique
+              pontos fracos e transforme prática em aprovação com uma plataforma
+              feita para decisão rápida e estudo consistente.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -42,7 +44,7 @@ export function Hero() {
                 className="rounded-2xl px-6 text-sm font-semibold shadow-[0_16px_50px_-18px_rgba(59,130,246,0.85)]"
               >
                 <Link href="/register">
-                  Começar agora
+                  Criar conta grátis
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -57,7 +59,15 @@ export function Hero() {
               </Button>
             </div>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-400">
+              <span>Sem cartão para começar</span>
+              <span>•</span>
+              <span>Plano Free disponível</span>
+              <span>•</span>
+              <span>Upgrade quando quiser</span>
+            </div>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {stats.map((stat) => {
                 const Icon = stat.icon
 
@@ -143,7 +153,7 @@ export function Hero() {
             </div>
 
             <div className="absolute -bottom-4 -left-4 hidden rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary md:block">
-              Feedback instantâneo e leitura rápida do progresso
+              Prática, leitura de desempenho e próximos passos em uma única experiência
             </div>
           </div>
         </div>
