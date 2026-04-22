@@ -3,21 +3,21 @@ import { Brain, FileText, LineChart } from "lucide-react"
 const steps = [
   {
     icon: FileText,
-    title: "Escolha seu simulado",
+    title: "Escolha prova ou simulado",
     description:
-      "Monte listas por banca, ano e disciplina com navegação mais objetiva e leitura rápida.",
+      "Entre rápido no treino com provas reais, listas por tema e navegação objetiva por banca, ano e disciplina.",
   },
   {
     icon: Brain,
-    title: "Resolva com feedback imediato",
+    title: "Resolva com correção imediata",
     description:
-      "Veja desempenho, resultado e próximos passos sem sair do fluxo principal do aluno.",
+      "Veja resultado, erros e oportunidades de revisão sem sair do fluxo principal de estudo.",
   },
   {
     icon: LineChart,
-    title: "Acompanhe a evolução",
+    title: "Use os dados para evoluir",
     description:
-      "Use métricas visuais, tendências e histórico para decidir onde revisar primeiro.",
+      "Acompanhe desempenho, tendências e prioridades para estudar com mais direção e menos desperdício de tempo.",
   },
 ]
 
@@ -30,11 +30,11 @@ export function HowItWorks() {
             Como funciona
           </span>
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Fluxo simples para estudar com consistência
+            Um fluxo simples para estudar melhor
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            O objetivo desta refatoração é reduzir atrito visual e deixar o
-            percurso do aluno mais previsível.
+            O StudyPro foi pensado para reduzir atrito, acelerar a prática e
+            transformar desempenho em plano de ação.
           </p>
         </div>
 
