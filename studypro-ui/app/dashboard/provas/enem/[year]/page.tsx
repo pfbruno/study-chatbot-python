@@ -16,6 +16,7 @@ import {
   Map,
   Menu,
   MessageSquare,
+  PauseCircle,
   Play,
   RefreshCw,
   ScrollText,
@@ -111,6 +112,8 @@ type SavedProgress = {
   hasStarted?: boolean
   reviewFlags?: number[]
 }
+
+type ExamVisualStatus = "not_started" | "in_progress" | "finished"
 
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 const REVIEW_SUMMARY_KEY = "studypro_review_summary"
@@ -414,6 +417,19 @@ export default function ExamYearPage() {
     return Math.round((answeredCount / questions.length) * 100)
   }, [answeredCount, questions.length])
 
+  const visualStatus = useMemo<ExamVisualStatus>(() => {
+    if (!result) {
+      if (answeredCount === 0) return "not_started"
+      return "in_progress"
+    }
+
+    if (result.unanswered_count === 0) {
+      return "finished"
+    }
+
+    return "in_progress"
+  }, [answeredCount, result])
+
   const weakestSubjects = useMemo(() => {
     if (!result) return []
     return [...result.subjects_summary]
@@ -423,6 +439,10 @@ export default function ExamYearPage() {
 
   const reviewSummaryText = useMemo(() => {
     if (!result) return ""
+
+    if (visualStatus !== "finished") {
+      return "A prova ainda não foi concluída. Finalize todas as respostas para gerar um plano de revisão definitivo."
+    }
 
     if (result.correct_answers === result.total_questions - result.annulled_count) {
       return "Excelente desempenho. Seu próximo passo deve ser manutenção de desempenho com revisão leve e novo treino de consolidação."
@@ -434,10 +454,11 @@ export default function ExamYearPage() {
 
     const subjectNames = weakestSubjects.map((item) => item.subject).join(", ")
     return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, consolidar conceitos centrais e voltar para um novo treino com foco nessas disciplinas.`
-  }, [result, weakestSubjects])
+  }, [result, visualStatus, weakestSubjects])
 
   const reviewCards = useMemo<ReviewCard[]>(() => {
     if (!result) return []
+    if (visualStatus !== "finished") return []
 
     return result.results_by_question
       .filter((entry) => entry.status === "wrong" || entry.status === "blank")
@@ -461,10 +482,10 @@ export default function ExamYearPage() {
           } Revise o enunciado, as alternativas e o conteúdo-base desta disciplina.`,
         }
       })
-  }, [examYear, questions, result])
+  }, [examYear, questions, result, visualStatus])
 
   useEffect(() => {
-    if (!result) return
+    if (!result || visualStatus !== "finished") return
 
     const summaryPayload: ReviewSummaryPayload = {
       title: `${result.title} — Resumo de revisão`,
@@ -482,7 +503,7 @@ export default function ExamYearPage() {
 
     localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summaryPayload))
     localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(reviewCards))
-  }, [result, reviewCards, reviewSummaryText, weakestSubjects])
+  }, [result, reviewCards, reviewSummaryText, visualStatus, weakestSubjects])
 
   function scrollToResolver() {
     resolverRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
@@ -654,6 +675,8 @@ export default function ExamYearPage() {
 
       try {
         const remoteResult = await submitExamAnswers("enem", examYear, payload)
+        const localFallback = buildLocalResult()
+
         const normalized: ExamResult = {
           title: exam.title || `ENEM ${examYear} — Prova Oficial`,
           exam_type: "enem",
@@ -668,11 +691,11 @@ export default function ExamYearPage() {
           results_by_question:
             Array.isArray((remoteResult as any)?.results_by_question)
               ? (remoteResult as any).results_by_question
-              : buildLocalResult().results_by_question,
+              : localFallback.results_by_question,
           subjects_summary:
             Array.isArray((remoteResult as any)?.subjects_summary)
               ? (remoteResult as any).subjects_summary
-              : buildLocalResult().subjects_summary,
+              : localFallback.subjects_summary,
         }
 
         localStorage.setItem(resultStorageKey, JSON.stringify(normalized))
@@ -710,7 +733,7 @@ export default function ExamYearPage() {
     )
   }
 
-  if (result) {
+  if (result && visualStatus === "finished") {
     return (
       <div className="space-y-6">
         {warning ? (
@@ -903,12 +926,36 @@ export default function ExamYearPage() {
         </div>
       ) : null}
 
+      {result && visualStatus === "in_progress" ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Correção parcial carregada. A prova não foi finalizada porque ainda existem questões em branco.
+        </div>
+      ) : null}
+
       <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8">
         <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#2f7cff]/25 bg-[#2f7cff]/10 px-4 py-2 text-sm text-[#79a6ff]">
-              <FileText className="size-4" />
-              Prova oficial
+            <div
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm ${
+                visualStatus === "finished"
+                  ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                  : visualStatus === "in_progress"
+                  ? "border border-amber-500/20 bg-amber-500/10 text-amber-200"
+                  : "border border-[#2f7cff]/25 bg-[#2f7cff]/10 text-[#79a6ff]"
+              }`}
+            >
+              {visualStatus === "finished" ? (
+                <CheckCircle2 className="size-4" />
+              ) : visualStatus === "in_progress" ? (
+                <PauseCircle className="size-4" />
+              ) : (
+                <FileText className="size-4" />
+              )}
+              {visualStatus === "finished"
+                ? "Prova finalizada"
+                : visualStatus === "in_progress"
+                ? "Prova em andamento"
+                : "Prova oficial"}
             </div>
 
             <h1 className="mt-6 text-5xl font-bold tracking-tight text-white">
@@ -923,6 +970,15 @@ export default function ExamYearPage() {
               <InfoCard label="Ano" value={String(exam.year || examYear)} />
               <InfoCard label="Questões" value={String(exam.question_count || questions.length)} />
             </div>
+
+            {result && visualStatus === "in_progress" ? (
+              <div className="mt-8 grid gap-4 md:grid-cols-4">
+                <StatCard label="Respondidas" value={String(answeredCount)} />
+                <StatCard label="Acertos parciais" value={String(result.correct_answers)} />
+                <StatCard label="Erros parciais" value={String(result.wrong_answers)} />
+                <StatCard label="Em branco" value={String(result.unanswered_count)} />
+              </div>
+            ) : null}
 
             <div className="mt-8 flex flex-col gap-3 md:flex-row">
               <button
@@ -961,22 +1017,28 @@ export default function ExamYearPage() {
                 />
                 <ResourceRow label="Comentários por IA" available />
                 <ResourceRow label="Análise por disciplina" available />
-                <ResourceRow label="Geração de flashcards" available />
+                <ResourceRow label="Geração de flashcards" available={visualStatus === "finished"} />
               </div>
             </section>
 
             <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
               <h2 className="text-3xl font-bold tracking-tight text-white">
-                Sua revisão já está pronta
+                Sua revisão
               </h2>
               <p className="mt-2 text-base text-[#7ea0d6]">
-                Conecte o resultado à sua área de estudo
+                {visualStatus === "finished"
+                  ? "Conecte o resultado à sua área de estudo"
+                  : "Finalize a prova para liberar revisão completa e materiais automáticos"}
               </p>
 
               <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <Link
                   href="/dashboard/flashcards"
-                  className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
+                  className={`rounded-[24px] border p-5 transition ${
+                    visualStatus === "finished"
+                      ? "border-white/10 bg-[#12244a] hover:border-[#2f7cff]/40"
+                      : "border-white/10 bg-white/5 opacity-70"
+                  }`}
                 >
                   <div className="text-2xl font-bold text-white">Gerar flashcards</div>
                   <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
@@ -986,7 +1048,11 @@ export default function ExamYearPage() {
 
                 <Link
                   href="/dashboard/resumos"
-                  className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-emerald-500/30"
+                  className={`rounded-[24px] border p-5 transition ${
+                    visualStatus === "finished"
+                      ? "border-white/10 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(14,35,71,0.7))] hover:border-emerald-500/30"
+                      : "border-white/10 bg-white/5 opacity-70"
+                  }`}
                 >
                   <div className="text-2xl font-bold text-white">Resumo personalizado</div>
                   <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
@@ -996,7 +1062,11 @@ export default function ExamYearPage() {
 
                 <Link
                   href="/dashboard/estudo"
-                  className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(168,85,247,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-purple-500/30"
+                  className={`rounded-[24px] border p-5 transition ${
+                    visualStatus === "finished"
+                      ? "border-white/10 bg-[linear-gradient(135deg,_rgba(168,85,247,0.14),_rgba(14,35,71,0.7))] hover:border-purple-500/30"
+                      : "border-white/10 bg-white/5 opacity-70"
+                  }`}
                 >
                   <div className="text-2xl font-bold text-white">Mapa mental</div>
                   <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
@@ -1059,7 +1129,7 @@ export default function ExamYearPage() {
                     disabled={submitting}
                     className="rounded-2xl bg-emerald-400 px-5 py-3 text-lg font-semibold text-[#071225] transition hover:opacity-90 disabled:opacity-60"
                   >
-                    {submitting ? "Corrigindo..." : "Finalizar"}
+                    {submitting ? "Corrigindo..." : visualStatus === "finished" ? "Recalcular" : "Corrigir agora"}
                   </button>
                 </div>
               </div>
