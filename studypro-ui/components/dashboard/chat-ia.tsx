@@ -16,6 +16,7 @@ import {
   Loader2,
   Lock,
   MessageSquare,
+  PanelRight,
   Plus,
   Search,
   SendHorizonal,
@@ -136,14 +137,6 @@ const SHORTCUTS = [
     label: "Montar cronograma",
     prompt: "Monte um cronograma de estudos semanal para:",
   },
-  {
-    label: "Gerar flashcards",
-    prompt: "Crie 10 flashcards (pergunta/resposta) sobre:",
-  },
-  {
-    label: "Revisar erros",
-    prompt: "Quero revisar meus erros recentes em:",
-  },
 ]
 
 function messageId() {
@@ -157,9 +150,7 @@ function sessionId() {
 function formatLocalDate(value: string) {
   const date = new Date(value)
 
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
+  if (Number.isNaN(date.getTime())) return value
 
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
@@ -170,9 +161,7 @@ function formatLocalDate(value: string) {
 function formatTime(value: string) {
   const date = new Date(value)
 
-  if (Number.isNaN(date.getTime())) {
-    return "--:--"
-  }
+  if (Number.isNaN(date.getTime())) return "--:--"
 
   return new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
@@ -202,6 +191,13 @@ function extractSessionTitle(input: string) {
   const normalized = input.trim()
   if (!normalized) return "Nova conversa"
   return normalized.length > 48 ? `${normalized.slice(0, 48)}...` : normalized
+}
+
+function sortSessions(sessions: ChatSession[]) {
+  return [...sessions].sort(
+    (a, b) =>
+      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  )
 }
 
 function renderInline(text: string) {
@@ -335,13 +331,6 @@ function renderContent(content: string) {
 
   flushList()
   return elements
-}
-
-function sortSessions(sessions: ChatSession[]) {
-  return [...sessions].sort(
-    (a, b) =>
-      new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  )
 }
 
 export function ChatIA() {
@@ -531,8 +520,7 @@ export function ChatIA() {
     return "Plano gratuito"
   }, [entitlement, isPro, remainingToday])
 
-  const isEmptyState =
-    !activeSession || activeSession.messages.length <= 1
+  const isEmptyState = !activeSession || activeSession.messages.length <= 1
 
   function createNewChat(prefill?: string) {
     const now = new Date().toISOString()
@@ -745,7 +733,7 @@ export function ChatIA() {
             onClick={() => setShowMobileSidebar(false)}
             aria-label="Fechar painel lateral"
           />
-          <div className="absolute inset-y-0 left-0 w-[92vw] max-w-[360px] border-r border-white/10 bg-[#071225] shadow-2xl">
+          <div className="absolute inset-y-0 left-0 w-[92vw] max-w-[340px] border-r border-white/10 bg-[#071225] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
               <div className="text-sm font-semibold text-white">Conversas</div>
               <button
@@ -774,7 +762,42 @@ export function ChatIA() {
         </div>
       ) : null}
 
-      <div className="grid h-full gap-5 xl:grid-cols-[320px_minmax(0,1fr)_300px]">
+      {showRightPanel ? (
+        <div className="fixed inset-0 z-40 bg-black/60 xl:hidden">
+          <button
+            type="button"
+            className="absolute inset-0"
+            onClick={() => setShowRightPanel(false)}
+            aria-label="Fechar painel direito"
+          />
+          <div className="absolute inset-y-0 right-0 w-[92vw] max-w-[320px] border-l border-white/10 bg-[#020b18] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+              <div className="text-sm font-semibold text-white">Painel</div>
+              <button
+                type="button"
+                onClick={() => setShowRightPanel(false)}
+                className="inline-flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="h-[calc(100%-73px)] overflow-y-auto p-4">
+              <RightPanel
+                loadingEntitlement={loadingEntitlement}
+                usageLabel={usageLabel}
+                isPro={isPro}
+                latestSimulation={latestSimulation}
+                reviewSummary={reviewSummary}
+                reviewFlashcards={reviewFlashcards}
+                bestSimulationScore={bestSimulationScore}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="grid h-full gap-5 xl:grid-cols-[260px_minmax(0,1.65fr)_240px]">
         <aside className="hidden h-full overflow-hidden rounded-[28px] border border-white/10 bg-[#071225] xl:block">
           <div className="h-full overflow-y-auto p-4">
             <LeftPanel
@@ -820,27 +843,31 @@ export function ChatIA() {
                 </p>
               </div>
 
+              <div className="hidden rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 md:block xl:hidden">
+                {loadingEntitlement ? "Carregando..." : usageLabel}
+              </div>
+
               <button
                 type="button"
-                onClick={() => setShowRightPanel((prev) => !prev)}
+                onClick={() => setShowRightPanel(true)}
                 className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 xl:hidden"
               >
-                <BarChart3 className="size-4" />
+                <PanelRight className="size-4" />
               </button>
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
             {isEmptyState ? (
-              <div className="mx-auto max-w-3xl">
+              <div className="mx-auto max-w-4xl">
                 <div className="mb-6 rounded-[28px] border border-white/10 bg-[#020b18] p-6">
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div className="max-w-xl">
+                    <div className="max-w-2xl">
                       <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-300">
                         <Sparkles className="size-3.5" />
                         Início rápido
                       </div>
-                      <h2 className="mt-4 text-2xl font-bold text-white">
+                      <h2 className="mt-4 text-2xl font-bold text-white md:text-3xl">
                         Como posso ajudar nos seus estudos hoje?
                       </h2>
                       <p className="mt-2 text-sm leading-7 text-slate-300">
@@ -872,12 +899,12 @@ export function ChatIA() {
               </div>
             ) : null}
 
-            <div className={`${isEmptyState ? "mt-8" : ""} mx-auto max-w-3xl space-y-5`}>
+            <div className={`${isEmptyState ? "mt-8" : ""} mx-auto max-w-4xl space-y-5`}>
               {activeSession?.messages.map((message) => {
                 if (message.role === "user") {
                   return (
                     <div key={message.id} className="flex justify-end">
-                      <div className="max-w-[88%] md:max-w-[76%]">
+                      <div className="max-w-[88%] md:max-w-[72%]">
                         <div className="rounded-3xl rounded-br-md bg-gradient-to-br from-[#2f7cff] to-blue-500 px-4 py-3 text-sm leading-7 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
                           {message.content}
                         </div>
@@ -891,7 +918,7 @@ export function ChatIA() {
 
                 return (
                   <div key={message.id} className="flex justify-start">
-                    <div className="max-w-[92%] md:max-w-[84%]">
+                    <div className="max-w-[94%] md:max-w-[84%]">
                       <div className="mb-2 flex items-center gap-2">
                         <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
                           <Bot className="size-4" />
@@ -960,7 +987,7 @@ export function ChatIA() {
 
               {sending ? (
                 <div className="flex justify-start">
-                  <div className="max-w-[92%] md:max-w-[84%]">
+                  <div className="max-w-[94%] md:max-w-[84%]">
                     <div className="mb-2 flex items-center gap-2">
                       <div className="flex size-9 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2f7cff] to-cyan-400 text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)]">
                         <Bot className="size-4" />
@@ -988,15 +1015,15 @@ export function ChatIA() {
             </div>
           </div>
 
-          <div className="border-t border-white/10 bg-[#071225] px-4 py-4 md:px-5">
+          <div className="border-t border-white/10 bg-[#071225] px-4 py-4 md:px-6">
             {error ? (
-              <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              <div className="mx-auto mb-3 max-w-4xl rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                 {error}
               </div>
             ) : null}
 
             {!canAsk ? (
-              <div className="mb-3 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-4">
+              <div className="mx-auto mb-3 max-w-4xl rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="text-sm text-amber-100/80">
@@ -1017,208 +1044,78 @@ export function ChatIA() {
               </div>
             ) : null}
 
-            <div className="mx-auto max-w-3xl rounded-[28px] border border-white/10 bg-[#020b18] p-3">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.shiftKey) {
-                    event.preventDefault()
-                    void handleSubmit()
-                  }
-                }}
-                placeholder="Pergunte qualquer coisa sobre seus estudos... (Shift + Enter para quebrar linha)"
-                disabled={sending || !canAsk}
-                rows={1}
-                className="max-h-[220px] min-h-[72px] w-full resize-none bg-transparent px-2 py-2 text-sm leading-7 text-white outline-none placeholder:text-slate-500"
-              />
+            <div className="sticky bottom-0 mx-auto max-w-4xl">
+              <div className="rounded-[28px] border border-white/10 bg-[#020b18] p-3 shadow-[0_-12px_40px_-24px_rgba(0,0,0,0.8)]">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey) {
+                      event.preventDefault()
+                      void handleSubmit()
+                    }
+                  }}
+                  placeholder="Pergunte qualquer coisa sobre seus estudos... (Shift + Enter para quebrar linha)"
+                  disabled={sending || !canAsk}
+                  rows={1}
+                  className="max-h-[220px] min-h-[72px] w-full resize-none bg-transparent px-2 py-2 text-sm leading-7 text-white outline-none placeholder:text-slate-500"
+                />
 
-              <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <Command className="size-3.5" />
+                      Comandos
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleShortcut(
+                          "Crie um simulado de 10 questões de biologia do enem"
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <Wand2 className="size-3.5" />
+                      Exemplo rápido
+                    </button>
+                  </div>
+
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    onClick={() => void handleSubmit()}
+                    disabled={sending || !canAsk || !input.trim()}
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <Command className="size-3.5" />
-                    Comandos
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleShortcut("Crie um simulado de 10 questões de biologia do enem")}
-                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                  >
-                    <Wand2 className="size-3.5" />
-                    Exemplo rápido
+                    {sending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <SendHorizonal className="size-4" />
+                    )}
+                    Enviar
                   </button>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => void handleSubmit()}
-                  disabled={sending || !canAsk || !input.trim()}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {sending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <SendHorizonal className="size-4" />
-                  )}
-                  Enviar
-                </button>
               </div>
             </div>
           </div>
         </section>
 
-        <aside
-          className={`${
-            showRightPanel ? "fixed inset-y-0 right-0 z-30 w-[92vw] max-w-[320px] bg-[#020b18] shadow-2xl xl:static xl:w-auto xl:bg-transparent xl:shadow-none" : "hidden"
-          } xl:block`}
-        >
-          <div className="h-full overflow-y-auto rounded-[28px] border border-white/10 bg-[#020b18] p-4">
-            <div className="mb-4 flex items-center justify-between xl:hidden">
-              <div className="text-sm font-semibold text-white">Painel</div>
-              <button
-                type="button"
-                onClick={() => setShowRightPanel(false)}
-                className="inline-flex size-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300"
-              >
-                <X className="size-4" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
-                <div className="text-sm text-slate-400">Uso do chat</div>
-                <div className="mt-2 text-2xl font-bold text-white">
-                  {loadingEntitlement ? "Carregando..." : usageLabel}
-                </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  {isPro
-                    ? "Seu plano PRO está ativo no chat."
-                    : "O plano free possui limite diário de perguntas no chat."}
-                </p>
-              </div>
-
-              {(reviewSummary || reviewFlashcards.length > 0) && (
-                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
-                      <Brain className="size-5" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-semibold text-white">
-                        Área de Estudo pronta
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        Seus materiais de revisão já estão organizados.
-                      </p>
-
-                      <div className="mt-4 grid grid-cols-2 gap-3">
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                          <div className="text-xs text-slate-400">Resumo</div>
-                          <div className="mt-1 text-sm font-semibold text-white">
-                            {reviewSummary ? "Disponível" : "Não"}
-                          </div>
-                        </div>
-
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                          <div className="text-xs text-slate-400">Flashcards</div>
-                          <div className="mt-1 text-sm font-semibold text-white">
-                            {reviewFlashcards.length}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Link
-                          href="/dashboard/estudo"
-                          className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                        >
-                          Área de Estudo
-                        </Link>
-
-                        {reviewFlashcards.length > 0 ? (
-                          <Link
-                            href="/dashboard/flashcards"
-                            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
-                          >
-                            <Layers3 className="size-4" />
-                            Flashcards
-                          </Link>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {latestSimulation ? (
-                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
-                      <BarChart3 className="size-5" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-semibold text-white">
-                        Último resultado
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-300">
-                        {latestSimulation.title}
-                      </p>
-                      <p className="mt-1 text-sm text-slate-400">
-                        {latestSimulation.score_percentage.toFixed(1)}% •{" "}
-                        {formatLocalDate(latestSimulation.saved_at)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {bestSimulationScore !== null ? (
-                <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
-                  <div className="text-sm text-slate-400">Melhor nota recente</div>
-                  <div className="mt-2 text-2xl font-bold text-white">
-                    {bestSimulationScore.toFixed(1)}%
-                  </div>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">
-                    Histórico local usado como apoio para continuidade do estudo.
-                  </p>
-                </div>
-              ) : null}
-
-              {!isPro ? (
-                <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex size-9 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-200">
-                      <Lock className="size-4" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
-                        Upgrade
-                      </div>
-                      <div className="mt-2 text-lg font-semibold text-white">
-                        Plano Pro
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-amber-100">
-                        Desbloqueie uso ampliado, insights e experiência premium.
-                      </p>
-                      <Link
-                        href="/pricing"
-                        className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                      >
-                        Ver plano Pro
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
+        <aside className="hidden h-full overflow-hidden rounded-[28px] border border-white/10 bg-[#020b18] xl:block">
+          <div className="h-full overflow-y-auto p-4">
+            <RightPanel
+              loadingEntitlement={loadingEntitlement}
+              usageLabel={usageLabel}
+              isPro={isPro}
+              latestSimulation={latestSimulation}
+              reviewSummary={reviewSummary}
+              reviewFlashcards={reviewFlashcards}
+              bestSimulationScore={bestSimulationScore}
+            />
           </div>
         </aside>
       </div>
@@ -1271,7 +1168,7 @@ function LeftPanel({
       <div>
         <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
           <Sparkles className="size-3.5" />
-          Atalhos de estudo
+          Atalhos
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -1296,7 +1193,7 @@ function LeftPanel({
           Conversas
         </div>
 
-        <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+        <div className="max-h-[280px] space-y-2 overflow-y-auto pr-1">
           {sessions.map((session) => {
             const active = session.id === activeSessionId
 
@@ -1368,6 +1265,157 @@ function LeftPanel({
           >
             Ver plano Pro
           </Link>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function RightPanel({
+  loadingEntitlement,
+  usageLabel,
+  isPro,
+  latestSimulation,
+  reviewSummary,
+  reviewFlashcards,
+  bestSimulationScore,
+}: {
+  loadingEntitlement: boolean
+  usageLabel: string
+  isPro: boolean
+  latestSimulation: SimulationHistoryEntry | null
+  reviewSummary: ReviewSummaryPayload | null
+  reviewFlashcards: ReviewCard[]
+  bestSimulationScore: number | null
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+        <div className="text-sm text-slate-400">Uso do chat</div>
+        <div className="mt-2 text-2xl font-bold text-white">
+          {loadingEntitlement ? "Carregando..." : usageLabel}
+        </div>
+        <p className="mt-3 text-sm leading-6 text-slate-300">
+          {isPro
+            ? "Seu plano PRO está ativo no chat."
+            : "O plano free possui limite diário de perguntas no chat."}
+        </p>
+      </div>
+
+      {(reviewSummary || reviewFlashcards.length > 0) && (
+        <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
+              <Brain className="size-5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-white">
+                Área de Estudo pronta
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Seus materiais de revisão já estão organizados.
+              </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-slate-400">Resumo</div>
+                  <div className="mt-1 text-sm font-semibold text-white">
+                    {reviewSummary ? "Disponível" : "Não"}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="text-xs text-slate-400">Flashcards</div>
+                  <div className="mt-1 text-sm font-semibold text-white">
+                    {reviewFlashcards.length}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href="/dashboard/estudo"
+                  className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                >
+                  Área de Estudo
+                </Link>
+
+                {reviewFlashcards.length > 0 ? (
+                  <Link
+                    href="/dashboard/flashcards"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                  >
+                    <Layers3 className="size-4" />
+                    Flashcards
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {latestSimulation ? (
+        <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-300">
+              <BarChart3 className="size-5" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base font-semibold text-white">
+                Último resultado
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                {latestSimulation.title}
+              </p>
+              <p className="mt-1 text-sm text-slate-400">
+                {latestSimulation.score_percentage.toFixed(1)}% •{" "}
+                {formatLocalDate(latestSimulation.saved_at)}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {bestSimulationScore !== null ? (
+        <div className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
+          <div className="text-sm text-slate-400">Melhor nota recente</div>
+          <div className="mt-2 text-2xl font-bold text-white">
+            {bestSimulationScore.toFixed(1)}%
+          </div>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Histórico local usado como apoio para continuidade do estudo.
+          </p>
+        </div>
+      ) : null}
+
+      {!isPro ? (
+        <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex size-9 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-200">
+              <Lock className="size-4" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
+                Upgrade
+              </div>
+              <div className="mt-2 text-lg font-semibold text-white">
+                Plano Pro
+              </div>
+              <p className="mt-2 text-sm leading-6 text-amber-100">
+                Desbloqueie uso ampliado, insights e experiência premium.
+              </p>
+              <Link
+                href="/pricing"
+                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              >
+                Ver plano Pro
+              </Link>
+            </div>
+          </div>
         </div>
       ) : null}
     </div>
