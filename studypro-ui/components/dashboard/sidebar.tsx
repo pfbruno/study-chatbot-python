@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Award,
   BarChart3,
   BookOpen,
   Brain,
@@ -10,9 +11,11 @@ import {
   FileText,
   GraduationCap,
   LayoutDashboard,
+  Medal,
   Menu,
   MessageSquare,
   Sparkles,
+  Swords,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -58,6 +61,25 @@ const mainItems: SidebarItem[] = [
   },
 ];
 
+const gamificationItems: SidebarItem[] = [
+  {
+    label: "Conquistas",
+    href: "/dashboard/conquistas",
+    icon: Award,
+    badge: "beta",
+  },
+  {
+    label: "Desafios",
+    href: "/dashboard/desafios",
+    icon: Swords,
+  },
+  {
+    label: "Ranking",
+    href: "/dashboard/ranking",
+    icon: Medal,
+  },
+];
+
 const secondaryItems: SidebarItem[] = [
   {
     label: "Resumos",
@@ -79,6 +101,58 @@ const secondaryItems: SidebarItem[] = [
 function isActiveRoute(pathname: string, href: string) {
   if (href === "/dashboard") return pathname === "/dashboard";
   return pathname.startsWith(href);
+}
+
+function NavSection({
+  title,
+  items,
+  pathname,
+  onNavigate,
+}: {
+  title: string;
+  items: SidebarItem[];
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div className="mb-6">
+      <div className="px-3 pb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
+        {title}
+      </div>
+
+      <nav className="space-y-1.5">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = isActiveRoute(pathname, item.href);
+
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              className={[
+                "flex items-center justify-between rounded-2xl px-3 py-3 transition",
+                active
+                  ? "bg-blue-500/15 text-white ring-1 ring-blue-500/30"
+                  : "text-slate-300 hover:bg-white/5 hover:text-white",
+              ].join(" ")}
+            >
+              <span className="flex items-center gap-3">
+                <Icon className="size-4" />
+                <span className="text-sm font-medium">{item.label}</span>
+              </span>
+
+              {item.badge ? (
+                <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
+                  {item.badge}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
+  );
 }
 
 function SidebarNav({
@@ -109,73 +183,26 @@ function SidebarNav({
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <div className="mb-6">
-          <div className="px-3 pb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-            Principal
-          </div>
+        <NavSection
+          title="Principal"
+          items={mainItems}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
 
-          <nav className="space-y-1.5">
-            {mainItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActiveRoute(pathname, item.href);
+        <NavSection
+          title="Gamificação"
+          items={gamificationItems}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={[
-                    "flex items-center justify-between rounded-2xl px-3 py-3 transition",
-                    active
-                      ? "bg-blue-500/15 text-white ring-1 ring-blue-500/30"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white",
-                  ].join(" ")}
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon className="size-4" />
-                    <span className="text-sm font-medium">{item.label}</span>
-                  </span>
-
-                  {item.badge ? (
-                    <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-300">
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div>
-          <div className="px-3 pb-2 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-            Ferramentas
-          </div>
-
-          <nav className="space-y-1.5">
-            {secondaryItems.map((item) => {
-              const Icon = item.icon;
-              const active = isActiveRoute(pathname, item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={[
-                    "flex items-center gap-3 rounded-2xl px-3 py-3 transition",
-                    active
-                      ? "bg-blue-500/15 text-white ring-1 ring-blue-500/30"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white",
-                  ].join(" ")}
-                >
-                  <Icon className="size-4" />
-                  <span className="text-sm font-medium">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+        <NavSection
+          title="Ferramentas"
+          items={secondaryItems}
+          pathname={pathname}
+          onNavigate={onNavigate}
+        />
       </div>
 
       <div className="border-t border-white/10 p-4">
@@ -185,8 +212,7 @@ function SidebarNav({
           </div>
           <div className="mt-2 text-lg font-semibold text-white">Free</div>
           <p className="mt-2 text-sm leading-6 text-amber-50/90">
-            Desbloqueie analytics avançado, simulados premium e insights
-            inteligentes.
+            Desbloqueie analytics avançado, simulados premium, ranking e evolução gamificada.
           </p>
           <Link
             href="/pricing"
