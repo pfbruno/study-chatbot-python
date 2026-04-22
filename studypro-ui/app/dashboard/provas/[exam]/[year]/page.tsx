@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import {
+  AlertTriangle,
   ArrowLeft,
   CheckCircle2,
   Clock3,
@@ -12,6 +13,7 @@ import {
   FileText,
   Flame,
   Loader2,
+  PauseCircle,
   Rocket,
   Send,
   ShieldCheck,
@@ -53,6 +55,8 @@ type ExamSubmissionResponse = {
   results_by_question: QuestionResultItem[]
 }
 
+type ExamVisualStatus = "not_started" | "in_progress" | "finished"
+
 function decodeParam(value: string) {
   return decodeURIComponent(value).trim()
 }
@@ -72,6 +76,7 @@ export default function ExamYearDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [submitError, setSubmitError] = useState("")
+  const [fallbackWarning, setFallbackWarning] = useState("")
 
   const [billing, setBilling] = useState<BillingStatusResponse | null>(null)
   const [billingLoading, setBillingLoading] = useState(true)
@@ -86,10 +91,18 @@ export default function ExamYearDetailPage() {
       try {
         setLoading(true)
         setError("")
+        setFallbackWarning("")
+
         const data = await getExamByTypeAndYear(examParam, yearParam)
         setExam(data)
         setAnswers(Array.from({ length: data.question_count }, () => null))
         setSelectedPdfUrl(data.pdfs?.[0]?.url ?? null)
+
+        if (!data.pdfs?.length) {
+          setFallbackWarning(
+            "A API publicada não retornou esta prova com PDFs em produção. O sistema exibiu os dados disponíveis da prova oficial."
+          )
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Não foi possível carregar a prova."
@@ -160,15 +173,17 @@ export default function ExamYearDetailPage() {
 
       setResult(response)
 
-      saveRecentAttempt({
-        id: `prova-${exam.exam_type}-${exam.year}-${Date.now()}`,
-        module: "provas",
-        title: exam.title,
-        scorePercentage: response.score_percentage,
-        correctAnswers: response.correct_answers,
-        totalQuestions: response.total_questions,
-        createdAt: new Date().toISOString(),
-      })
+      if (response.unanswered_count === 0) {
+        saveRecentAttempt({
+          id: `prova-${exam.exam_type}-${exam.year}-${Date.now()}`,
+          module: "provas",
+          title: exam.title,
+          scorePercentage: response.score_percentage,
+          correctAnswers: response.correct_answers,
+          totalQuestions: response.total_questions,
+          createdAt: new Date().toISOString(),
+        })
+      }
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Não foi possível corrigir a prova."
@@ -271,6 +286,45 @@ export default function ExamYearDetailPage() {
     )
   }, [result])
 
+  const visualStatus = useMemo<ExamVisualStatus>(() => {
+    if (!result) {
+      return answeredCount > 0 ? "in_progress" : "not_started"
+    }
+
+    if (result.unanswered_count === 0) {
+      return "finished"
+    }
+
+    return "in_progress"
+  }, [answeredCount, result])
+
+  const statusMeta = useMemo(() => {
+    if (visualStatus === "finished") {
+      return {
+        label: "Prova finalizada",
+        icon: <CheckCircle2 className="size-4" />,
+        className:
+          "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+      }
+    }
+
+    if (visualStatus === "in_progress") {
+      return {
+        label: "Prova em andamento",
+        icon: <PauseCircle className="size-4" />,
+        className:
+          "border-amber-500/20 bg-amber-500/10 text-amber-200",
+      }
+    }
+
+    return {
+      label: "Prova não iniciada",
+      icon: <AlertTriangle className="size-4" />,
+      className:
+        "border-white/10 bg-white/5 text-slate-300",
+    }
+  }, [visualStatus])
+
   const planLabel = billing?.user.plan?.toUpperCase() ?? "VISITANTE"
   const usageLabel =
     billing?.usage.daily_limit !== null && billing?.usage.remaining_today !== null
@@ -318,11 +372,20 @@ export default function ExamYearDetailPage() {
         Voltar para os anos
       </Link>
 
+      {fallbackWarning ? (
+        <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {fallbackWarning}
+        </section>
+      ) : null}
+
       <section className="glass-panel rounded-[32px] p-6 md:p-8">
         <div className="grid gap-8 xl:grid-cols-[1.05fr_0.95fr]">
           <div>
-            <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-              Prova selecionada
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-4 py-1 text-sm ${statusMeta.className}`}
+            >
+              {statusMeta.icon}
+              {statusMeta.label}
             </div>
 
             <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
@@ -353,6 +416,14 @@ export default function ExamYearDetailPage() {
             {!exam.has_answer_key ? (
               <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
                 Esta prova não possui gabarito disponível. A correção automática está desabilitada.
+              </div>
+            ) : visualStatus === "in_progress" ? (
+              <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                Esta prova ainda está em andamento. Enquanto houver questões em branco, o sistema exibirá apenas uma prévia parcial, não o resultado final.
+              </div>
+            ) : visualStatus === "not_started" ? (
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                Marque suas respostas e clique em <span className="font-semibold text-white">Realizar correção</span> para ver o desempenho.
               </div>
             ) : null}
           </div>
@@ -607,7 +678,7 @@ export default function ExamYearDetailPage() {
         </article>
 
         <article className="space-y-6">
-          {result ? (
+          {result && visualStatus === "finished" ? (
             <div className="glass-panel rounded-[32px] p-6">
               <div className="flex items-center gap-3">
                 <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70">
@@ -615,7 +686,7 @@ export default function ExamYearDetailPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold text-white">
-                    Resultado da correção
+                    Resultado final da correção
                   </h2>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Resumo consolidado do desempenho
@@ -633,6 +704,33 @@ export default function ExamYearDetailPage() {
                 <StatCard label="Em branco" value={String(result.unanswered_count)} />
                 <StatCard label="Anuladas" value={String(result.annulled_count)} />
                 <StatCard label="Válidas" value={String(result.valid_questions)} />
+              </div>
+            </div>
+          ) : result && visualStatus === "in_progress" ? (
+            <div className="glass-panel rounded-[32px] p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex size-12 items-center justify-center rounded-2xl border border-white/10 bg-slate-950/70">
+                  <PauseCircle className="size-5 text-amber-200" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-semibold text-white">
+                    Prévia parcial
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Ainda não é um resultado final, pois a prova tem questões em branco
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <StatCard label="Respondidas" value={String(answeredCount)} />
+                <StatCard label="Em branco" value={String(result.unanswered_count)} />
+                <StatCard label="Acertos parciais" value={String(result.correct_answers)} />
+                <StatCard label="Erros parciais" value={String(result.wrong_answers)} />
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                Finalize as respostas para liberar o desempenho final da prova.
               </div>
             </div>
           ) : null}
@@ -668,6 +766,17 @@ export default function ExamYearDetailPage() {
                 {submitError}
               </div>
             ) : null}
+
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+              Status atual:{" "}
+              <span className="font-semibold text-white">
+                {visualStatus === "finished"
+                  ? "Prova finalizada"
+                  : visualStatus === "in_progress"
+                  ? "Prova em andamento"
+                  : "Prova não iniciada"}
+              </span>
+            </div>
 
             <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {Array.from({ length: exam.question_count }, (_, index) => {
