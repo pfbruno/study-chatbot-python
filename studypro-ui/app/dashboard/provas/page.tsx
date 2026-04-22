@@ -6,15 +6,24 @@ import {
   ArrowRight,
   BookOpen,
   Calendar,
+  Crown,
   FileText,
   Filter,
   GraduationCap,
   Loader2,
+  Lock,
   Search,
+  Sparkles,
   Trophy,
 } from "lucide-react"
 
-import { getExamByTypeAndYear, type ExamDetail } from "@/lib/api"
+import {
+  AUTH_TOKEN_KEY,
+  getExamByTypeAndYear,
+  getSimulationEntitlement,
+  type ExamDetail,
+  type SimulationEntitlementResponse,
+} from "@/lib/api"
 
 type ExamListItem = {
   year: number
@@ -36,6 +45,7 @@ type InstitutionCard = {
   href: string
   gradient: string
   featured?: boolean
+  premiumBoost?: boolean
 }
 
 type ContinueCard = {
@@ -95,6 +105,7 @@ const INSTITUTIONS: InstitutionCard[] = [
     editions: 2,
     href: "/dashboard/provas/unesp",
     gradient: "from-orange-400 via-red-400 to-pink-400",
+    premiumBoost: true,
   },
 ]
 
@@ -124,16 +135,134 @@ function ProgressBar({ value }: { value: number }) {
   )
 }
 
+function PlanStatusCard({
+  entitlement,
+  loading,
+}: {
+  entitlement: SimulationEntitlementResponse | null
+  loading: boolean
+}) {
+  const isPro = entitlement?.entitlements.is_pro ?? false
+  const remaining = entitlement?.usage.remaining_today
+  const dailyLimit = entitlement?.usage.daily_limit
+
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[#081224] p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+          <Sparkles className="size-4 text-blue-300" />
+        </div>
+
+        <div>
+          <p className="text-sm text-slate-400">Plano atual</p>
+          <h3 className="text-lg font-semibold text-white">
+            {loading
+              ? "Carregando..."
+              : isPro
+              ? "PRO ativo"
+              : typeof remaining === "number" && typeof dailyLimit === "number"
+              ? `FREE · ${remaining}/${dailyLimit} geração(ões) restantes`
+              : "FREE"}
+          </h3>
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm leading-7 text-slate-300">
+        {loading
+          ? "Verificando seu acesso atual."
+          : isPro
+          ? "Seu plano já está pronto para estudar com mais continuidade, mais prática e menos fricção."
+          : "Você pode usar provas oficiais normalmente. O Pro amplia seu fluxo de treino e reduz interrupções ao longo da preparação."}
+      </p>
+
+      {!isPro ? (
+        <div className="mt-4">
+          <Link
+            href="/pricing"
+            className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+          >
+            Ver plano Pro
+          </Link>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function LightPaywallCard({ isPro }: { isPro: boolean }) {
+  if (isPro) return null
+
+  return (
+    <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
+          <Lock className="size-4 text-amber-200" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
+            Paywall leve
+          </p>
+          <h3 className="mt-2 text-lg font-semibold text-white">
+            O Free permite começar. O Pro acelera sua rotina.
+          </h3>
+          <p className="mt-3 text-sm leading-7 text-amber-100">
+            Use provas oficiais para entrar em ação agora. Quando quiser mais
+            volume, mais constância e menos travas no fluxo de estudo, avance para o Pro.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/pricing"
+              className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+            >
+              Comparar planos
+            </Link>
+
+            <Link
+              href="/dashboard/provas/enem/2022"
+              className="inline-flex rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Resolver prova oficial
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ProvasPage() {
   const [enem2022, setEnem2022] = useState<ExamListItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [warning, setWarning] = useState("")
 
+  const [entitlement, setEntitlement] =
+    useState<SimulationEntitlementResponse | null>(null)
+  const [loadingEntitlement, setLoadingEntitlement] = useState(true)
+
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("Todas")
   const [yearFilter, setYearFilter] = useState("Ano")
   const [sortFilter, setSortFilter] = useState("Mais recentes")
+
+  useEffect(() => {
+    async function loadEntitlement() {
+      try {
+        setLoadingEntitlement(true)
+        const token = localStorage.getItem(AUTH_TOKEN_KEY)
+        const data = await getSimulationEntitlement(token)
+        setEntitlement(data)
+      } catch {
+        setEntitlement(null)
+      } finally {
+        setLoadingEntitlement(false)
+      }
+    }
+
+    void loadEntitlement()
+  }, [])
 
   useEffect(() => {
     async function loadExams() {
@@ -163,6 +292,8 @@ export default function ProvasPage() {
     void loadExams()
   }, [])
 
+  const isPro = entitlement?.entitlements.is_pro ?? false
+
   const continueCard: ContinueCard | null = useMemo(() => {
     if (!enem2022) return null
 
@@ -189,12 +320,36 @@ export default function ProvasPage() {
       )
     }
 
+    if (yearFilter !== "Ano") {
+      items = items.filter((item) => item.editions >= 2)
+    }
+
+    if (statusFilter === "Disponível") {
+      items = items.filter((item) => !item.premiumBoost)
+    }
+
+    if (statusFilter === "Concluída") {
+      items = items.filter((item) => item.id === "enem")
+    }
+
+    if (statusFilter === "Em andamento") {
+      items = items.filter((item) => item.id === "fuvest")
+    }
+
     if (sortFilter === "Mais recentes") {
       items.sort((a, b) => b.editions - a.editions)
     }
 
+    if (sortFilter === "Mais antigas") {
+      items.sort((a, b) => a.editions - b.editions)
+    }
+
+    if (sortFilter === "Mais edições") {
+      items.sort((a, b) => b.editions - a.editions)
+    }
+
     return items
-  }, [search, sortFilter])
+  }, [search, sortFilter, statusFilter, yearFilter])
 
   if (loading) {
     return (
@@ -222,7 +377,7 @@ export default function ProvasPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#2f7cff]/25 bg-[#2f7cff]/10 px-4 py-2 text-sm text-[#79a6ff]">
               <FileText className="size-4" />
-              Novo · Catálogo expandido
+              Catálogo oficial + fluxo premium
             </div>
 
             <div className="mt-6 flex items-start gap-4">
@@ -235,7 +390,8 @@ export default function ProvasPage() {
                   Área de Provas
                 </h1>
                 <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-                  Resolva provas oficiais completas de vestibulares e ENEM, com gabarito, comentários e revisão integrada à sua área de estudo.
+                  Resolva provas oficiais completas de vestibulares e ENEM, com gabarito,
+                  continuidade de estudo e transição clara para recursos mais avançados.
                 </p>
               </div>
             </div>
@@ -252,7 +408,8 @@ export default function ProvasPage() {
             <p className="text-sm text-slate-400">Instituição</p>
             <div className="mt-3 text-5xl font-bold text-white">ENEM</div>
             <p className="mt-5 text-lg leading-8 text-slate-300">
-              O ENEM é a maior avaliação educacional do Brasil, aplicada anualmente pelo INEP. Resolva provas oficiais completas com gabarito, comentários e análise de desempenho por área de conhecimento.
+              O ENEM é a maior avaliação educacional do Brasil, aplicada anualmente pelo INEP.
+              Resolva provas oficiais completas com gabarito, comentários e análise de desempenho por área de conhecimento.
             </p>
 
             <div className="mt-6 flex flex-wrap gap-6 text-sm text-[#7ea0d6]">
@@ -274,6 +431,14 @@ export default function ProvasPage() {
             </Link>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <PlanStatusCard
+          entitlement={entitlement}
+          loading={loadingEntitlement}
+        />
+        <LightPaywallCard isPro={isPro} />
       </section>
 
       {warning ? (
@@ -313,12 +478,23 @@ export default function ProvasPage() {
               <ProgressBar value={continueCard.progress} />
             </div>
 
-            <Link
-              href={continueCard.href}
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
-            >
-              Continuar prova
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href={continueCard.href}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
+              >
+                Continuar prova
+              </Link>
+
+              {!isPro ? (
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 px-5 py-4 text-base font-semibold text-primary transition hover:bg-primary/15"
+                >
+                  Ver Pro para acelerar revisão
+                </Link>
+              ) : null}
+            </div>
           </div>
         </section>
       ) : null}
@@ -342,7 +518,6 @@ export default function ProvasPage() {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="h-14 w-full appearance-none rounded-2xl border border-white/10 bg-[#081224] pl-14 pr-10 text-base font-medium text-white outline-none"
             >
-              <option className="bg-[#081224]">Status</option>
               <option className="bg-[#081224]">Todas</option>
               <option className="bg-[#081224]">Disponível</option>
               <option className="bg-[#081224]">Em andamento</option>
@@ -389,53 +564,74 @@ export default function ProvasPage() {
         </div>
 
         <div className="grid gap-5 xl:grid-cols-2">
-          {filteredInstitutions.map((institution) => (
-            <Link
-              key={institution.id}
-              href={institution.href}
-              className="group overflow-hidden rounded-[28px] border border-white/10 bg-[#071225] transition hover:border-[#2f7cff]/40 hover:bg-[#0b1730]"
-            >
-              <div
-                className={`h-28 bg-gradient-to-r ${institution.gradient}`}
-              />
+          {filteredInstitutions.map((institution) => {
+            const locked = institution.premiumBoost && !isPro
 
-              <div className="relative p-6">
-                <div className="absolute right-6 top-[-18px] rounded-full bg-white/20 px-3 py-1 text-sm font-medium text-white backdrop-blur">
-                  {institution.editions} edições
-                </div>
+            return (
+              <Link
+                key={institution.id}
+                href={locked ? "/pricing" : institution.href}
+                className={`group overflow-hidden rounded-[28px] border transition ${
+                  locked
+                    ? "border-amber-500/20 bg-amber-500/10 hover:border-amber-400/40"
+                    : "border-white/10 bg-[#071225] hover:border-[#2f7cff]/40 hover:bg-[#0b1730]"
+                }`}
+              >
+                <div className={`h-28 bg-gradient-to-r ${institution.gradient}`} />
 
-                {institution.featured ? (
-                  <div className="inline-flex rounded-full bg-emerald-400/15 px-3 py-1 text-sm font-semibold text-emerald-300">
-                    Em destaque
+                <div className="relative p-6">
+                  <div className="absolute right-6 top-[-18px] rounded-full bg-white/20 px-3 py-1 text-sm font-medium text-white backdrop-blur">
+                    {institution.editions} edições
                   </div>
-                ) : null}
 
-                <div className="mt-5 text-xs uppercase tracking-[0.16em] text-[#7ea0d6]">
-                  {institution.fullName}
+                  <div className="flex items-center gap-2">
+                    {institution.featured ? (
+                      <div className="inline-flex rounded-full bg-emerald-400/15 px-3 py-1 text-sm font-semibold text-emerald-300">
+                        Em destaque
+                      </div>
+                    ) : null}
+
+                    {locked ? (
+                      <div className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-3 py-1 text-sm font-semibold text-amber-200">
+                        <Lock className="size-4" />
+                        Recurso premium
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-5 text-xs uppercase tracking-[0.16em] text-[#7ea0d6]">
+                    {institution.fullName}
+                  </div>
+
+                  <h3 className="mt-2 text-4xl font-bold tracking-tight text-white">
+                    {institution.name}
+                  </h3>
+
+                  <p className="mt-4 max-w-xl text-xl leading-8 text-[#7ea0d6]">
+                    {institution.description}
+                  </p>
+
+                  {locked ? (
+                    <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                      Disponível com prioridade no fluxo premium do StudyPro.
+                    </div>
+                  ) : null}
+
+                  <div className="mt-8 flex items-center justify-between border-t border-white/10 pt-5">
+                    <span className="inline-flex items-center gap-2 text-base text-slate-400">
+                      <BookOpen className="size-4" />
+                      Catálogo oficial
+                    </span>
+
+                    <span className="inline-flex items-center gap-2 text-xl font-semibold text-[#4b8df7] transition group-hover:translate-x-1">
+                      {locked ? "Ver plano Pro" : "Acessar"}
+                      <ArrowRight className="size-5" />
+                    </span>
+                  </div>
                 </div>
-
-                <h3 className="mt-2 text-4xl font-bold tracking-tight text-white">
-                  {institution.name}
-                </h3>
-
-                <p className="mt-4 max-w-xl text-xl leading-8 text-[#7ea0d6]">
-                  {institution.description}
-                </p>
-
-                <div className="mt-8 flex items-center justify-between border-t border-white/10 pt-5">
-                  <span className="inline-flex items-center gap-2 text-base text-slate-400">
-                    <BookOpen className="size-4" />
-                    Catálogo oficial
-                  </span>
-
-                  <span className="inline-flex items-center gap-2 text-xl font-semibold text-[#4b8df7] transition group-hover:translate-x-1">
-                    Acessar
-                    <ArrowRight className="size-5" />
-                  </span>
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            )
+          })}
         </div>
       </section>
     </div>
