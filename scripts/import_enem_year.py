@@ -112,8 +112,10 @@ def normalize_discipline(raw: str) -> str:
 
 def build_subject(question: Dict[str, Any]) -> str:
     language = (question.get("language") or "").strip().lower()
-    if language in LANGUAGE_MAP:
-        return LANGUAGE_MAP[language]
+    if language == "ingles":
+        return "Inglês"
+    if language == "espanhol":
+        return "Espanhol"
     return normalize_discipline(question.get("discipline") or "Geral")
 
 
@@ -161,6 +163,7 @@ def build_options(question: Dict[str, Any]) -> Dict[str, str]:
 
 def normalize_question(question: Dict[str, Any], year: int) -> Dict[str, Any]:
     index = int(question["index"])
+    raw_language = (question.get("language") or "").strip().lower() or None
     correct = (question.get("correctAlternative") or "").strip().upper() or None
     files = [item for item in question.get("files", []) if item]
 
@@ -176,7 +179,7 @@ def normalize_question(question: Dict[str, Any], year: int) -> Dict[str, Any]:
         "annulled": correct == "ANULADO",
         "source_pdf_label": f"ENEM {year} - Questão {index}",
         "assets": files,
-        "language": (question.get("language") or None),
+        "language": raw_language,
         "title": question.get("title"),
     }
 

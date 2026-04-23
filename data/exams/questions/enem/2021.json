@@ -8,7 +8,7 @@
   "has_answer_key": true,
   "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2021",
   "imported_from": "https://api.enem.dev/v1/exams/2021/questions",
-  "imported_at": "2026-04-23T15:07:16.110975+00:00",
+  "imported_at": "2026-04-23T15:18:47.248131+00:00",
   "questions": [
     {
       "number": 1,
