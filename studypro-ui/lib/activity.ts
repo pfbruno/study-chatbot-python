@@ -12,6 +12,8 @@ export type StoredAttempt = {
   }>
 }
 
+import { trackAttemptSaved } from "@/lib/study-events"
+
 const STORAGE_KEY = "studypro_recent_attempts"
 
 function readAttempts(): StoredAttempt[] {
@@ -39,6 +41,15 @@ export function saveRecentAttempt(attempt: StoredAttempt) {
     .slice(0, 60)
 
   writeAttempts(next)
+
+  void trackAttemptSaved({
+    module: attempt.module,
+    title: attempt.title,
+    scorePercentage: attempt.scorePercentage,
+    correctAnswers: attempt.correctAnswers,
+    totalQuestions: attempt.totalQuestions,
+    subjects: attempt.subjects,
+  })
 }
 
 export function getRecentAttemptsByModule(module: StoredAttempt["module"], limit = 4) {

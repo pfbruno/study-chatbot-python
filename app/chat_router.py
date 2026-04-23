@@ -4,7 +4,7 @@ import hashlib
 import re
 import unicodedata
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
@@ -17,7 +17,7 @@ from app.chat_limits import (
     increment_user_chat_usage,
 )
 from app.chatbot import process_question
-from app.database import get_user_by_token
+from app.database import get_user_by_token, record_hook_activity_event
 from app.repositories_gamification import (
     get_gamification_ranking,
     get_gamification_summary,
@@ -44,6 +44,47 @@ SUBJECT_MAP = {
     "redacao": "Redação",
 }
 
+ALLOWED_ACTIVITY_EVENTS = {
+    "study_goal_selected",
+    "study_session_started",
+    "study_session_completed",
+    "question_answered",
+    "question_correct",
+    "question_wrong",
+    "question_skipped",
+    "simulation_generated",
+    "simulation_started",
+    "simulation_completed",
+    "simulation_abandoned",
+    "exam_started",
+    "exam_completed",
+    "exam_corrected",
+    "flashcard_reviewed",
+    "flashcard_mastered",
+    "summary_opened",
+    "revision_session_completed",
+    "mindmap_opened",
+    "chat_question_sent",
+    "chat_study_doubt_resolved",
+    "chat_generated_simulation",
+    "chat_generated_review",
+    "study_plan_created",
+    "study_plan_completed",
+    "first_activity_of_day",
+    "streak_day_registered",
+    "streak_milestone_reached",
+    "daily_goal_completed",
+    "weekly_goal_completed",
+    "xp_earned",
+    "level_up",
+    "achievement_unlocked",
+    "challenge_completed",
+    "reward_claimed",
+    "ranking_position_improved",
+    "top10_reached",
+    "top3_reached",
+}
+
 
 class ChatMessageRequest(BaseModel):
     question: str = Field(..., min_length=1)
@@ -55,6 +96,39 @@ class ChatMessageRequest(BaseModel):
         if not normalized:
             raise ValueError("A pergunta não pode estar vazia.")
         return normalized
+
+
+class ActivityEventRequest(BaseModel):
+    event_type: str = Field(..., min_length=1, max_length=80)
+    module: str = Field(..., min_length=1, max_length=80)
+    subject: str | None = Field(default=None, max_length=120)
+    score_percentage: float | None = Field(default=None, ge=0, le=100)
+    time_spent_seconds: float | None = Field(default=None, ge=0)
+    metadata_json: dict[str, Any] | None = None
+
+    @field_validator("event_type")
+    @classmethod
+    def validate_event_type(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in ALLOWED_ACTIVITY_EVENTS:
+            raise ValueError("event_type inválido.")
+        return normalized
+
+    @field_validator("module")
+    @classmethod
+    def validate_module(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not normalized:
+            raise ValueError("module inválido.")
+        return normalized
+
+    @field_validator("subject")
+    @classmethod
+    def validate_subject(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
 
 
 def _now_utc() -> datetime:
@@ -347,6 +421,34 @@ def send_chat_message(
         "formatted_response": result["formatted_response"],
         "action": None,
         "access": access,
+    }
+
+
+@router.post("/activity/events", tags=["activity"])
+def create_activity_event(
+    payload: ActivityEventRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+
+    metadata = dict(payload.metadata_json or {})
+    metadata["module"] = payload.module
+
+    record_hook_activity_event(
+        user_id=user["id"],
+        event_type=payload.event_type,
+        subject=payload.subject,
+        score_percentage=payload.score_percentage,
+        time_spent_seconds=payload.time_spent_seconds,
+        metadata=metadata,
+    )
+
+    return {
+        "message": "Evento registrado com sucesso.",
+        "user_id": user["id"],
+        "event_type": payload.event_type,
+        "module": payload.module,
+        "created_at": _now_utc().isoformat(),
     }
 
 
