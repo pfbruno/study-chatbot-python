@@ -6,18 +6,21 @@ import {
   Crown,
   Flame,
   Layers3,
+  Loader2,
   Medal,
   Sparkles,
   Star,
   Target,
   Trophy,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { AUTH_TOKEN_KEY } from "@/lib/api";
+import { useGamificationSummary } from "@/hooks/use-gamification";
 import {
-  achievements,
-  gamificationProfile,
-  recentUnlocks,
-  weeklyEvolution,
+  achievements as fallbackAchievements,
+  gamificationProfile as fallbackProfile,
+  recentUnlocks as fallbackRecentUnlocks,
+  weeklyEvolution as fallbackWeeklyEvolution,
   type AchievementItem,
   type AchievementRarity,
   type AchievementStatus,
@@ -187,8 +190,20 @@ function AchievementCard({ item }: { item: AchievementItem }) {
 }
 
 export default function ConquistasPage() {
+  const [token, setToken] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<FilterValue>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+
+  useEffect(() => {
+    setToken(localStorage.getItem(AUTH_TOKEN_KEY));
+  }, []);
+
+  const { data, loading, error } = useGamificationSummary(token);
+
+  const profile = token ? data.profile : fallbackProfile;
+  const achievements = token && data.achievements.length > 0 ? (data.achievements as AchievementItem[]) : fallbackAchievements;
+  const recentUnlocks = token && data.recentUnlocks.length > 0 ? data.recentUnlocks : fallbackRecentUnlocks;
+  const weeklyEvolution = token && data.weeklyEvolution.length > 0 ? data.weeklyEvolution : fallbackWeeklyEvolution;
 
   const filteredAchievements = useMemo(() => {
     return achievements.filter((item) => {
@@ -196,12 +211,10 @@ export default function ConquistasPage() {
       if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
       return true;
     });
-  }, [statusFilter, categoryFilter]);
+  }, [achievements, categoryFilter, statusFilter]);
 
   const unlockedPercent = Math.round(
-    (gamificationProfile.unlockedAchievements /
-      gamificationProfile.totalAchievements) *
-      100
+    (profile.unlockedAchievements / Math.max(1, profile.totalAchievements)) * 100
   );
 
   const totalWeekXP = weeklyEvolution.reduce((acc, item) => acc + item.xp, 0);
@@ -209,6 +222,12 @@ export default function ConquistasPage() {
 
   return (
     <div className="space-y-8">
+      {error ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {error}
+        </div>
+      ) : null}
+
       <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8 shadow-[0_10px_50px_-28px_rgba(99,102,241,0.55)]">
         <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
           <div>
@@ -226,41 +245,50 @@ export default function ConquistasPage() {
             </p>
 
             <div className="mt-8 grid gap-4 md:grid-cols-4">
-              <MetricCard label="Nível" value={String(gamificationProfile.level)} />
-              <MetricCard label="Streak" value={`${gamificationProfile.streakDays} dias`} />
+              <MetricCard label="Nível" value={String(profile.level)} />
+              <MetricCard label="Streak" value={`${profile.streakDays} dias`} />
               <MetricCard
                 label="Conquistas"
-                value={`${gamificationProfile.unlockedAchievements}/${gamificationProfile.totalAchievements}`}
+                value={`${profile.unlockedAchievements}/${profile.totalAchievements}`}
               />
-              <MetricCard label="XP total" value={String(gamificationProfile.totalXP)} />
+              <MetricCard label="XP total" value={String(profile.totalXP)} />
             </div>
           </div>
 
           <div className="rounded-[28px] border border-white/10 bg-[#030b1d] p-6">
-            <p className="text-sm text-slate-400">Perfil de evolução</p>
-            <div className="mt-3 text-4xl font-bold text-white">
-              {gamificationProfile.userName}
-            </div>
-            <p className="mt-4 text-lg leading-8 text-slate-300">
-              Seu progresso gamificado mostra consistência, qualidade de treino e proximidade dos próximos desbloqueios.
-            </p>
-
-            <div className="mt-6">
-              <XPProgressBar
-                currentXP={gamificationProfile.currentXP}
-                nextLevelXP={gamificationProfile.nextLevelXP}
-              />
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">Coleção desbloqueada</span>
-                <span className="font-semibold text-white">{unlockedPercent}%</span>
+            {loading ? (
+              <div className="flex items-center gap-3 text-slate-300">
+                <Loader2 className="size-4 animate-spin" />
+                Carregando progresso real...
               </div>
-              <div className="mt-3">
-                <ProgressLine value={unlockedPercent} />
-              </div>
-            </div>
+            ) : (
+              <>
+                <p className="text-sm text-slate-400">Perfil de evolução</p>
+                <div className="mt-3 text-4xl font-bold text-white">
+                  {profile.userName}
+                </div>
+                <p className="mt-4 text-lg leading-8 text-slate-300">
+                  Seu progresso gamificado mostra consistência, qualidade de treino e proximidade dos próximos desbloqueios.
+                </p>
+
+                <div className="mt-6">
+                  <XPProgressBar
+                    currentXP={profile.currentXP}
+                    nextLevelXP={profile.nextLevelXP}
+                  />
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Coleção desbloqueada</span>
+                    <span className="font-semibold text-white">{unlockedPercent}%</span>
+                  </div>
+                  <div className="mt-3">
+                    <ProgressLine value={unlockedPercent} />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -282,7 +310,7 @@ export default function ConquistasPage() {
           </div>
 
           <div className="mt-6 text-5xl font-bold text-white">
-            {gamificationProfile.streakDays} dias
+            {profile.streakDays} dias
           </div>
 
           <p className="mt-3 text-base leading-7 text-[#7ea0d6]">
@@ -308,7 +336,7 @@ export default function ConquistasPage() {
           <div className="mt-6 text-5xl font-bold text-white">{totalWeekXP}</div>
 
           <p className="mt-3 text-base leading-7 text-[#7ea0d6]">
-            Melhor dia da semana: <span className="font-semibold text-white">{bestDay.label}</span> com {bestDay.xp} XP.
+            Melhor dia da semana: <span className="font-semibold text-white">{bestDay?.label ?? "—"}</span> com {bestDay?.xp ?? 0} XP.
           </p>
         </article>
 
@@ -404,7 +432,7 @@ export default function ConquistasPage() {
 
             <div className="mt-6 space-y-4">
               {recentUnlocks.map((item) => {
-                const rarity = rarityStyles(item.rarity);
+                const rarity = rarityStyles(item.rarity as AchievementRarity);
 
                 return (
                   <div
@@ -441,10 +469,8 @@ export default function ConquistasPage() {
 
             <div className="mt-6 space-y-4">
               {weeklyEvolution.map((point) => {
-                const percent = Math.max(
-                  8,
-                  Math.round((point.xp / Math.max(...weeklyEvolution.map((item) => item.xp))) * 100)
-                );
+                const max = Math.max(...weeklyEvolution.map((item) => item.xp), 1);
+                const percent = Math.max(8, Math.round((point.xp / max) * 100));
 
                 return (
                   <div key={point.label} className="space-y-2">

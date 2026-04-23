@@ -6,7 +6,7 @@ import unicodedata
 from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
 
 from app.chat_limits import (
@@ -18,6 +18,10 @@ from app.chat_limits import (
 )
 from app.chatbot import process_question
 from app.database import get_user_by_token
+from app.repositories_gamification import (
+    get_gamification_ranking,
+    get_gamification_summary,
+)
 
 router = APIRouter(tags=["chat"])
 
@@ -100,6 +104,13 @@ def _get_current_user(authorization: str | None) -> dict | None:
     if not token:
         return None
     return get_user_by_token(token)
+
+
+def _get_current_user_or_401(authorization: str | None) -> dict:
+    user = _get_current_user(authorization)
+    if not user:
+        raise HTTPException(status_code=401, detail="Token inválido ou expirado.")
+    return user
 
 
 def _is_pro_user(user: dict) -> bool:
@@ -251,9 +262,11 @@ def _extract_simulation_action(question: str) -> dict | None:
         if key in normalized:
             subjects.append(label)
 
-    mode: Literal["balanced", "random"] = "random" if (
-        "aleatorio" in normalized or "aleatória" in normalized or "aleatorio" in normalized
-    ) else "balanced"
+    mode: Literal["balanced", "random"] = (
+        "random"
+        if ("aleatorio" in normalized or "aleatória" in normalized or "aleatorio" in normalized)
+        else "balanced"
+    )
 
     return {
         "type": "generate_simulation",
@@ -335,3 +348,20 @@ def send_chat_message(
         "action": None,
         "access": access,
     }
+
+
+@router.get("/gamification/summary", tags=["gamification"])
+def get_summary(
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    return get_gamification_summary(user_id=user["id"], user_name=user["name"])
+
+
+@router.get("/gamification/ranking", tags=["gamification"])
+def get_ranking(
+    scope: Literal["weekly", "monthly", "global"] = Query(default="weekly"),
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    return get_gamification_ranking(scope=scope, current_user_id=user["id"])

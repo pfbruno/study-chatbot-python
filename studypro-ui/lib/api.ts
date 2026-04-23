@@ -160,6 +160,86 @@ export type RandomSimulationResponse = {
   };
 };
 
+export type GamificationProfile = {
+  userName: string;
+  level: number;
+  currentXP: number;
+  nextLevelXP: number;
+  totalXP: number;
+  streakDays: number;
+  completedChallenges: number;
+  unlockedAchievements: number;
+  totalAchievements: number;
+};
+
+export type GamificationAchievement = {
+  id: string;
+  title: string;
+  description: string;
+  rarity: "common" | "rare" | "epic" | "legendary";
+  category: "study" | "consistency" | "performance" | "social";
+  xpReward: number;
+  progress: number;
+  target: number;
+  status: "unlocked" | "in_progress" | "locked";
+  unlockedAt?: string | null;
+  icon: string;
+};
+
+export type GamificationRecentUnlock = {
+  id: string;
+  title: string;
+  rarity: "common" | "rare" | "epic" | "legendary";
+  unlockedAt: string;
+  xpReward: number;
+};
+
+export type GamificationWeeklyEvolutionPoint = {
+  label: string;
+  xp: number;
+};
+
+export type GamificationChallenge = {
+  id: string;
+  title: string;
+  description: string;
+  type: "daily" | "weekly" | "special";
+  difficulty: "easy" | "medium" | "hard";
+  status: "active" | "completed" | "locked";
+  progress: number;
+  target: number;
+  xpReward: number;
+  rewardLabel: string;
+  expiresIn: string;
+  icon: "target" | "brain" | "flame" | "rocket" | "award" | "trophy";
+};
+
+export type GamificationSummaryResponse = {
+  profile: GamificationProfile;
+  achievements: GamificationAchievement[];
+  recentUnlocks: GamificationRecentUnlock[];
+  weeklyEvolution: GamificationWeeklyEvolutionPoint[];
+  challenges: GamificationChallenge[];
+};
+
+export type RankingUser = {
+  id: string;
+  name: string;
+  xp: number;
+  streak: number;
+  completedChallenges: number;
+  accuracy: number;
+  level: number;
+  movement: "up" | "down" | "same";
+  avatar: string;
+  highlight?: boolean;
+};
+
+export type GamificationRankingResponse = {
+  scope: "weekly" | "monthly" | "global";
+  items: RankingUser[];
+};
+
 function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(AUTH_TOKEN_KEY);
@@ -282,6 +362,26 @@ export async function createCheckoutSession(token?: string | null) {
 
 export async function getDashboardData(token?: string | null) {
   return request<DashboardResponse>("/dashboard", { token });
+}
+
+/* ===========================
+   GAMIFICATION
+=========================== */
+
+export async function getGamificationSummary(token?: string | null) {
+  return request<GamificationSummaryResponse>("/gamification/summary", {
+    token,
+  });
+}
+
+export async function getGamificationRanking(
+  scope: "weekly" | "monthly" | "global",
+  token?: string | null
+) {
+  return request<GamificationRankingResponse>(
+    `/gamification/ranking?scope=${scope}`,
+    { token }
+  );
 }
 
 /* ===========================
