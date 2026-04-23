@@ -1,5 +1,6 @@
 "use client";
 
+import { trackStudyEvent } from "@/lib/study-events";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -466,9 +467,17 @@ export default function DashboardPage() {
   const totalWeekXP = gameWeeklyEvolution.reduce((acc, item) => acc + item.xp, 0);
 
   function handleSelectGoal(selectedGoal: StudyGoal) {
-    localStorage.setItem(STUDY_GOAL_KEY, selectedGoal);
-    setGoal(selectedGoal);
-  }
+  localStorage.setItem(STUDY_GOAL_KEY, selectedGoal);
+  setGoal(selectedGoal);
+
+  void trackStudyEvent({
+    eventType: "study_goal_selected",
+    module: "dashboard",
+    metadata: {
+      goal: selectedGoal,
+    },
+  });
+}
 
   function handleResetGoal() {
     localStorage.removeItem(STUDY_GOAL_KEY);

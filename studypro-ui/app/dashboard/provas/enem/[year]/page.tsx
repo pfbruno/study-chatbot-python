@@ -1,5 +1,7 @@
 "use client"
 
+import { saveRecentAttempt } from "@/lib/activity"
+import { trackStudyEvent } from "@/lib/study-events"
 import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams } from "next/navigation"
@@ -290,6 +292,8 @@ export default function ExamYearPage() {
   const [result, setResult] = useState<ExamResult | null>(null)
 
   const resolverRef = useRef<HTMLDivElement | null>(null)
+  const hasTrackedExamStartRef = useRef(false)
+  const trackedAnsweredQuestionsRef = useRef<Set<number>>(new Set())
 
   const resultStorageKey = `${OFFICIAL_EXAM_RESULT_PREFIX}enem_${examYear}`
   const progressStorageKey = `${OFFICIAL_EXAM_PROGRESS_PREFIX}enem_${examYear}`
@@ -405,6 +409,22 @@ export default function ExamYearPage() {
     )
   }, [answers, currentIndex, hasStarted, progressStorageKey, questions.length, reviewFlags])
 
+  useEffect(() => {
+  if (!hasStarted || !questions.length || hasTrackedExamStartRef.current) return
+
+  hasTrackedExamStartRef.current = true
+
+  void trackStudyEvent({
+    eventType: "exam_started",
+    module: "provas",
+    metadata: {
+      exam_type: "enem",
+      year: examYear,
+      total_questions: questions.length,
+    },
+  })
+  }, [examYear, hasStarted, questions.length])
+
   const currentQuestion = questions[currentIndex] ?? null
 
   const answeredCount = useMemo(
@@ -510,9 +530,19 @@ export default function ExamYearPage() {
   }
 
   function handleStartOrContinue() {
-    setHasStarted(true)
-    setTimeout(scrollToResolver, 50)
-  }
+  setHasStarted(true)
+
+  void trackStudyEvent({
+    eventType: "study_session_started",
+    module: "provas",
+    metadata: {
+      exam_type: "enem",
+      year: examYear,
+    },
+  })
+
+  setTimeout(scrollToResolver, 50)
+}
 
   function handleReset() {
     setAnswers({})
@@ -526,10 +556,29 @@ export default function ExamYearPage() {
   }
 
   function handleSelectAnswer(questionNumber: number, option: string) {
-    setAnswers((current) => ({
-      ...current,
-      [questionNumber]: option,
-    }))
+  const question = questions.find((item) => item.number === questionNumber)
+  const hadAnswerBefore = Boolean(answers[questionNumber])
+
+  setAnswers((current) => ({
+    ...current,
+    [questionNumber]: option,
+  }))
+
+  if (!hadAnswerBefore && !trackedAnsweredQuestionsRef.current.has(questionNumber)) {
+    trackedAnsweredQuestionsRef.current.add(questionNumber)
+
+    void trackStudyEvent({
+      eventType: "question_answered",
+      module: "provas",
+      subject: question?.subject ?? null,
+      metadata: {
+        exam_type: "enem",
+        year: examYear,
+        question_number: questionNumber,
+        selected_answer: option,
+      },
+    })
+  }
   }
 
   function toggleReviewFlag(questionNumber: number) {
@@ -661,58 +710,122 @@ export default function ExamYearPage() {
   }
 
   async function handleSubmit() {
-    if (questions.length === 0 || submitting) return
+  if (questions.length === 0 || submitting) return
+
+  try {
+    setSubmitting(true)
+    setError(null)
+
+    const payload = questions.map((question) => ({
+      number: question.number,
+      question_number: question.number,
+      answer: answers[question.number] ?? null,
+    }))
 
     try {
-      setSubmitting(true)
-      setError(null)
+      const remoteResult = await submitExamAnswers("enem", examYear, payload)
+      const localFallback = buildLocalResult()
 
-      const payload = questions.map((question) => ({
-        number: question.number,
-        question_number: question.number,
-        answer: answers[question.number] ?? null,
-      }))
+      const normalized: ExamResult = {
+        title: exam.title || `ENEM ${examYear} — Prova Oficial`,
+        exam_type: "enem",
+        year: examYear,
+        total_questions:
+          Number((remoteResult as any)?.total_questions) || questions.length,
+        correct_answers: Number((remoteResult as any)?.correct_answers) || 0,
+        wrong_answers: Number((remoteResult as any)?.wrong_answers) || 0,
+        unanswered_count: Number((remoteResult as any)?.unanswered_count) || 0,
+        annulled_count: Number((remoteResult as any)?.annulled_count) || 0,
+        score_percentage: Number((remoteResult as any)?.score_percentage) || 0,
+        results_by_question: Array.isArray((remoteResult as any)?.results_by_question)
+          ? (remoteResult as any).results_by_question
+          : localFallback.results_by_question,
+        subjects_summary: Array.isArray((remoteResult as any)?.subjects_summary)
+          ? (remoteResult as any).subjects_summary
+          : localFallback.subjects_summary,
+      }
 
-      try {
-        const remoteResult = await submitExamAnswers("enem", examYear, payload)
-        const localFallback = buildLocalResult()
-
-        const normalized: ExamResult = {
-          title: exam.title || `ENEM ${examYear} — Prova Oficial`,
+      void trackStudyEvent({
+        eventType: "exam_corrected",
+        module: "provas",
+        scorePercentage: normalized.score_percentage,
+        metadata: {
           exam_type: "enem",
           year: examYear,
-          total_questions:
-            Number((remoteResult as any)?.total_questions) || questions.length,
-          correct_answers: Number((remoteResult as any)?.correct_answers) || 0,
-          wrong_answers: Number((remoteResult as any)?.wrong_answers) || 0,
-          unanswered_count: Number((remoteResult as any)?.unanswered_count) || 0,
-          annulled_count: Number((remoteResult as any)?.annulled_count) || 0,
-          score_percentage: Number((remoteResult as any)?.score_percentage) || 0,
-          results_by_question:
-            Array.isArray((remoteResult as any)?.results_by_question)
-              ? (remoteResult as any).results_by_question
-              : localFallback.results_by_question,
-          subjects_summary:
-            Array.isArray((remoteResult as any)?.subjects_summary)
-              ? (remoteResult as any).subjects_summary
-              : localFallback.subjects_summary,
-        }
+          total_questions: normalized.total_questions,
+          correct_answers: normalized.correct_answers,
+          wrong_answers: normalized.wrong_answers,
+          unanswered_count: normalized.unanswered_count,
+          annulled_count: normalized.annulled_count,
+          is_partial: normalized.unanswered_count > 0,
+        },
+      })
 
-        localStorage.setItem(resultStorageKey, JSON.stringify(normalized))
-        setResult(normalized)
-      } catch {
-        const localResult = buildLocalResult()
-        localStorage.setItem(resultStorageKey, JSON.stringify(localResult))
-        setResult(localResult)
+      if (normalized.unanswered_count === 0) {
+        saveRecentAttempt({
+          id: `prova-enem-${examYear}-${Date.now()}`,
+          module: "provas",
+          title: normalized.title,
+          scorePercentage: normalized.score_percentage,
+          correctAnswers: normalized.correct_answers,
+          totalQuestions: normalized.total_questions,
+          createdAt: new Date().toISOString(),
+          subjects: normalized.subjects_summary.map((item) => ({
+            subject: item.subject,
+            accuracyPercentage: item.accuracy_percentage,
+          })),
+        })
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Não foi possível corrigir a prova."
-      )
-    } finally {
-      setSubmitting(false)
+
+      localStorage.setItem(resultStorageKey, JSON.stringify(normalized))
+      setResult(normalized)
+    } catch {
+      const localResult = buildLocalResult()
+
+      void trackStudyEvent({
+        eventType: "exam_corrected",
+        module: "provas",
+        scorePercentage: localResult.score_percentage,
+        metadata: {
+          exam_type: "enem",
+          year: examYear,
+          total_questions: localResult.total_questions,
+          correct_answers: localResult.correct_answers,
+          wrong_answers: localResult.wrong_answers,
+          unanswered_count: localResult.unanswered_count,
+          annulled_count: localResult.annulled_count,
+          is_partial: localResult.unanswered_count > 0,
+          source: "local_fallback",
+        },
+      })
+
+      if (localResult.unanswered_count === 0) {
+        saveRecentAttempt({
+          id: `prova-enem-${examYear}-${Date.now()}`,
+          module: "provas",
+          title: localResult.title,
+          scorePercentage: localResult.score_percentage,
+          correctAnswers: localResult.correct_answers,
+          totalQuestions: localResult.total_questions,
+          createdAt: new Date().toISOString(),
+          subjects: localResult.subjects_summary.map((item) => ({
+            subject: item.subject,
+            accuracyPercentage: item.accuracy_percentage,
+          })),
+        })
+      }
+
+      localStorage.setItem(resultStorageKey, JSON.stringify(localResult))
+      setResult(localResult)
     }
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : "Não foi possível corrigir a prova."
+    )
+  } finally {
+    setSubmitting(false)
   }
+}
 
   if (loading) {
     return (

@@ -1,8 +1,9 @@
 "use client"
 
+import { trackStudyEvent } from "@/lib/study-events"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   ArrowLeft,
   ArrowRight,
@@ -82,6 +83,7 @@ const OPTION_ORDER = ["A", "B", "C", "D", "E"]
 
 export default function ResolverSimuladoPage() {
   const router = useRouter()
+  const hasTrackedStartRef = useRef(false)
 
   const [simulation, setSimulation] =
     useState<SimulationGenerationResponse | null>(null)
@@ -117,6 +119,25 @@ export default function ResolverSimuladoPage() {
   }, [])
 
   useEffect(() => {
+  if (!simulation || hasTrackedStartRef.current) return
+
+  hasTrackedStartRef.current = true
+
+  void trackStudyEvent({
+    eventType: "simulation_started",
+    module: "simulados",
+    metadata: {
+      simulation_id: simulation.simulation_id,
+      exam_type: simulation.exam_type,
+      year: simulation.year,
+      question_count: simulation.generated_question_count,
+      mode: simulation.mode,
+      subjects: simulation.subjects_used,
+    },
+  })
+}, [simulation])
+
+  useEffect(() => {
     if (!simulation) return
     sessionStorage.setItem(ACTIVE_SIMULATION_ANSWERS_KEY, JSON.stringify(answers))
   }, [answers, simulation])
@@ -138,11 +159,27 @@ export default function ResolverSimuladoPage() {
     : 0
 
   function handleSelectAnswer(questionNumber: number, optionKey: string) {
-    setAnswers((current) => ({
-      ...current,
-      [questionNumber]: optionKey,
-    }))
+  const question = questions.find((item) => item.number === questionNumber)
+  const previousAnswer = answers[questionNumber]
+
+  setAnswers((current) => ({
+    ...current,
+    [questionNumber]: optionKey,
+  }))
+
+  if (previousAnswer !== optionKey) {
+    void trackStudyEvent({
+      eventType: "question_answered",
+      module: "simulados",
+      subject: question?.subject ?? null,
+      metadata: {
+        simulation_id: simulation?.simulation_id ?? null,
+        question_number: questionNumber,
+        selected_answer: optionKey,
+      },
+    })
   }
+}
 
   function handleClearAnswer(questionNumber: number) {
     setAnswers((current) => {
