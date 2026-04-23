@@ -35,7 +35,7 @@ type SavedExamProgress = {
   answers?: Record<number, string>
 }
 
-const FALLBACK_YEARS = [2022, 2021, 2017, 2014, 2012]
+const FALLBACK_YEARS = [2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011, 2010]
 
 const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
 const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
@@ -159,6 +159,12 @@ export default function EnemHubPage() {
           })
 
         setEditions(mapped)
+
+        if (!Array.isArray(data?.years) || data.years.length === 0) {
+          setWarning(
+            "A API não retornou a listagem de anos. Foram exibidas as edições válidas locais: 2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011 e 2010."
+          )
+        }
       } catch {
         const mapped = [...FALLBACK_YEARS]
           .sort((a, b) => b - a)
@@ -177,7 +183,7 @@ export default function EnemHubPage() {
 
         setEditions(mapped)
         setWarning(
-          "A API não retornou a listagem de anos. Foram exibidas as edições válidas locais: 2022, 2021, 2017, 2014 e 2012."
+          "A API não retornou a listagem de anos. Foram exibidas as edições válidas locais: 2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011 e 2010."
         )
       } finally {
         setLoading(false)
