@@ -4,18 +4,17 @@ from pathlib import Path
 
 YEARS = [2018, 2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010, 2009]
 
-
 def run_step(command: list[str]) -> tuple[bool, str]:
     result = subprocess.run(
         command,
         capture_output=True,
         text=True,
-        encoding="utf-8",
+        encoding="cp1252",
+        errors="replace",
     )
 
     output = (result.stdout or "") + (result.stderr or "")
     return result.returncode == 0, output.strip()
-
 
 def main() -> int:
     valid_years: list[int] = []
