@@ -35,7 +35,7 @@ type SavedExamProgress = {
   answers?: Record<number, string>
 }
 
-const FALLBACK_YEARS = [2023, 2022, 2021, 2020, 2019]
+const FALLBACK_YEARS = [2022, 2021, 2017, 2014, 2012]
 
 const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
 const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
@@ -140,7 +140,7 @@ export default function EnemHubPage() {
         const data = await getExamYears()
         const years =
           Array.isArray(data?.years) && data.years.length > 0
-            ? data.years
+            ? data.years.filter((year) => FALLBACK_YEARS.includes(year))
             : FALLBACK_YEARS
 
         const mapped = [...years]
@@ -177,7 +177,7 @@ export default function EnemHubPage() {
 
         setEditions(mapped)
         setWarning(
-          "A API não retornou a listagem de anos. Foi exibido o fallback local."
+          "A API não retornou a listagem de anos. Foram exibidas as edições válidas locais: 2022, 2021, 2017, 2014 e 2012."
         )
       } finally {
         setLoading(false)
@@ -245,7 +245,9 @@ export default function EnemHubPage() {
             <div className="mt-8 flex flex-wrap gap-6 text-base text-[#7ea0d6]">
               <span className="inline-flex items-center gap-2">
                 <FileText className="size-4" />
-                {loading ? "Carregando edições..." : `${editions.length} edição(ões) disponível(is)`}
+                {loading
+                  ? "Carregando edições..."
+                  : `${editions.length} edição(ões) disponível(is)`}
               </span>
               <span className="inline-flex items-center gap-2">
                 <Trophy className="size-4" />
@@ -340,7 +342,9 @@ export default function EnemHubPage() {
                             className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-lg font-semibold text-white transition hover:opacity-90"
                           >
                             <Play className="size-4" />
-                            {edition.status === "in_progress" ? "Continuar" : "Resolver"}
+                            {edition.status === "in_progress"
+                              ? "Continuar"
+                              : "Resolver"}
                           </Link>
                         )}
                       </div>
@@ -367,7 +371,8 @@ export default function EnemHubPage() {
                   ENEM {inProgressEdition.year}
                 </h2>
                 <p className="mt-3 max-w-3xl text-xl leading-8 text-[#7ea0d6]">
-                  Prova oficial aplicada em novembro de {inProgressEdition.year}. Inclui ambos os dias da aplicação.
+                  Prova oficial aplicada em novembro de {inProgressEdition.year}.
+                  Inclui ambos os dias da aplicação.
                 </p>
               </div>
 
@@ -502,7 +507,9 @@ export default function EnemHubPage() {
                         className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-4 text-xl font-semibold text-white transition hover:opacity-90"
                       >
                         <Play className="size-4" />
-                        {edition.status === "in_progress" ? "Continuar" : "Resolver"}
+                        {edition.status === "in_progress"
+                          ? "Continuar"
+                          : "Resolver"}
                       </Link>
                     )}
                   </div>
