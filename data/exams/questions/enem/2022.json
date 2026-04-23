@@ -8,7 +8,7 @@
   "has_answer_key": true,
   "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022",
   "imported_from": "https://api.enem.dev/v1/exams/2022/questions",
-  "imported_at": "2026-04-17T23:28:09.535434+00:00",
+  "imported_at": "2026-04-23T15:20:13.521804+00:00",
   "questions": [
     {
       "number": 1,
@@ -3130,7 +3130,8 @@
         "A": "6",
         "B": "7",
         "C": "8",
-        "D": "9"
+        "D": "9",
+        "E": "[alternativa ausente na API]"
       },
       "answer": "C",
       "annulled": false,
@@ -3635,7 +3636,8 @@
         "A": "1",
         "B": "2",
         "C": "3",
-        "D": "4"
+        "D": "4",
+        "E": "[alternativa ausente na API]"
       },
       "answer": "A",
       "annulled": false,
