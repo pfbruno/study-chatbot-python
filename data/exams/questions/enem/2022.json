@@ -2,121 +2,117 @@
   "exam_type": "enem",
   "year": 2022,
   "title": "ENEM 2022",
-  "description": "Prova oficial do ENEM 2022 importada para base local reutilizável.",
+  "description": "Prova oficial do ENEM 2022, importada via enem.dev.",
   "question_count": 180,
   "total_questions": 180,
   "has_answer_key": true,
-  "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022",
-  "imported_from": "https://api.enem.dev/v1/exams/2022/questions",
-  "imported_at": "2026-04-23T15:56:29.122611+00:00",
+  "imported_from": "enem.dev",
   "questions": [
     {
       "number": 1,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "![](https://enem.dev/2022/questions/1-espanhol/b8e76f18-f22d-4401-bf90-fd34c74e07e5.jpg)\n\nDisponível em: www.inali.gob.mx. Acesso em: 2 dez. 2018.\n\nEsse cartaz tem a função social de",
+      "statement": "As my official bio reads, I was made in Cuba, assembled in Spain, and imported to the United States – meaning my mother, seven months pregnant, and the rest of my family arrived as exiles from Cuba to Madrid, where I was born. Less than two months later, we emigrated once more and settled in New York City, then eventually in Miami, where I was raised and educated. Although technically we lived in the United States, the Cuban community was culturally insular in Miami during the 1970s, bonded together by the trauma of exile. What’s more, it seemed that practically everyone was Cuban: my teachers, my classmates, the mechanic, the bus driver. I didn’t grow up feeling different or treated as a minority. The few kids who got picked on in my grade school were the ones with freckles and funny last names like Dawson and O’Neil.\n\nBLANCO, R. Disponível em: http://edition.cnn.com. Acesso em: 9 dez. 2017 (adaptado).\n\nAo relatar suas vivências, o autor destaca o(a)",
       "options": {
-        "A": "Difundi a arte iconográfica indígena mexicana.",
-        "B": "Resgatar a literatura popular produzida em língua zapoteca.",
-        "C": "Questionar o conhecimento do povo mexicano sobre as línguas ameríndias",
-        "D": "Destacar o papel dos órgãos governamentais na conservação das línguas no México.",
-        "E": "Defender a preservação das línguas originárias garantindo a diversidade linguística mexicana."
+        "A": "Qualidade da educação formal em Miami.",
+        "B": "Prestígio da cultura cubana nos Estados Unidos.",
+        "C": "Oportunidade de qualificação profissional em Miami.",
+        "D": "Cenário da integração de cubanos nos Estados Unidos.",
+        "E": "Fortalecimento do elo familiar em comunidades estadunidenenses."
       },
-      "answer": "E",
+      "answer": "D",
       "annulled": false,
       "source_pdf_label": "ENEM 2022 - Questão 1",
-      "assets": [
-        "https://enem.dev/2022/questions/1-espanhol/b8e76f18-f22d-4401-bf90-fd34c74e07e5.jpg"
-      ],
-      "language": "espanhol",
+      "assets": [],
+      "language": "ingles",
       "title": "Questão 1 - ENEM 2022"
     },
     {
       "number": 2,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "**Pequeño hermano**\n\nEs, no cabe duda, el instrumento más presente y más poderoso de todos los que entraron en nuestras vidas. Ni la televisión ni el ordenador, no hablemos ya del obsoleto fax o de las agendas o los libros electrónicos, ha tenido tal influencia, tal predicamento sobre nosotros. El móvil somos nosotros mismos. Todo desactivado e inerte, inocuo, ya les digo. Y de repente, tras un viaje y tres o cuatro imprudentes fotos, salta un aviso en la pantalla. Con sonido, además, pese a que tengo también todas las alertas desactivadas. Y mi monstruo doméstico me dice: Tienes un recuerdo nuevo. Lo repetiré: tienes un recuerdo nuevo. ¿Y tú qué sabes? ¿Y a ti, máquina demoníaca, qué te importa? ¿Cómo te atreves a decirme qué son o no son mis recuerdos? ¿Qué es esta intromisión, este descaro? El pequeño hermano lo sabe casi todo. Sólo hay una esperanza: que la obsolescencia programada mate antes al pequeño hermano y que nosotros sigamos vivos, con los recuerdos que nos dé la gana.\n\nFERNANDEZ, D, Disponível em: www.lavanguardia.com.\n\nAcesso em:  5 dez. 2018 (adaptado).\n\nNo texto, autor faz uma crítica ao(à)",
+      "statement": "Two hundred years ago, Jane Austen lived in a world where single men boasted vast estates; single ladies were expected to speak several languages, sing and play the piano. In both cases, it was, of course, advantageous if you looked good too. So, how much has – or hasn’t – changed? Dating apps opaquely outline the demands of today’s relationship market; users ruminate long and hard over their choice of pictures and what they write in their biographies to hook in potential lovers, and that’s just your own profile. What do you look for in a future partner’s profile – potential signifiers of a popular personality, a good job, a nice car? These apps are a poignant reminder of the ofter classist attitudes we still adopt, as well as the financial and aesthetic expectations we demand from potential partners.\n\nO texto aborda relações interpessoais com o objetivo de",
       "options": {
-        "A": "Conhecimento das pessoas sobre as tecnologias.",
-        "B": "Uso do celular alheio por pessoas desautorizadas.",
-        "C": "Funcionamento de recursos tecnológicos obsoletos.",
-        "D": "Ingerência do celular sobre as escolhas dos usuários",
-        "E": "Falta de informação sobre a configuração de alertas no celular"
+        "A": "Problematizar o papel de gênero em casamentos modernos.",
+        "B": "Apontar a relevância da educação formal na escolha de parceiro.",
+        "C": "Comparar a expectativa de parceiros amorosos em épocas distintas.",
+        "D": "Discutir o uso de aplicativos para proporcionar encontros românticos.",
+        "E": "Valorizar a importância da aparência física na seleção de pretendentes."
       },
-      "answer": "D",
+      "answer": "C",
       "annulled": false,
       "source_pdf_label": "ENEM 2022 - Questão 2",
       "assets": [],
-      "language": "espanhol",
+      "language": "ingles",
       "title": "Questão 2 - ENEM 2022"
     },
     {
       "number": 3,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "En los suburbios de La Habana, llaman al amigo _mi tierra o mi sangre._En Caracas, el amigo es _mi pana o mi llave_: _pana_, por panadería, la fuente del buen pan para las hambres del alma; y _llave_ por…—_Llave_, por _llave_—me dice Mario Benedetti. Y me cuenta que cuando vivía en Buenos Aires, en los tiempos del terror, él llevaba cinco llaves ajenas en su llavero: cinco llaves, de cinco casas, de cinco amigos: las llaves que lo salvaron.\n\nGALEANO, E. **El libro de los abrazos**. Madri: Siglo Veintiuno, 2015.\n\nNesse texto, o autor demonstra como as diferentes expressões existentes em espanhol para se referir a “amigo” variam em função",
+      "statement": "![](https://enem.dev/2022/questions/3-ingles/c2b657cf-791f-4472-ba79-e9690d806785.png)\n\nNessa tirinha, o comportamento da mulher expressa",
       "options": {
-        "A": "Das peculiaridades dos subúrbios hispano-americanos.",
-        "B": "Da força da conexão espiritual entre os amigos.",
-        "C": "Do papel da amizade em diferentes contextos.",
-        "D": "Do hábito de reunir amigos em torno da mesa",
-        "E": "Dos graus de intimidade entre os amigos"
+        "A": "Revolta com a falta de sorte",
+        "B": "Gosto pela prática da leitura",
+        "C": "Receio pelo futuro do casamento",
+        "D": "Entusiasmo com os livros de terror",
+        "E": "Rejeição ao novo tipo de residência"
       },
-      "answer": "C",
+      "answer": "B",
       "annulled": false,
       "source_pdf_label": "ENEM 2022 - Questão 3",
-      "assets": [],
-      "language": "espanhol",
+      "assets": [
+        "https://enem.dev/2022/questions/3-ingles/c2b657cf-791f-4472-ba79-e9690d806785.png"
+      ],
+      "language": "ingles",
       "title": "Questão 3 - ENEM 2022"
     },
     {
       "number": 4,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "**Los niños de nuestro olvido**\n\nEscribo sobre un destino  \nQue apenas puedo tocar  \nEn tanto un niño se inventa  \nCon pegamento un hogar\n\nMientras busco las palabras  \nPara hacer esta canción  \nUn niño esquiva las balas  \nQue buscan su corazón\n\nAcurrucado en mí calle  \nDuerme un niño y la piedad  \nArma lejos un pesebre  \nY juega a la navidad\n\nArma lejos un pesebre  \nY juega a la navidad  \nY juega a la navidad  \nY juega, y juega, y juega…\n\nLa niñez de nuestro olvido  \nPide limosna en un bar  \nY lava tu parabrisas  \nPor un peso, por un pan\n\nSi las flores del futuro  \nCrecen con tanto dolor  \nSeguramente mañana  \nSerá un mañana sin sol\n\nNo texto, a expressão “un mañana sin sol” é usada para concluir uma critica ao(à)",
+      "statement": "**A Teen’s View of Social Media**\n\nInstagram is by far my favorite. It is made up of all photos and videos, which is perfect for visual people like me. There is the home page that showcases the posts from people you follow, an explore tab which offers posts from accounts all over the world, and your own page, with a notification tab to show who likes and comments on your posts.\n\nIt has some downsides though.  It is known to make many people feel insecure or down about themselves because the platform showcases the highlights of everyone’s lives, while rarely showing the negatives. This can make one feel like their life is not going as well as others, contributing to the growing rates of anxiety or depression in many teens today. There is an underlying desire for acceptance through the number of likes or followers one has.\n\n**Disponível em: https://cyberbullying.org/. Acesso em: 29 out. 2021.**\n\nO termo “downsides” introduz a ideia de que o Instagram é responsável por",
       "options": {
-        "A": "Descanso diante da problemática de crianças em situação de rua.",
-        "B": "Violência característica do cotidiano das grandes metrópoles.",
-        "C": "Estímulo à mendicância nos centros urbanos",
-        "D": "Tendência de informalização do trabalho",
-        "E": "Falta de serviços de saúde adequados"
+        "A": "Oferecer recursos de fotografia.",
+        "B": "Divulgar problemas dos usuários.",
+        "C": "Estimular aceitação dos seguidores.",
+        "D": "Provocar ansiedade nos adolescentes.",
+        "E": "Aproximar pessoas ao redor do mundo."
       },
-      "answer": "A",
+      "answer": "D",
       "annulled": false,
       "source_pdf_label": "ENEM 2022 - Questão 4",
       "assets": [],
-      "language": "espanhol",
+      "language": "ingles",
       "title": "Questão 4 - ENEM 2022"
     },
     {
       "number": 5,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "![](https://enem.dev/2022/questions/5-espanhol/2a1a630d-3c73-4b12-81e5-219ee4f917b7.jpg)\n\nMURIG. Disponível em: https://murigcolectivafeminista.wordpress.com.\n\nAcesso em: 26 out. 2021(adaptado)\n\nNo texto, as palavras “crianzas” e “tribu” são usadas para",
+      "statement": "I tend the mobile now  \nlike an injured bird\n\nWe text, text, text  \nour significant words.\n\nI re-read your first,  \nyour second, your third,\n\nLook for your small xx,  \nfeeling absurd.\n\nThe codes we send  \narrive with a broken chord.\n\nI try to picture your hands,  \ntheir image is blurred.\n\nNothing my thumbs press  \nwill ever be heard.\n\n**DUFFY, C. Disponível em: www.independent.co.uk. Acesso em: 27 out. 2021.**\n\nNesse poema, o eu lírico evidencia um sentimento de",
       "options": {
-        "A": "Evidenciar a importância de uma rede de apoio para as mães na criação dos seus filhos",
-        "B": "Denunciar a disparidade entre o trabalho das mães de diferentes classes",
-        "C": "Ressaltar o fechamento de escolas e creches durante o período pandêmico",
-        "D": "Ratificar a romantização da dedicação das mães na educação da crianças",
-        "E": "Enfatizar a proteção aos filhos em razão do isolamento social das famílias"
+        "A": "Contentamento com a interação virtual.",
+        "B": "Zelo com o envio de mensagens.",
+        "C": "Preocupação com a composição de textos.",
+        "D": "Mágoa com o comportamento de alguém.",
+        "E": "Insatisfação com uma forma de comunicação."
       },
-      "answer": "A",
+      "answer": "E",
       "annulled": false,
       "source_pdf_label": "ENEM 2022 - Questão 5",
-      "assets": [
-        "https://enem.dev/2022/questions/5-espanhol/2a1a630d-3c73-4b12-81e5-219ee4f917b7.jpg"
-      ],
-      "language": "espanhol",
+      "assets": [],
+      "language": "ingles",
       "title": "Questão 5 - ENEM 2022"
     },
     {
@@ -2032,11 +2028,11 @@
       "topic": null,
       "statement": "O físico Hans C. Oersted observou que um fio transportando corrente elétrica produz um campo magnético. A presença  \ndo campo magnético foi verificada ao aproximar uma bússola de um fio conduzindo corrente elétrica.  \nA figura ilustra um fio percorrido por uma corrente elétrica i, constante e com sentido para cima. Os pontos A, B e C  \nestão num plano transversal e equidistantes do fio. Em cada ponto foi colocada uma bússola.\n\n![](https://enem.dev/2022/questions/95/2a216ed1-eeab-4213-bcac-34e5166e97dd.png)\n\nConsiderando apenas o campo magnético por causa da corrente i, as respectivas configurações das bússolas nos pontos A, B e C serão",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/95/87d9018f-a151-480a-a9a8-e44a43463b22.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/95/362dd438-8835-4020-bd5a-b1e16a3ce584.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/95/2b418706-4910-471f-a904-dee54086d259.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/95/7560896d-771b-43b3-9347-d3a593ccd199.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/95/6e7b0269-ad16-4031-b9df-fecb1c4a2acb.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/95/87d9018f-a151-480a-a9a8-e44a43463b22.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/95/362dd438-8835-4020-bd5a-b1e16a3ce584.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/95/2b418706-4910-471f-a904-dee54086d259.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/95/7560896d-771b-43b3-9347-d3a593ccd199.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/95/6e7b0269-ad16-4031-b9df-fecb1c4a2acb.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -2055,11 +2051,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2022/questions/96/970c1d36-8b55-4012-b912-db3efb32fbe4.png)\n\nO quadro mostra valores de corrente elétrica e seus efeitos sobre o corpo humano.\n\nA corrente elétrica que percorrerá o corpo de um indivíduo depende da tensão aplicada e da resistência  \nelétrica média do corpo humano. Esse último fator está intimamente relacionado com a umidade da pele, que seca apresenta resistência elétrica da ordem de 500 kΩ, mas, se molhada, pode chegar a apenas 1 kΩ.  \nApesar de incomum, é possível sofrer um acidente utilizando baterias de 12 V. Considere que um indivíduo com a pele molhada sofreu uma parada respiratória ao tocar simultaneamente nos pontos A e B de uma associação de duas dessas baterias.\n\nDURAN, J. E. R. **Biofísica: fundamentos e aplicações**. São Paulo: Pearson Prentice Hall, 2003 (adaptado).\n\nQual associação de baterias foi responsável pelo acidente?",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/96/430f5ad8-c181-4e82-8b90-364514a5e80d.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/96/9ccc03d3-49a3-45fa-bd85-aabe825984a6.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/96/32b31925-79f3-4809-bdb7-93b2e00c87d4.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/96/5ba7ae4b-c03e-457f-8a35-47bf0db1cef1.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/96/ff6f131d-afb1-4c4b-a8d4-f1f201170062.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/96/430f5ad8-c181-4e82-8b90-364514a5e80d.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/96/9ccc03d3-49a3-45fa-bd85-aabe825984a6.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/96/32b31925-79f3-4809-bdb7-93b2e00c87d4.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/96/5ba7ae4b-c03e-457f-8a35-47bf0db1cef1.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/96/ff6f131d-afb1-4c4b-a8d4-f1f201170062.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -2209,11 +2205,11 @@
       "topic": null,
       "statement": "Tribologia é o estudo da interação entre duas superfícies em contato, como desgaste e atrito, sendo de extrema importância na avaliação de diferentes  \nprodutos e de bens de consumo em geral. Para testar a conformidade de uma muleta, realiza-se um ensaio tribológico, pressionando-a verticalmente contra o piso com uma força ![](https://enem.dev/2022/questions/103/731a52b0-b8d4-4a15-8a7c-aabc67d6dcde.jpg), conforme ilustra a imagem, em que CM representa o centro de massa da muleta.\n\nMantendo-se a força ![](https://enem.dev/2022/questions/103/04cf32d8-f517-483e-b0d5-189de111bc7a.jpg) paralela à muleta, varia-se lentamente o ângulo entre a muleta e a vertical, até o máximo ângulo imediatamente anterior ao de escorregamento, denominado ângulo crítico. Esse ângulo também pode ser calculado a partir da identificação dos pontos de aplicação, da direção e do sentido das forças peso ![](https://enem.dev/2022/questions/103/9027d4f1-c0a1-4b18-ac9f-2639e6b4360b.jpg), normal ![](https://enem.dev/2022/questions/103/e11f6a77-dda3-4525-a045-894baf71d307.jpg) e de atrito estático ![](https://enem.dev/2022/questions/103/d65b67dc-a285-43d4-a72b-a9c1b521c3b5.jpg).\n\n![](https://enem.dev/2022/questions/103/7cfea492-83f7-4ea1-bf6a-a3dc29d4edb9.jpg)\n\nO esquema que representa corretamente todas as forças que atuam sobre a muleta quando ela atinge o ângulo crítico é:",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/103/fd96af11-5014-46d5-a810-7f61cecce1ee.jpg]",
-        "B": "[imagem: https://enem.dev/2022/questions/103/35328d99-51d3-48e1-b68f-77e985df73c4.jpg]",
-        "C": "[imagem: https://enem.dev/2022/questions/103/09db4a77-899d-485e-b0a1-8cbfba70022a.jpg]",
-        "D": "[imagem: https://enem.dev/2022/questions/103/87896c19-ad0d-4a19-a31e-c48d5e4e06fc.jpg]",
-        "E": "[imagem: https://enem.dev/2022/questions/103/a530523b-e354-44f7-b52b-4424587daa4e.jpg]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/103/fd96af11-5014-46d5-a810-7f61cecce1ee.jpg]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/103/35328d99-51d3-48e1-b68f-77e985df73c4.jpg]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/103/09db4a77-899d-485e-b0a1-8cbfba70022a.jpg]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/103/87896c19-ad0d-4a19-a31e-c48d5e4e06fc.jpg]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/103/a530523b-e354-44f7-b52b-4424587daa4e.jpg]"
       },
       "answer": "E",
       "annulled": false,
@@ -2279,11 +2275,11 @@
       "topic": null,
       "statement": "A penicilamina é um medicamento de uso oral utilizado no tratamento de várias doenças. Esse composto é excretado na urina, cujo pH se situa entre 5 e 7. A penicilamina, cuja fórmula estrutural plana está apresentada, possui três grupos funcionais que podem ser ionizados:\n\n![](https://enem.dev/2022/questions/106/836c6396-bd57-477b-b379-b509c4b99242.png)\n\nQual estrutura derivada da penicilamina é predominantemente encontrada na urina?",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/106/c80fb324-03eb-4796-a763-07123406dddc.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/106/c42c9c08-62b1-4fc3-b0f7-eb1a04bd69a0.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/106/57b30c7d-c1d7-496e-883a-1a838b3b5db8.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/106/b1e5f5bf-e8a9-4400-8029-e3aa6e3ef619.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/106/b5c54736-315b-449d-8903-3122dba1753c.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/106/c80fb324-03eb-4796-a763-07123406dddc.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/106/c42c9c08-62b1-4fc3-b0f7-eb1a04bd69a0.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/106/57b30c7d-c1d7-496e-883a-1a838b3b5db8.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/106/b1e5f5bf-e8a9-4400-8029-e3aa6e3ef619.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/106/b5c54736-315b-449d-8903-3122dba1753c.png]"
       },
       "answer": "C",
       "annulled": false,
@@ -2325,11 +2321,11 @@
       "topic": null,
       "statement": "O ácido tartárico é o principal ácido do vinho e está diretamente relacionado com sua qualidade. Na avaliação de um vinho branco em produção, uma analista neutralizou uma alíquota de 25,0 mL do vinho com NaOH a 0,10 mol L−1, consumindo um volume igual a 8,0 mL dessa base. A reação para esse processo de titulação é representada pela equação química:\n\n![](https://enem.dev/2022/questions/108/9210b1e4-7666-4817-9757-f1642ea64a91.jpg)\n\nA concentração de ácido tartárico no vinho analisado é mais próxima de:",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/108/52f3ad0e-41af-44d2-b45f-3abf1b73e2fe.jpg]",
-        "B": "[imagem: https://enem.dev/2022/questions/108/d64d962d-0146-42a3-91d3-eb11e0697082.jpg]",
-        "C": "[imagem: https://enem.dev/2022/questions/108/2515979b-9340-4b13-9ada-4b6c5c4c89ab.jpg]",
-        "D": "[imagem: https://enem.dev/2022/questions/108/afe3dd22-3c6e-4668-ad0a-b7f8e9c321f9.jpg]",
-        "E": "[imagem: https://enem.dev/2022/questions/108/ffa2205c-7c58-4f75-99bc-b90835a6fb9e.jpg]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/108/52f3ad0e-41af-44d2-b45f-3abf1b73e2fe.jpg]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/108/d64d962d-0146-42a3-91d3-eb11e0697082.jpg]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/108/2515979b-9340-4b13-9ada-4b6c5c4c89ab.jpg]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/108/afe3dd22-3c6e-4668-ad0a-b7f8e9c321f9.jpg]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/108/ffa2205c-7c58-4f75-99bc-b90835a6fb9e.jpg]"
       },
       "answer": "B",
       "annulled": false,
@@ -2970,11 +2966,11 @@
       "topic": null,
       "statement": "A World Series é a decisão do campeonato norte-americano de beisebol. Os dois times que chegam  \na essa fase jogam, entre si, até sete partidas. O primeiro desses times que completar quatro vitórias é declarado campeão.\n\nConsidere que, em todas as partidas, a probabilidade de qualquer um dos dois times vencer é sempre ![](https://enem.dev/2022/questions/137/091aafba-f2dd-4f19-9655-73e6bd1599b6.png)\n\nQual é a probabilidade de o time campeão ser aquele que venceu a primeira partida da World Series?",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/137/a62b92ab-65a1-4608-a3ac-3a1e08008845.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/137/bcc4e92c-3d8c-40e8-8651-b1829f138eb3.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/137/b783250d-3cdc-48c4-b60a-44d5b2ccc932.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/137/ccd84f4e-31eb-4dfe-85be-202683fe5af7.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/137/1cb4062d-0ed1-45ac-a1f7-ce783f591515.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/137/a62b92ab-65a1-4608-a3ac-3a1e08008845.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/137/bcc4e92c-3d8c-40e8-8651-b1829f138eb3.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/137/b783250d-3cdc-48c4-b60a-44d5b2ccc932.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/137/ccd84f4e-31eb-4dfe-85be-202683fe5af7.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/137/1cb4062d-0ed1-45ac-a1f7-ce783f591515.png]"
       },
       "answer": "C",
       "annulled": false,
@@ -3058,11 +3054,11 @@
       "topic": null,
       "statement": "Em um jogo de bingo, as cartelas contêm 16 quadrículas dispostas em linhas e colunas. Cada quadrícula tem impresso um número, dentre os inteiros de 1 a 50, sem repetição de número. Na primeira rodada, um número é sorteado, aleatoriamente, dentre os 50 possíveis. Em todas as rodadas, o número sorteado é descartado e não participa dos sorteios das rodadas seguintes. Caso o jogador tenha em sua cartela o número sorteado, ele o assinala na cartela. Ganha o jogador que primeiro conseguir preencher quatro quadrículas que formam uma linha, uma coluna ou uma diagonal, conforme os tipos de situações ilustradas na Figura 1.\n\n![](https://enem.dev/2022/questions/141/e8e788ea-4e28-4ceb-b928-494d2ca68033.png)\n\nO jogo inicia e, nas quatro primeiras rodadas, foram sorteados os seguintes números: 03, 27, 07 e 48. Ao final da quarta rodada, somente Pedro possuía uma cartela que continha esses quatro números sorteados, sendo que todos os demais jogadores conseguiram assinalar, no máximo, um desses números em suas cartelas. Observe na Figura 2 o cartão de Pedro após as quatro primeiras rodadas.\n\n![](https://enem.dev/2022/questions/141/1e77b1bf-38e6-4145-b78b-91be4088bc11.png)\n\nA probabilidade de Pedro ganhar o jogo em uma das duas próximas rodadas é",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/141/cd5a2722-63ec-4baf-bb68-20df7b0342b6.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/141/3098c816-0b2d-4a41-bd93-48a7103007d3.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/141/f1b1ddb0-011b-422f-ad9c-be16c2322ab9.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/141/182be64f-689b-4ab6-b35b-f0dfae3b5a54.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/141/3d293613-50b5-494a-b8f3-52e16ae9f866.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/141/cd5a2722-63ec-4baf-bb68-20df7b0342b6.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/141/3098c816-0b2d-4a41-bd93-48a7103007d3.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/141/f1b1ddb0-011b-422f-ad9c-be16c2322ab9.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/141/182be64f-689b-4ab6-b35b-f0dfae3b5a54.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/141/3d293613-50b5-494a-b8f3-52e16ae9f866.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3103,11 +3099,11 @@
       "topic": null,
       "statement": "Dentre as diversas planificações possíveis para o cubo, uma delas é a que se encontra apresentada na Figura 1.\n\n![](https://enem.dev/2022/questions/143/4da64c40-da53-4205-b673-aa5b6274e3e2.jpg)\n\nEm um cubo, foram pintados, em três de suas faces, quadrados de cor cinza escura, que ocupam um quarto dessas faces, tendo esses três quadrados um vértice em comum, conforme ilustrado na Figura 2.\n\n![](https://enem.dev/2022/questions/143/a05cd294-5321-4c85-a081-a86ed7aa3e39.jpg)\n\nA planificação do cubo da Figura 2, conforme o tipo de planificação apresentada na Figura 1, é",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/143/37b0d8a0-5992-4fac-8f58-93924c6877e2.jpg]",
-        "B": "[imagem: https://enem.dev/2022/questions/143/c2a2bae5-e20a-4bdb-af9e-b6d37b0cdc81.jpg]",
-        "C": "[imagem: https://enem.dev/2022/questions/143/bfd0a9ed-5ff2-444f-b297-e2f37eba789b.jpg]",
-        "D": "[imagem: https://enem.dev/2022/questions/143/b76f04c7-e485-4c93-8e57-60d5ce9f5623.jpg]",
-        "E": "[imagem: https://enem.dev/2022/questions/143/2e478466-a3b6-4a44-8c04-a6187dc164df.jpg]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/143/37b0d8a0-5992-4fac-8f58-93924c6877e2.jpg]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/143/c2a2bae5-e20a-4bdb-af9e-b6d37b0cdc81.jpg]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/143/bfd0a9ed-5ff2-444f-b297-e2f37eba789b.jpg]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/143/b76f04c7-e485-4c93-8e57-60d5ce9f5623.jpg]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/143/2e478466-a3b6-4a44-8c04-a6187dc164df.jpg]"
       },
       "answer": "A",
       "annulled": false,
@@ -3131,7 +3127,7 @@
         "B": "7",
         "C": "8",
         "D": "9",
-        "E": "[alternativa ausente na API]"
+        "E": "[Alternativa E indisponível no endpoint]"
       },
       "answer": "C",
       "annulled": false,
@@ -3222,11 +3218,11 @@
       "topic": null,
       "statement": "A luminosidade _L_ de uma estrela está relacionada com o raio _R_ e com a temperatura _T_ dessa estrela segundo a Lei de Stefan-Boltzmann: ![](https://enem.dev/2022/questions/148/00e98ef8-6901-4d38-91f1-1fa1afda8b14.png) em que c é uma constante igual para todas as estrelas.\n\nDisponível em: http://ciencia.hsw.uol.com.br. Acesso em: 22 nov. 2013 (adaptado)\n\nConsidere duas estrelas _E_ e _F_, sendo que a estrela _E_ tem metade do raio da estrela _F_ e o dobro da temperatura de _F_.\n\nIndique por LE  e LF suas respectivas luminosidades.\nA relação entre as luminosidades dessas duas estrelas é dada por",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/148/623219f3-b839-4f65-b990-99e2416e78ac.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/148/ac0ff64f-89bb-4e7c-a004-f3a22719d728.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/148/282300db-f32c-4e24-b4ec-da66e734e9c4.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/148/2e2fa9f3-4c51-4920-8048-790d9f42ed80.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/148/c37d4dda-0f9a-4756-a282-99e7ddd27c64.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/148/623219f3-b839-4f65-b990-99e2416e78ac.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/148/ac0ff64f-89bb-4e7c-a004-f3a22719d728.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/148/282300db-f32c-4e24-b4ec-da66e734e9c4.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/148/2e2fa9f3-4c51-4920-8048-790d9f42ed80.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/148/c37d4dda-0f9a-4756-a282-99e7ddd27c64.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -3380,11 +3376,11 @@
       "topic": null,
       "statement": "Um prédio, com 9 andares e 8 apartamentos de 2 quartos por andar, está com todos os seus apartamentos à venda. Os apartamentos são identificados por números formados por dois algarismos, sendo que a dezena indica o andar onde se encontra o apartamento, e a unidade, um algarismo de 1 a 8, que diferencia os apartamentos de um mesmo andar. Quanto à incidência de sol nos quartos desses apartamentos, constatam-se as seguintes características, em função de seus números de identificação:  \n• naqueles que finalizam em 1 ou 2, ambos os quartos recebem sol apenas na parte da manhã;  \n• naqueles que finalizam em 3, 4, 5 ou 6, apenas um dos quartos recebe sol na parte da manhã;  \n• naqueles que finalizam em 7 ou 8, ambos os quartos recebem sol apenas na parte da tarde.\n\nUma pessoa pretende comprar 2 desses apartamentos em um mesmo andar, mas quer que, em ambos, pelo menos um dos quartos receba sol na parte da manhã.\n\nDe quantas maneiras diferentes essa pessoa poderá escolher 2 desses apartamentos para compra nas condições desejadas?",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/155/4e4d5692-b3ea-4434-aaef-74309d2d3b2a.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/155/2b0fcee8-c3b1-4c03-ac2a-342792f7ab28.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/155/e2dfe176-9a1a-49e7-aee5-62794ac8242b.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/155/0681d716-28d4-4521-801f-5a20871829e5.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/155/027b58bd-d5b6-4ab1-afb6-a17dd85e31c8.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/155/4e4d5692-b3ea-4434-aaef-74309d2d3b2a.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/155/2b0fcee8-c3b1-4c03-ac2a-342792f7ab28.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/155/e2dfe176-9a1a-49e7-aee5-62794ac8242b.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/155/0681d716-28d4-4521-801f-5a20871829e5.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/155/027b58bd-d5b6-4ab1-afb6-a17dd85e31c8.png]"
       },
       "answer": "B",
       "annulled": false,
@@ -3401,11 +3397,11 @@
       "topic": null,
       "statement": "O professor de artes orientou seus estudantes a realizarem a seguinte sequência de atividades:  \n• Dobrar uma folha de papel em formato quadrado duas vezes, em sequência, ao longo das linhas tracejadas, conforme ilustrado nas figuras 1 e 2, para obter o papel dobrado, conforme Figura 3.\n\n![](https://enem.dev/2022/questions/156/2b1f4d30-ed72-40af-824d-6d394c9d948d.png)\n\n• Em seguida, no papel dobrado da Figura 3, considerar o ponto _R_, sobre o segmento _OM_, sendo  o ponto médio do lado do quadrado original, de modo que ![](https://enem.dev/2022/questions/156/2a89a0e4-1a8b-4b3f-a678-97fa60066bcc.png), traçar um arco de circunferência de raio medindo ![](https://enem.dev/2022/questions/156/1665e780-8437-449e-b389-8d9729b2980c.png) com centro no ponto _R_, obtendo a Figura 4. Por último, recortar o papel ao longo do arco de circunferência e excluir a parte que contém o setor circular, obtendo o papel dobrado, conforme Figura 5.\n\n![](https://enem.dev/2022/questions/156/bf9a172b-bd1e-4e83-9d95-6bc3fd29eadc.png)\n\nApós desdobrado o papel que restou na Figura 5, a figura plana que os estudantes obterão será",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/156/538392d5-583a-4aa5-a47c-61ee0bc6b98d.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/156/78436952-5965-4c7f-80c3-ca2eee79bb4e.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/156/ddf97279-7187-4bc2-be7b-25bd70510a73.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/156/b09ad37a-893e-4709-8b48-bded413fc77f.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/156/c3221442-88b6-455d-bf9f-5097c75188a2.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/156/538392d5-583a-4aa5-a47c-61ee0bc6b98d.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/156/78436952-5965-4c7f-80c3-ca2eee79bb4e.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/156/ddf97279-7187-4bc2-be7b-25bd70510a73.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/156/b09ad37a-893e-4709-8b48-bded413fc77f.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/156/c3221442-88b6-455d-bf9f-5097c75188a2.png]"
       },
       "answer": "C",
       "annulled": false,
@@ -3427,11 +3423,11 @@
       "topic": null,
       "statement": "O funcionário de uma loja tem seu salário mensal formado por uma parcela fixa de 675 reais mais uma comissão que depende da quantidade de peças vendidas por ele no mês. O cálculo do valor dessa comissão é feito de acordo com estes critérios:  \n• até a quinquagésima peça vendida, paga-se 5 reais por peça;  \n• a partir da quinquagésima primeira peça vendida, o valor pago é de 7 reais por peça.  \nRepresente por q a quantidade de peças vendidas no mês por esse funcionário, e por S(q) o seu salário mensal, em real, nesse mês.\n\nA expressão algébrica que descreve S(q) em função de q é",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/157/fc471085-2399-4726-8cde-a72bae7ac9c5.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/157/e90bf791-5ee8-4ecf-8c11-34988750ed2b.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/157/693a22d0-61e8-4f3b-ad77-5b73fc16bc0f.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/157/62e359c4-eecb-4120-861f-eb5af04c9fec.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/157/af3c085b-7eb0-4462-a0b1-f79fd1291f67.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/157/fc471085-2399-4726-8cde-a72bae7ac9c5.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/157/e90bf791-5ee8-4ecf-8c11-34988750ed2b.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/157/693a22d0-61e8-4f3b-ad77-5b73fc16bc0f.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/157/62e359c4-eecb-4120-861f-eb5af04c9fec.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/157/af3c085b-7eb0-4462-a0b1-f79fd1291f67.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3472,11 +3468,11 @@
       "topic": null,
       "statement": "Um atleta iniciou seu treinamento visando as competições de fim de ano. Seu treinamento consiste em cinco tipos diferentes de treinos: treino ![](https://enem.dev/2022/questions/159/1de0b45e-d38b-4536-8661-c1c388ecd03d.png),  treino ![](https://enem.dev/2022/questions/159/0ab1a35f-7889-478e-a862-0edb86d335e6.png), treino  ![](https://enem.dev/2022/questions/159/8b00bc00-9af3-465a-89f2-3345b604b54b.png), treino ![](https://enem.dev/2022/questions/159/14be4d1d-8e19-41a5-bb02-cec32e90d007.png) e treino ![](https://enem.dev/2022/questions/159/136e1c72-59e2-41e7-95d7-b55e4ae92da3.png). A sequência dos treinamentos deve seguir esta ordem:\n\n![](https://enem.dev/2022/questions/159/1c8945f7-b377-4bf6-9eb8-2a44c3c69e2a.png)\n\nA letra R significa repouso. Após completar a sequência de treinamentos, o atleta começa novamente a sequência a partir do treino ![](https://enem.dev/2022/questions/159/660fa349-2c52-41aa-adae-bcd4adaad92e.png), e segue a ordem descrita. Após 24 semanas completas de treinamento, se dará o inicio das competições.\n\nPlease select text to grab.\n\nCopyfish\n\nestöes20112Fonteestões2011\n\nOCR successful\n\n##### OCR Result(Auto-Detect)\n\nN/A\n\n##### Translated(English)\n\nRedo OCR Recapture Re-Translate Copy to clipboard\n\nA sequência de treinamentos que o atleta realizará na 24ª semana de treinos é",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/159/63615e39-7138-4ae8-9e1b-5096335cc20f.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/159/cd6feba8-05d7-401f-87d8-c35ddbc366ef.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/159/f321765a-d92c-4247-b7eb-941db32d9552.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/159/0a5dac06-c82a-415a-9ab0-311e0d2138cf.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/159/a9fa3b63-1dae-4542-9b0f-4338e80df580.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/159/63615e39-7138-4ae8-9e1b-5096335cc20f.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/159/cd6feba8-05d7-401f-87d8-c35ddbc366ef.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/159/f321765a-d92c-4247-b7eb-941db32d9552.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/159/0a5dac06-c82a-415a-9ab0-311e0d2138cf.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/159/a9fa3b63-1dae-4542-9b0f-4338e80df580.png]"
       },
       "answer": "B",
       "annulled": false,
@@ -3501,11 +3497,11 @@
       "topic": null,
       "statement": "Um robô, que tem um ímã em sua base, se desloca sobre a superfície externa de um cubo metálico, ao longo de segmentos de reta cujas extremidades são pontos médios de arestas e centros de faces. Ele inicia seu deslocamento no ponto **P**, centro da face superior do cubo, segue para o centro da próxima face, converte à esquerda e segue para o centro da face seguinte, converte à direita e continua sua movimentação, sempre alternando entre conversões à esquerda e à direita quando alcança o centro de uma face. O robô só termina sua movimentação quando retorna ao ponto **P**. A figura apresenta os deslocamentos iniciais desse robô.\n\n![](https://enem.dev/2022/questions/160/c9e8168c-5f91-45a5-82a3-c5a2948bf0a9.png)\n\nA projeção ortogonal do trajeto descrito por esse robô sobre o plano da base, após terminada sua movimentação, visualizada da posição em que se está enxergando esse cubo, é",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/160/5d7821fa-37c8-4d86-b71d-4b70a0e1d096.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/160/6a4daa1c-7f24-439f-b2a3-43eddb2b2400.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/160/41ab922d-57a6-428b-a207-4dc213ec6481.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/160/79a7fd8e-7800-4a2f-86d6-33dcbe3aef84.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/160/2dacf59f-b682-45fb-bd03-29f25ba41487.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/160/5d7821fa-37c8-4d86-b71d-4b70a0e1d096.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/160/6a4daa1c-7f24-439f-b2a3-43eddb2b2400.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/160/41ab922d-57a6-428b-a207-4dc213ec6481.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/160/79a7fd8e-7800-4a2f-86d6-33dcbe3aef84.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/160/2dacf59f-b682-45fb-bd03-29f25ba41487.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -3637,7 +3633,7 @@
         "B": "2",
         "C": "3",
         "D": "4",
-        "E": "[alternativa ausente na API]"
+        "E": "[Alternativa E indisponível no endpoint]"
       },
       "answer": "A",
       "annulled": false,
@@ -3943,11 +3939,11 @@
       "topic": null,
       "statement": "Na figura estão destacadas duas trajetórias sobre a superfície do globo terrestre, descritas ao se percorrer parte dos meridianos 1, 2 e da Linha do Equador, sendo que os meridianos 1 e 2 estão contidos em planos perpendiculares entre si. O plano α é paralelo ao que contém a Linha do Equador.\n\n![](https://enem.dev/2022/questions/180/f3e0feaa-a265-4d9f-894f-63135acff616.png)\n\nA vista superior da projeção ortogonal sobre o plano α dessas duas trajetórias é",
       "options": {
-        "A": "[imagem: https://enem.dev/2022/questions/180/05cb2bb8-e0d9-4b65-b5cf-8b286af2b395.png]",
-        "B": "[imagem: https://enem.dev/2022/questions/180/23fc7b65-ca58-4a35-967f-ac9c73b89e03.png]",
-        "C": "[imagem: https://enem.dev/2022/questions/180/5be81d3b-c2c8-4856-a7b6-9f265a813436.png]",
-        "D": "[imagem: https://enem.dev/2022/questions/180/c29e4144-4fce-43b2-a402-0ff7de72f3d0.png]",
-        "E": "[imagem: https://enem.dev/2022/questions/180/5e135009-dbc9-4b08-bdf9-ad95f8f3d14f.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2022/questions/180/05cb2bb8-e0d9-4b65-b5cf-8b286af2b395.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2022/questions/180/23fc7b65-ca58-4a35-967f-ac9c73b89e03.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2022/questions/180/5be81d3b-c2c8-4856-a7b6-9f265a813436.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2022/questions/180/c29e4144-4fce-43b2-a402-0ff7de72f3d0.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2022/questions/180/5e135009-dbc9-4b08-bdf9-ad95f8f3d14f.png]"
       },
       "answer": "E",
       "annulled": false,

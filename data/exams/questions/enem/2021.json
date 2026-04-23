@@ -2,119 +2,117 @@
   "exam_type": "enem",
   "year": 2021,
   "title": "ENEM 2021",
-  "description": "Prova oficial do ENEM 2021 importada para base local reutilizável.",
+  "description": "Prova oficial do ENEM 2021, importada via enem.dev.",
   "question_count": 180,
   "total_questions": 180,
   "has_answer_key": true,
-  "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2021",
-  "imported_from": "https://api.enem.dev/v1/exams/2021/questions",
-  "imported_at": "2026-04-23T15:56:32.602463+00:00",
+  "imported_from": "enem.dev",
   "questions": [
     {
       "number": 1,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "Se reunieron en un volumen todas las entrevistas  \ndadas por el poeta y dramaturgo Federico García Lorca.  \nLorca concedió 133 entrevistas; leyéndolas se sabrá  \nqué estaba por detrás de la poética del escritor andaluz.  \nSobre su obra declaró en una de ellas: “No he sido nunca  \npoeta de minoría. He tratado de poner en mis poemas  \nlo de todos los tiempos, lo permanente, lo humano.  \nA mí me ataca lo humano, es el elemento fundamental en  \ntoda obra de arte”. Y en otra dijo: “Hoy no interesa más  \nque una problemática: lo social. La obra que no siga esa  \ndirección está condenada al fracaso, aunque sea muy  \nbuena”. En su última entrevista, de junio de 1936, Lorca  \nse muestra profético: “Ni el poeta ni nadie tiene la clave y  \nel secreto del mundo. Quiero ser bueno. Sé que la poesía  \neleva y creo firmemente que si hay un más allá tendré la  \nagradable sorpresa de encontrarme con él. Pero el dolor  \ndel hombre y la injusticia constante que mana del mundo,  \ny mi propio cuerpo y mi propio pensamiento, me evitan  \ntrasladar mi casa a las estrellas”\n\nAYÉN, X. Retrato del poeta como “muchachón gitanazo”. Disponivel em: www.clarin.com.  \nAcesso em: 8 dez. 2017 (adaptado),\n\nEsse trecho da resenha de um livro de entrevistas concedidas por Federico García Lorca tem por finalidade",
+      "statement": "We are now a nation obsessed with the cult of celebrity. Celebrities have replaced the classic notion of the hero. But instead of being respected for talent, courage or intelligence, it is money, style and image the deciding factors in what commands respect. Image is evrything. Their image is painstakingly constructed by a multitude of different image consultants to carve out the most profitable celebrity they can. Then society is right behind them, believing in evrything that celebrity believes in.  \nCompanies know that people will buy a product if a celebrity has too. It is as if the person buying the product feels that they now have some kind of connection with the celebrity and that some of their perceived happiness will now be passed onto the consumer. So to look at it one way, the cult of celebrity is really nothing more than a sophisticated marketing scheme. Celeebrities though cannot be blamed for all negative aspects of society. In reality society is to blame. We are the people who seemed to have lost the ability to think for ourselves. I suppose it’s easier to be told what to think, rather than challenging what we are told. The reason we are swamped by celebrity is because there is a demand for it.\n\nDisponível em: www.pitlanemagazine.com  \nAcesso em: 7 dez.2017 (adaptado)\n\nO texto, que aborda questões referentes ao tema do culto à cebebridade, tem o objetivo de",
       "options": {
-        "A": "Ressaltar a atração do entrevistado por questões misticas.",
-        "B": "Divulgar a comoção das elites com as obras do entrevistado.",
-        "C": "Salientar o compromisso do entrevistado com as questões sociais.",
-        "D": "Mostrar a atualidade das bras poéticas e teatrais do entrevistado.",
-        "E": "Criticar o interesse do entrevistado por particularidades da vida humana."
+        "A": "Destacar os mérios das celebridades.",
+        "B": "Criticar o consumismo das celebridades.",
+        "C": "Ressaltar a necessidade de reflexão dos fãs.",
+        "D": "Culpar as celebridades pela obsessão dos fãs.",
+        "E": "Valoriar o marketing pessoal das celebridades."
       },
       "answer": "C",
       "annulled": false,
       "source_pdf_label": "ENEM 2021 - Questão 1",
       "assets": [],
-      "language": "espanhol",
+      "language": "ingles",
       "title": "Questão 1 - ENEM 2021"
     },
     {
       "number": 2,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "**Amuleto**\n\nLo único cierto es que llegué a México en 1965 y me planté en casa de León Felipe y en casa de Pedro Garfias y les dije aquí estoy para lo que gusten mandar. Y les debí de caer simpática, porque antipática no soy, aunque a veces soy pesada, pero antipática nunca. Y lo primero que hice fue coger una escoba y ponerme a barrer el suelo de sus casas y luego a limpiar las ventanas y cada vez que podía les pedía dinero y les hacia compra. Y ellos me decían con ese tono español tan peculiar, esa musiquilla distinta que no los abandonó nunca, como si encircularan las zetas y las ces y como si dejaran a las eses más huérfanas y libidinosas que nunca, Auxilio, me decian, deja ya de trasegar por el piso, Auxilio, deja esos papeles tranquilos, mujer, que el polvo siempre se ha avenido con la literatura.\n\nBOLAÑO, R. A. Tres novelas. Barcelona: Circulo de Lectores, 2003.\n\nNo fragmento do romance, a uruguaia Auxilio narra a experiência que viveu no México ao trabalhar voluntariamente para dois escritores espanhóis. Com base na relação com os escritores, ela reflete sobre a(s)",
+      "statement": "The British (serves 60 million)\n\nTake some Picts, Celts and Silures  \nAnda let them settle,  \nThen overrun them with Roman conquerors.  \nRemove the Romans after approximateky 400 years  \nAdd lots of Normam French to some  \nAngle, Saxons, Jutes and Vikings, then stir vigorously.  \n\\[…\\]  \nSprinkle some fresh Indians, Malaysians, Bosnians,  \nIraqis and Bangladeshis together with some  \nAfghans, Spanish, Turkish, Kurdish, Japanese  \nAnd Palestinians  \nThen add to the melting pot.  \nLeave the ingredients to simmer.  \nAs they mix and blend allow theis languages to flourish  \nBinding them together with English.  \nAllow time to be cool.  \nAdd some ulity, understanding, and respect for the future,  \nServe with justicee  \nAnd enjoy.\n\n**Note**: All the ingredients are equally important. Treating one ingredient better than another will leave a bitter unpleasant taste.\n\n**Warning**: An unequal spread of spread of justice will damage the people and cause pais. Give justice and quality to all.\n\nDisponível em: www.benjaminzephaniah.com  \nAcesso em: 12 dez. 2018 (fragmento)\n\nAo descrever o processo de formação da Inglaterra, o autor recorre a características de outro gênero textual para evidenciar",
       "options": {
-        "A": "Variação linguística do espanhol.",
-        "B": "Sujeira dos livros de literatura.",
-        "C": "Distintas maneiras de acolher do mexicano.",
-        "D": "Orientações sobre a limpeza das casas dos espanhóis.",
-        "E": "Dificuldades de comunicação entre patrão e empregada."
+        "A": "A riqueza da mistura cultural.",
+        "B": "Um legado de origem geográfica.",
+        "C": "Um impactto de natureza histórica.",
+        "D": "Um problema de estratificação social.",
+        "E": "A questão da intolerância linguística."
       },
       "answer": "A",
       "annulled": false,
       "source_pdf_label": "ENEM 2021 - Questão 2",
       "assets": [],
-      "language": "espanhol",
+      "language": "ingles",
       "title": "Questão 2 - ENEM 2021"
     },
     {
       "number": 3,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "Hoy, en cuestión de segundos uno es capaz de conocer la vida de un individuo o las actividades que lleva a cabo sin necesidad de contacto personal; las RRSS tienen la poderosa virtud de convocar concentraciones de gentes con idearios comunes y generar movimientos como la Primavera Árabe, por ejemplo.  \nBajo ese parámetro, cualquier incidente puede ser inmediatamente reportado por grabación o filmación, por lo que a los aparatos celulares, más allá de su utilidad en términos de conversación, habria que calificarlos como “la guillotina del siglo XXI”.  \nAsí es. Son éstos los que han pasado a convertirse en artefactos con cuyo uso se han develado conversaciones, acuerdos, negociados, chantajes y un sin fin de hechos que han dado curso a procesos de naturaleza legal e investigativa que han tumbado gobiernos, empresas, empresarios, políticos y que, incluso, ha servido en un caso reciente, para que un inocente recupere su libertad tras cuatro años de injusto encierro.\n\nDisponível em: https:/elpotosi.net. Acesso em: 24. jun. 2021.\n\nO texto trata da evolução inerente às funcionalidades de recursos tecnológicos. A expressão “la guillotina del siglo XXI” destaca que os celulares de hoje podem",
+      "statement": "**Becoming**\n\nBack in the ancestral homeland of Michelle Obama,  \nblack women were rarely granted the honorific Miss or  \nMrs., but were addressed by their first name, or simply as  \n“gal” or “auntie” or worse. This so openly demeaned them  \nthat many black women, long after they had left the South,  \nrefused to answer if called by their first name. A mother  \nand father in 1970s Texas named their newborn “Miss” so  \nthat white people would have no choice but to address their  \ndaughter by that title. Black women were meant for the field  \nor the Kitchen, or for use as they saw fit. They were, by  \ndefinition, not ladies. The very idea of a black woman as  \nfirst lady of the land, well, that would have been unthinkable.\n\n_Disponível em: www.nytimes.com Acesso em 28 dex. 2018 (adaptado)_\n\nA crítica do livro de memórias de Michelle Obama, ex-primeira-dama dos EUA, aborda a história das relações humanas na cidade natal da autora. Nesse contexto, o uso  do vocábulo “unthinkable” ressalta que",
       "options": {
-        "A": "Oferecer recursos com funções múltiplas.",
-        "B": "Reunir usuários com ideias semelhantes.",
-        "C": "Divulgar informação instantânea.",
-        "D": "Organizar movimentos sociais.",
-        "E": "Assumir utilidade jurídica."
+        "A": "A ascensão social era improvável.",
+        "B": "A mudança de nome era impensável.",
+        "C": "A origem do indivíduo era irrelevante.",
+        "D": "O trabalho feminino era inimaginável.",
+        "E": "O comportamento parental era irresponsável."
       },
-      "answer": "E",
+      "answer": "A",
       "annulled": false,
       "source_pdf_label": "ENEM 2021 - Questão 3",
       "assets": [],
-      "language": "espanhol",
+      "language": "ingles",
       "title": "Questão 3 - ENEM 2021"
     },
     {
       "number": 4,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "En el suelo, apoyado en el mostrador, se acurrucaba, inmóvil como una cosa, un hombre muy viejo. Los muchos años lo habían reducido y pulido como las aguas a una piedra o las generaciones de los hombres a una sentencia. Era oscuro, chico y reseco, y estaba como fuera del tiempo, en una eternidad.\n\nBORGES, J. L. Artificios. Madri: Alianza Cien, 1995\n\nNo âmbito literário, são mobilizados diferentes recursos que visam à expressividade. No texto, a analogia estabelecida pela expressão “como las aguas a una piedra” tem a função de",
+      "statement": "![](https://enem.dev/2021/questions/4-ingles/f8b82d5f-61b4-4f77-ac4f-5ab5af0f9423.png)\n\nA Presença de “at odds with” na fala do personagem do cartum revela o(a)",
       "options": {
-        "A": "Enfatizar a ação do tempo sobre a personagem.",
-        "B": "Descrever a objetificação do ambiente.",
-        "C": "Expor a anacronia da personagem",
-        "D": "Caracterizar o espaço do conto.",
-        "E": "Narrar a perenidade da velhice"
+        "A": "Necessidade de acessar informações confiáveis.",
+        "B": "Dificuldade de conciliar diferentes anseios.",
+        "C": "Desejo de dominar novas tecnologias.",
+        "D": "Desafio de permanecer imparcial.",
+        "E": "Vontade de ler notícias positivas."
       },
-      "answer": "A",
+      "answer": "B",
       "annulled": false,
       "source_pdf_label": "ENEM 2021 - Questão 4",
-      "assets": [],
-      "language": "espanhol",
+      "assets": [
+        "https://enem.dev/2021/questions/4-ingles/f8b82d5f-61b4-4f77-ac4f-5ab5af0f9423.png"
+      ],
+      "language": "ingles",
       "title": "Questão 4 - ENEM 2021"
     },
     {
       "number": 5,
       "day": 1,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Inglês",
       "topic": null,
-      "statement": "![](https://enem.dev/2021/questions/5-espanhol/c966af60-b276-459d-8a9f-d0f78ef25988.png)\n\nA charge evoca uma situação de assombro frente a uma realidade que assola as sociedades contemporâneas. Seu efeito humorístico reside na crítica diante do(a)",
+      "statement": "**Exterior: Between The Museums – Day**\n\nCELINE  \nAmericans always think Europe is perfect. But such beauty and history can be really oppressive. It reduces the individual to nothing. It just reminds you all the time you are just a little speck in a long history, where in America you feel like you could be making history. That’s why I like Los Angeles because it is so…  \nJESSE  \nUgly?  \nCELINE  \nNo, I was going to say “neutral”. It’s like looking at a blank canvas. I think people go to places like Venice on their honeymoon to make sure they are not going to fight for the first two weeks of their marriage because they’ll be too busy looking around at all the beautiful things. That’s what people call a romantic place – somewhere where the prettiness will contain your primary violent instinct. A real good honeymoon spot would be like somewhere in New Jersey.\n\nKRIZAN, K,; LINKLATER, R. **Before Sunrise**: screenplay.  \nNew York: Vintage Books, 2005.\n\nConsiderando-se o olhar dos personagens, esse trecho do roteiro de um filme permite reconhecer que a avaliação sobre um lugar depende do(a)",
       "options": {
-        "A": "Constatação do ser humano como o responsável pela condição caótica do mundo.",
-        "B": "Apelo à religiosidade diante das dificuldades enfrentadas pela humanidade.",
-        "C": "Indignação dos trabalhadores em face das injustiças sociais.",
-        "D": "Veiculação de informações trágicas pelos telejornais.",
-        "E": "Manipulação das notícias difundidas pelas mídias."
+        "A": "Beleza do próprio local.",
+        "B": "Perspectiva do visitante.",
+        "C": "Contexto histórico do local.",
+        "D": "Tempo de permanência no local.",
+        "E": "Finalidade da viagem do visitante."
       },
-      "answer": "A",
+      "answer": "B",
       "annulled": false,
       "source_pdf_label": "ENEM 2021 - Questão 5",
-      "assets": [
-        "https://enem.dev/2021/questions/5-espanhol/c966af60-b276-459d-8a9f-d0f78ef25988.png"
-      ],
-      "language": "espanhol",
+      "assets": [],
+      "language": "ingles",
       "title": "Questão 5 - ENEM 2021"
     },
     {
@@ -1934,11 +1932,11 @@
       "topic": null,
       "statement": "No cultivo por hidroponia, são utilizados soluções nutritivas contendo macronutrientes e micronutrientes essenciais. Além dos nutrientes, o pH é um parâmetro de extrema importância, uma vez que ele afeta a preparação da solução nutritiva e a absorção dos nutrientes pelas plantas. Para o cultivo de alface, valores de pH entre 5,5 e 6,5 são ideais para o seu desenvolvimento. As correções de pH são feitas pela adição de compostos ácidos ou básicos, mas não devem introduzir elementos nocivos às plantas. Na tabela, são apresentados alguns dados da composição da solução nutritiva de referência para esse cultivo. Também é apresentada a composição de uma solução preparada por um produtor de cultivo hidropônico.\n\n![](https://enem.dev/2021/questions/91/1dc57326-df5b-4852-aedc-5839a54129ec.png)\n\nLENZI, E; FAVERO, L. O. B; LUCHESE, E. B. **Introdução à química da água:** ciência, vida e sobrevivência. Rio de Janeiro: LTC, 2012 (adaptado).\n\nPara correção do pH da solução nutritiva preparada, esse produtor pode empregar uma solução de",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/91/0cd7f916-3dc7-48f8-b5df-b84c91755f2a.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/91/cade51a2-4217-4ca2-960d-be2ee1e8bd2e.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/91/560b8732-72e1-4c95-8022-67102ebf31ec.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/91/6b02a86e-77a0-4ba0-8829-a91c987e4e7b.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/91/cac9eb61-efc4-42a4-8163-2e4a4c6d2f1e.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/91/0cd7f916-3dc7-48f8-b5df-b84c91755f2a.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/91/cade51a2-4217-4ca2-960d-be2ee1e8bd2e.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/91/560b8732-72e1-4c95-8022-67102ebf31ec.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/91/6b02a86e-77a0-4ba0-8829-a91c987e4e7b.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/91/cac9eb61-efc4-42a4-8163-2e4a4c6d2f1e.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -2183,11 +2181,11 @@
       "topic": null,
       "statement": "É possível ligar aparelhos elétricos de baixa corrente utilizando materiais comuns de laboratório no lugar das tradicionais pilhas. A ilustração apresenta uma montagem que faz funcionar um cronômetro digital.\n\n![](https://enem.dev/2021/questions/102/17f47198-3b4c-42ca-bedf-c8b41c41b0d6.jpg)\n\nUtilizando a representação de projetos elétricos, o circuito equivalente a esse sistema é",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/102/35f28219-f7b0-4365-a7fc-58c08c95b366.jpg]",
-        "B": "[imagem: https://enem.dev/2021/questions/102/a1addbaa-02a6-44a3-9499-fec69b941fb5.jpg]",
-        "C": "[imagem: https://enem.dev/2021/questions/102/cf629285-ed23-44ed-8e08-fa20b10594c2.jpg]",
-        "D": "[imagem: https://enem.dev/2021/questions/102/b1484eea-6e7c-4966-93fb-08f6170457d2.jpg]",
-        "E": "[imagem: https://enem.dev/2021/questions/102/be16054b-4b26-4819-b0cb-b9f6b17c3f36.jpg]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/102/35f28219-f7b0-4365-a7fc-58c08c95b366.jpg]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/102/a1addbaa-02a6-44a3-9499-fec69b941fb5.jpg]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/102/cf629285-ed23-44ed-8e08-fa20b10594c2.jpg]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/102/b1484eea-6e7c-4966-93fb-08f6170457d2.jpg]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/102/be16054b-4b26-4819-b0cb-b9f6b17c3f36.jpg]"
       },
       "answer": "B",
       "annulled": false,
@@ -2250,11 +2248,11 @@
       "topic": null,
       "statement": "Duas esferas carregadas com cargas iguais em módulo e sinais contrários estão ligadas por uma haste rígida isolante na forma de haltere. O sistema se movimenta sob ação da gravidade numa região que tem um campo magnético horizontal uniforme  ![](https://enem.dev/2021/questions/105/81f45a24-eda2-40b3-8e46-768ee75a8807.jpg), da esquerda para a direita. A imagem apresenta o sistema visto de cima para baixo, no mesmo sentido da aceleração da gravidade ![](https://enem.dev/2021/questions/105/57f95cd7-65b6-4b83-8f6d-f86599749ee5.jpg) que atua na região.\n\n![](https://enem.dev/2021/questions/105/6e9bf09f-092e-49cf-b2f9-2885d0f29c26.jpg)\n\nVisto de cima, o diagrama esquemático das forças magnéticas que atuam no sistema, no momento inicial em que as cargas penetram na região de campo magnético, está representado em",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/105/687ce5ec-dd77-42de-b36f-2783bcb67736.jpg]",
-        "B": "[imagem: https://enem.dev/2021/questions/105/91a18cde-42ad-42f5-862d-b78c16ee7f0a.jpg]",
-        "C": "[imagem: https://enem.dev/2021/questions/105/67c0a2c9-deab-456f-8508-1099c98277f8.jpg]",
-        "D": "[imagem: https://enem.dev/2021/questions/105/b68b115c-a5ed-4665-99a7-01cdc4305c38.jpg]",
-        "E": "[alternativa ausente na API]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/105/687ce5ec-dd77-42de-b36f-2783bcb67736.jpg]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/105/91a18cde-42ad-42f5-862d-b78c16ee7f0a.jpg]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/105/67c0a2c9-deab-456f-8508-1099c98277f8.jpg]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/105/b68b115c-a5ed-4665-99a7-01cdc4305c38.jpg]",
+        "E": "[Alternativa E indisponível no endpoint]"
       },
       "answer": "A",
       "annulled": false,
@@ -2723,11 +2721,11 @@
       "topic": null,
       "statement": "Um garoto precisa montar um circuito que acenda três lâmpadas de cores diferentes, uma de cada vez. Ele dispõe das lâmpadas, de fios, uma bateria e dois interruptores, como ilustrado, junto com seu símbolo de três pontos. Quando esse interruptor fecha AB, abre BC e vice-versa.\n\n![](https://enem.dev/2021/questions/126/0628bf6f-7d5c-4dc6-befa-149ef1567926.png)\n\nO garoto fez cinco circuitos elétricos usando os dois interruptores, mas apenas um satisfaz a sua necessidade. Esse circuito é representado por",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/126/25d6d416-c4fd-44ab-a585-e6bfc841f167.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/126/0a7dfcb5-69d0-4c21-b3e9-8d8c3e3855d6.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/126/870e3957-2d89-4115-ba0b-653d28d95f19.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/126/1557b1da-03f1-4bd4-a456-05a62bebb592.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/126/d9e73712-b6a3-4e5d-afd8-ce5a8cfa379f.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/126/25d6d416-c4fd-44ab-a585-e6bfc841f167.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/126/0a7dfcb5-69d0-4c21-b3e9-8d8c3e3855d6.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/126/870e3957-2d89-4115-ba0b-653d28d95f19.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/126/1557b1da-03f1-4bd4-a456-05a62bebb592.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/126/d9e73712-b6a3-4e5d-afd8-ce5a8cfa379f.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -2923,11 +2921,11 @@
       "topic": null,
       "statement": "O Prêmio Nobel de Química de 2000 deveu-se à descoberta e ao desenvolvimento de polímeros condutores. Esses materiais têm ampla aplicação em novos dispositivos eletroluminescentes (LEDs), células fotovoltaicas etc. Uma propriedade-chave de um polímero condutor é a presença de ligações duplas conjugadas ao longo da cadeia principal do polímero.\n\nROCHA FILHO, R. C. Polímeros condutores: descoberta e aplicações. **Química Nova na Escola**. n. 12, 2000 (adaptado).\n\nUm exemplo desse polímero é representado pela estrutura",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/135/92f582f4-0041-4251-a9d7-8feabaaa8bfa.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/135/1d579e5b-921a-4afb-90f1-49618e3a2269.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/135/94c80fa9-2e44-4853-8079-0ae4478a6016.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/135/33d1ee01-ba72-4108-97ce-5e4307659fff.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/135/99804a25-fcf0-4a95-be82-d601f1e98a33.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/135/92f582f4-0041-4251-a9d7-8feabaaa8bfa.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/135/1d579e5b-921a-4afb-90f1-49618e3a2269.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/135/94c80fa9-2e44-4853-8079-0ae4478a6016.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/135/33d1ee01-ba72-4108-97ce-5e4307659fff.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/135/99804a25-fcf0-4a95-be82-d601f1e98a33.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -2967,11 +2965,11 @@
       "topic": null,
       "statement": "O Atomiuim, representado na imagem é um  \ndos principais pontos turísticos de Bruxelas. Ele foi  \nconstruído em 1958 para a primeira grande exposição  \nmundial depois da Segunda Guerra Mundial, a Feira  \nMundial de Bruxelas.  \nTrata-se de uma estrutura metálica construída no  \nformato de um cubo. Essa estrutura está apoiada por um  \ndos vértices sobre uma base paralela ao plano do solo,  \ne a diagonal do cubo, contendo esse vértice, é ortogonal  \nao plano da base. Centradas nos vértices desse cubo,  \nforam construídas oito esferas metálicas, e uma outra  \nesfera foi construída centrada no ponto de interseção das  \ndiagonais do cubo. As oito esferas sobre os vértices são  \ninterligadas segundo suas arestas, e a esfera central se  \nconecta a elas pelas diagonais do cubo.  \nTodas essas interligações são feitas por tubos  \ncilíndricos que possuem escadas em seu interior,  \npermitindo o deslocamento de pessoas pela parte  \ninterna da estrutura. Na diagonal ortogonal à base, o  \ndeslocamento é feito por um elevador, que permite o  \ndeslocamento entre as esferas da base e a esfera do  \nponto mais alto, passando pela esfera central.\n\nConsidere um visitante que se deslocou pelo interior  \ndo Atomium sempre em linha reta e seguindo o menor trajeto entre dois vértices, passand0 por todas as arestas e todas as diagonais do cubo.\n\n![](https://enem.dev/2021/questions/137/adb90310-f1c2-41fa-a3a4-a250c1141a16.png)\n\nA projeção ortogonal sobre o plano do solo do trajeto percorrido por esse visitante é representada por",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/137/79821b1f-7009-4322-8af7-3ae58951064a.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/137/a5e4c57e-4230-4b52-b3ea-e1b06cb99fa8.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/137/035954ad-5098-40f0-91bd-d0e2946fc930.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/137/2110fe80-816b-4c42-841b-746be19abc6a.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/137/92f0272e-9fb9-4787-9fe3-fe0051a11e8e.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/137/79821b1f-7009-4322-8af7-3ae58951064a.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/137/a5e4c57e-4230-4b52-b3ea-e1b06cb99fa8.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/137/035954ad-5098-40f0-91bd-d0e2946fc930.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/137/2110fe80-816b-4c42-841b-746be19abc6a.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/137/92f0272e-9fb9-4787-9fe3-fe0051a11e8e.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -2990,11 +2988,11 @@
       "topic": null,
       "statement": "A Copa do Brasil teve, até a edição de 2018, 15 times diferentes como campeões da competição, conforme  \napresentado na imagem. Suponha que, como homenagem aos times campeões, a Confederação Brasileira de Futebol  \n(CBF) pretenda colocar um painel na sua sede. Esse painel teria 6 linhas e, em cada uma delas, 5 placas, referentes  \na cada edição da competição, com o nome do time vencedor, o brasão e o ano do título. © painel deve ser fabricado  \nde modo que a primeira linha só tenha clubes gaúchos (Internacional, Grêmio e Juventude); a segunda, apenas times  \ncariocas (Flamengo, Vasco e Fluminense); a terceira, somente times mineiros (Cruzeiro e Atlético Mineiro);, a quarta,  \nexclusivamente clubes paulistas (Corinthians, Palmeiras, Santos, Paulista FC, Santo André), e as duas últimas sem  \nnenhuma restrição.\n\n![](https://enem.dev/2021/questions/138/d0a6a844-fff4-400b-9b0c-d1afbc285b3c.png)\n\nQual a expressão determina a quantidade de painéis diferentes que a CBF poderá montar",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/138/280b031c-3cd8-44f6-b0fd-7fe30bc5d42a.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/138/bc565433-565f-4f16-bbca-6b1e693306ab.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/138/3425a80a-ef16-44bd-b66c-b689dc1c7cd2.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/138/1df14680-6d8b-4e0a-8421-afd3b0db18a3.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/138/7ab4be57-7af0-4722-b7c3-1b331c40830b.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/138/280b031c-3cd8-44f6-b0fd-7fe30bc5d42a.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/138/bc565433-565f-4f16-bbca-6b1e693306ab.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/138/3425a80a-ef16-44bd-b66c-b689dc1c7cd2.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/138/1df14680-6d8b-4e0a-8421-afd3b0db18a3.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/138/7ab4be57-7af0-4722-b7c3-1b331c40830b.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -3308,11 +3306,11 @@
       "topic": null,
       "statement": "Para a comunicação entre dois navios é utilizado um sistema de codificação com base em valores numéricos. Para isso, são consideradas as operações triângulo ![](https://enem.dev/2021/questions/152/566c5d72-c957-4664-b7f7-e1b92f024e70.png) e estrela \\*, definidas sobre o conjunto dos números reais por x![](https://enem.dev/2021/questions/152/60957aae-73c8-44ad-8f75-7191b1d65c70.png)y = x² + xy – y² e x \\* y = xy + x.\n\nO navio que deseja enviar uma mensagem deve fornecer um valor de entrada b, que irá gerar um valor de saída, a ser enviado ao navio receptor, dado pela soma da duas maiores soluções da equação (a![](https://enem.dev/2021/questions/152/b78eb0e6-f154-443d-a6f5-1ffeb2ff1252.png)b)\\*(b![](https://enem.dev/2021/questions/152/54a56c94-9682-42f3-98b2-fc5a0fef2dba.png)a) = 0. Cada valor possível de entrada e saída representa uma mensagem diferente já conhecida pelos dois navios.\n\nUm navio deseja enviar ao outro a mensagem “ATENÇÃO!”. Para isso, deve utilizar o valor de entrada b=1.\n\nDessa forma, o valor recebido pelo navio receptor será",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/152/c1747ad2-3295-4d07-af4a-018d7c412877.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/152/e3a76aed-69fd-4c41-a7ac-532a64efbcf3.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/152/2340c837-a802-4570-be90-91fc8a3a0a6f.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/152/fc88fa35-1166-4a50-8b3e-98825f086b76.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/152/51026f4e-2d93-4516-b1e1-65e937a6e88a.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/152/c1747ad2-3295-4d07-af4a-018d7c412877.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/152/e3a76aed-69fd-4c41-a7ac-532a64efbcf3.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/152/2340c837-a802-4570-be90-91fc8a3a0a6f.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/152/fc88fa35-1166-4a50-8b3e-98825f086b76.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/152/51026f4e-2d93-4516-b1e1-65e937a6e88a.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -3520,11 +3518,11 @@
       "topic": null,
       "statement": "O administrador de um teatro percebeu que, com o ingresso do evento a R$20,00, um show conseguia atrair 200 pessoas e que, a cada R$1,00 de redução no preço do ingresso, o número de pessoas aumentava em 40. Ele sabe que os donos do teatro só admitem trabalhar com valores inteiros para os ingressos, pela dificuldade de disponibilizar troco, e pretende convencê-los a diminuir o preço do ingresso. Assim, apresentará um gráfico da arrecadação em função do valor do desconto no preço atual do ingresso.\n\nO gráfico que mais se assemelha ao que deve ser elaborado pelo administrador é",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/161/71c29cd7-d512-4f07-a66b-d9c7384ebcf1.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/161/a22cdccd-2be3-48b7-b37e-3253586d2fe0.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/161/13b92c32-cd4b-4f3c-9699-3d0916f6d516.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/161/83ffed50-3e9d-46d0-9cb6-5acf0cd42d98.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/161/9536b3b7-3d03-40b4-abea-658166fee917.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/161/71c29cd7-d512-4f07-a66b-d9c7384ebcf1.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/161/a22cdccd-2be3-48b7-b37e-3253586d2fe0.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/161/13b92c32-cd4b-4f3c-9699-3d0916f6d516.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/161/83ffed50-3e9d-46d0-9cb6-5acf0cd42d98.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/161/9536b3b7-3d03-40b4-abea-658166fee917.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3541,11 +3539,11 @@
       "topic": null,
       "statement": "O quadro representa a relação entre o preço de um produto (R) e seu respectivo imposto devido (l).\n\n![](https://enem.dev/2021/questions/162/cc601335-5c45-493b-aa9d-b7c58c7b107a.png)\n\nO gráfico que melhor representa essa relação é",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/162/41839cfc-4413-4111-b228-b6f835d314f6.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/162/8e1d0658-17c6-447f-8852-a80221b9661f.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/162/070fd147-aeb8-4211-9ace-d2ddecb2bc76.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/162/a69d9997-7244-40d9-b945-11e7ac108a91.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/162/b9498a83-138e-4d4e-8eb9-b9ec50dcf5f4.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/162/41839cfc-4413-4111-b228-b6f835d314f6.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/162/8e1d0658-17c6-447f-8852-a80221b9661f.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/162/070fd147-aeb8-4211-9ace-d2ddecb2bc76.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/162/a69d9997-7244-40d9-b945-11e7ac108a91.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/162/b9498a83-138e-4d4e-8eb9-b9ec50dcf5f4.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -3564,11 +3562,11 @@
       "topic": null,
       "statement": "A relação de Newton-Laplace estabelece que o módulo volumétrico de um fluído é diretamente proporcional ao quadrado da velocidade do som (em metro por segundo) no fluido e à sua densidade (em quilograma por meto cúbico), com uma constante de proporcionalidade adimensional.\n\nNessa relação, a unidade de medida adequada para o módulo volumétrico é",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/163/b08497a6-4df2-4f61-96f2-f125293d21a4.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/163/e8929184-06b7-4b2c-a7bf-8682d4d92231.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/163/381b63e2-88a8-405f-ab1e-ae5e1ef6b266.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/163/ef0b4b69-a758-420e-a3fa-b7b5e0a2b06c.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/163/2770886b-3ccc-4ff7-8e35-59674a921fa9.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/163/b08497a6-4df2-4f61-96f2-f125293d21a4.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/163/e8929184-06b7-4b2c-a7bf-8682d4d92231.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/163/381b63e2-88a8-405f-ab1e-ae5e1ef6b266.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/163/ef0b4b69-a758-420e-a3fa-b7b5e0a2b06c.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/163/2770886b-3ccc-4ff7-8e35-59674a921fa9.png]"
       },
       "answer": "B",
       "annulled": false,
@@ -3834,7 +3832,7 @@
         "B": "24 trapézios isósceles e 12 quadrados.",
         "C": "12 paralelogramos e 12 quadrados.",
         "D": "8 trapézios isósceles",
-        "E": "[alternativa ausente na API]"
+        "E": "[Alternativa E indisponível no endpoint]"
       },
       "answer": "A",
       "annulled": false,
@@ -3918,11 +3916,11 @@
       "topic": null,
       "statement": "Uma pessoa produzirá uma fantasia utilizando como materiais: 2 tipos de tecidos diferentes e 5 tipos distintos de pedras ornamentais. Essa pessoa tem à sua disposição 6 tecidos diferentes e 15 pedras ornamentais distintas.\n\nA quantidade de fantasias com materiais diferentes que podem ser produzidas é representada pela expressão",
       "options": {
-        "A": "[imagem: https://enem.dev/2021/questions/179/7551285a-0dd2-404f-9756-f6153809bb6b.png]",
-        "B": "[imagem: https://enem.dev/2021/questions/179/ec6aed66-8609-4de8-8e4e-e352f8504ff0.png]",
-        "C": "[imagem: https://enem.dev/2021/questions/179/e7db8ec1-87ee-4181-8cdc-f3de1667bd46.png]",
-        "D": "[imagem: https://enem.dev/2021/questions/179/7e9a8152-4cad-499f-a704-e336986e83a5.png]",
-        "E": "[imagem: https://enem.dev/2021/questions/179/0e4dc469-3dcf-46e2-abb9-7218a2ae6fff.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2021/questions/179/7551285a-0dd2-404f-9756-f6153809bb6b.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2021/questions/179/ec6aed66-8609-4de8-8e4e-e352f8504ff0.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2021/questions/179/e7db8ec1-87ee-4181-8cdc-f3de1667bd46.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2021/questions/179/7e9a8152-4cad-499f-a704-e336986e83a5.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2021/questions/179/0e4dc469-3dcf-46e2-abb9-7218a2ae6fff.png]"
       },
       "answer": "A",
       "annulled": false,

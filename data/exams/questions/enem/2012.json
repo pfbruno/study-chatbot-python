@@ -2,13 +2,11 @@
   "exam_type": "enem",
   "year": 2012,
   "title": "ENEM 2012",
-  "description": "Prova oficial do ENEM 2012 importada para base local reutilizável.",
+  "description": "Prova oficial do ENEM 2012, importada via enem.dev.",
   "question_count": 180,
   "total_questions": 180,
   "has_answer_key": true,
-  "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2012",
-  "imported_from": "https://api.enem.dev/v1/exams/2012/questions",
-  "imported_at": "2026-04-23T16:02:08.684055+00:00",
+  "imported_from": "enem.dev",
   "questions": [
     {
       "number": 1,
@@ -1174,11 +1172,11 @@
       "topic": null,
       "statement": "O mecanismo que permite articular uma porta (de um móvel ou de acesso) é a dobradiça. Normalmente, são necessárias duas ou mais dobradiças para que a porta seja fixada no móvel ou no portal, permanecendo em equilíbrio e podendo ser articulada com facilidade.\n\nNo plano, o diagrama vetorial das forças que as dobradiças exercem na porta está representado em",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/55/f1199eea-114e-43c3-9b5e-ba88da456c68.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/55/1903d014-dd0c-4719-886b-3f72a192f660.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/55/0c7efc5c-2689-4b0d-8e34-11cf1e5d61d4.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/55/383792c5-776f-4276-8b2a-03a6e0efb342.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/55/55f94d4e-af4e-4378-b63e-738fe244d8c6.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/55/f1199eea-114e-43c3-9b5e-ba88da456c68.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/55/1903d014-dd0c-4719-886b-3f72a192f660.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/55/0c7efc5c-2689-4b0d-8e34-11cf1e5d61d4.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/55/383792c5-776f-4276-8b2a-03a6e0efb342.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/55/55f94d4e-af4e-4378-b63e-738fe244d8c6.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -1283,11 +1281,11 @@
       "topic": null,
       "statement": "Qual é o gráfico de posição (eixo vertical) em função do tempo (eixo horizontal) que representa o movimento desse trem?",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/60/f75fbb9b-e2dd-4abf-8796-5b2fc09bb90d.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/60/5cac9f80-9281-4486-9340-9d99e77b59b1.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/60/38bf386c-b484-4f24-aea8-c351b55ab365.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/60/d72eb90a-ce8b-401a-97ab-a62e182a6fd3.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/60/ef17337d-941b-4a83-9815-a2c35a3999d9.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/60/f75fbb9b-e2dd-4abf-8796-5b2fc09bb90d.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/60/5cac9f80-9281-4486-9340-9d99e77b59b1.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/60/38bf386c-b484-4f24-aea8-c351b55ab365.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/60/d72eb90a-ce8b-401a-97ab-a62e182a6fd3.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/60/ef17337d-941b-4a83-9815-a2c35a3999d9.png]"
       },
       "answer": "C",
       "annulled": false,
@@ -1409,11 +1407,11 @@
       "topic": null,
       "statement": "O benzeno é um hidrocarboneto aromático presente no petróleo, no carvão e em condensados de gás natural. Seus metabólitos são altamente tóxicos e se depositam na medula óssea e nos tecidos gordurosos. O limite de exposição pode causar anemia, câncer (leucemia) e distúrbios do comportamento. Em termos de reatividade química, quando um eletrófilo se liga ao benzeno, ocorre a formação de um intermediário, o carbocátion. Por fim, ocorre a adição ou substituição eletrofílica.  \nDisponível em: www.sindipetro.org.br. Acesso em: 1 mar. 2012 (adaptado).\n\n![](https://enem.dev/2012/questions/66/d0c027a7-ad8d-40e9-be6c-195942c72f07.jpg)\n\nCom base no texto e no gráfico do progresso da reação apresentada, as estruturas químicas encontradas em\nI, II e III são, respectivamente:",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/66/451cadf9-7aaa-4018-ac42-baa13de08b01.jpg]",
-        "B": "[imagem: https://enem.dev/2012/questions/66/17748106-c660-4aba-bacf-ca2e235001e9.jpg]",
-        "C": "[imagem: https://enem.dev/2012/questions/66/8520e0c9-c235-4d8b-9db4-d7b278cba362.jpg]",
-        "D": "[imagem: https://enem.dev/2012/questions/66/3f0b69d3-0e1a-4f9a-b007-85a4a23ad477.jpg]",
-        "E": "[imagem: https://enem.dev/2012/questions/66/fa900048-a372-4e92-ba9a-e9605c53ab3b.jpg]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/66/451cadf9-7aaa-4018-ac42-baa13de08b01.jpg]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/66/17748106-c660-4aba-bacf-ca2e235001e9.jpg]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/66/8520e0c9-c235-4d8b-9db4-d7b278cba362.jpg]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/66/3f0b69d3-0e1a-4f9a-b007-85a4a23ad477.jpg]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/66/fa900048-a372-4e92-ba9a-e9605c53ab3b.jpg]"
       },
       "answer": "A",
       "annulled": false,
@@ -1562,11 +1560,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2012/questions/73/2e962c95-a64e-494c-891f-43188f52c16c.png)\n\nO circuito que cumpre a finalidade de funcionamento descrita no texto é:",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/73/b8407863-66cd-4a4f-8b54-a001a7c77abf.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/73/2ac61f8c-80c6-4b18-b182-15e501064831.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/73/24a1a70f-c88e-4e3d-87ee-7d319551eff5.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/73/d9f98d87-211f-4047-952a-d26f91ff8d89.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/73/eafd5a16-c75c-4635-a008-45795263edff.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/73/b8407863-66cd-4a4f-8b54-a001a7c77abf.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/73/2ac61f8c-80c6-4b18-b182-15e501064831.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/73/24a1a70f-c88e-4e3d-87ee-7d319551eff5.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/73/d9f98d87-211f-4047-952a-d26f91ff8d89.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/73/eafd5a16-c75c-4635-a008-45795263edff.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -1671,11 +1669,11 @@
       "topic": null,
       "statement": "Os freios ABS são uma importante medida de segurança no trânsito, os quais funcionam para impedir o travamento das rodas do carro quando o sistema de freios é acionado, liberando as rodas quando estão no limiar do deslizamento. Quando as rodas travam, a força de frenagem é governada pelo atrito cinético.\n\nAs representações esquemáticas da força de atrito fat entre os pneus e a pista, em função da pressão ρ aplicada no pedal de freio, para carros sem ABS e com ABS, respectivamente, são:",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/78/642f46b9-6a48-4788-9c92-c6340a3c832e.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/78/47d7b6a2-f129-4456-9946-966f51f21323.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/78/8306a37e-6f93-45c8-984a-6190441316d6.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/78/19c51806-866c-4272-9984-258e22b08a90.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/78/75781572-77f0-459a-b554-17642fa454d9.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/78/642f46b9-6a48-4788-9c92-c6340a3c832e.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/78/47d7b6a2-f129-4456-9946-966f51f21323.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/78/8306a37e-6f93-45c8-984a-6190441316d6.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/78/19c51806-866c-4272-9984-258e22b08a90.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/78/75781572-77f0-459a-b554-17642fa454d9.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -1950,7 +1948,7 @@
       "number": 91,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "**Obituario\\*  \n**\n\nLo enterraron en el corazón de un bosque de pinos  \ny sin embargo  \nel ataúd de pino fue importado de Ohio;  \nlo enterraron al borde de una mina de hierro  \ny sin embargo  \nlos clavos de su ataúd y el hierro de la pala  \nfueron importados de Pittsburg;  \nlo enterraron junto al mejor pasto de ovejas del mundo  \ny sin embargo  \nlas lanas de los festones del ataúd eran de California.  \nLo enterraron con un traje de New York,  \nun par de zapatos de Boston,  \nuna camisa de Cincinatti  \ny unos calcetines de Chicago.  \nGuatemala no facilitó nada al funeral,  \nexcepto el cadáver.\n\n\\* Paráfrasis de un famoso texto norteamericano.\n\nNOGUERAS, L. R. **Las quince mil vidas del caminante**. La Habana: Unea,1977.\n\nO texto de Luis Rogelio Nogueras faz uma crítica",
       "options": {
@@ -1971,7 +1969,7 @@
       "number": 92,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "**Excavarán plaza ceremonial del frontis norte de**  \n**huaca de la Luna**\n\nTrujillo, feb. 25 (ANDINA). Tras limpiar los escombros del saqueo colonial y de las excavaciones de los últimos años en huaca de la Luna, este año se intervendrá la plaza ceremonial del frontis norte, en donde se ubica la gran fachada del sitio arqueológico ubicado en Trujillo, La Libertad, informaron hoy fuentes culturales. Después de varias semanas de trabajo, el material fue sacado del sitio arqueológico para poder apreciar mejor la extensión y forma del patio que, según las investigaciones, sirvió hace unos 1 500 como escenario de extraños rituales.\n\nEl codirector del Proyecto Arqueológico Huacas del Sol y la Luna, Ricardo Morales Gamarra, sostuvo que con la zona limpia de escombros, los visitantes conocerán la verdadera proporción de la imponente fachada, tal y como la conocieron los moches. Por su parte, el arqueólogo Santiago Uceda, también codirector del proyecto, dijo que las excavaciones se iniciarán este año para determinar qué otros elementos componían dicha área. “Hace poco nos sorprendió encontrar un altar semicircular escalonado. Era algo que no esperábamos. Por lo tanto, es difícil saber qué es lo que aún está escondido en la zona que exploraremos”, señaló Uceda a la Agencia Andina.\n\nLa huaca de la Luna se localiza en el distrito trujillano de Moche. Es una pirámide de adobe adornada, en sus murales, con impresionantes imágenes mitológicas, muchas de ellas en alto relieve.\n\nDisponível em: www.andina.com.pe. Acesso em: 23 fev. 2012 (adaptado).\n\nO texto apresenta informações sobre um futuro trabalho de escavação de um sítio arqueológico peruano. Sua leitura permite inferir que",
       "options": {
@@ -1992,7 +1990,7 @@
       "number": 93,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "Nuestra comarca del mundo, que hoy llamamos América Latina perfeccionó sus funciones. Este ya no es el reino de las maravillas donde la realidad derrotaba a la fábula y la imaginación era humillada por los troféus de la conquista, los yacimientos de oro y las montañas de plata. Pero la región sigue trabajando de sirvienta. Es América Latina, la región de las venas abiertas. Desde el descubrimiento hasta nuestros días, todo se ha trasmutado siempre en capital europeo o, más tarde, norteamericano, y como tal se ha acumulado y se acumula en los lejanos centros del poder. Todo: la tierra, sus frutos y sus profundidades ricas en minerales, los hombres y su capacidad de trabajo y de consumo, los recursos naturales y los recursos humanos. El modo de producción y la estructura de clases de cada lugar han sido sucesivamente determinados, desde fuera, por su incorporación al engranaje universal del capitalismo. Nuestra derrota estuvo siempre implícita en la victoria ajena; nuestra riqueza ha generado siempre nuestra pobreza para alimentar la prosperidad de otros: los imperios y sus caporales nativos.\n\nGALEANO, E. **Las venas abiertas de América Latina**. Buenos Aires: Siglo Veintiuno Argentina, 2010 (adaptado).\n\nA partir da leitura do texto, infere-se que, ao longo da história da América Latina,",
       "options": {
@@ -2036,7 +2034,7 @@
       "number": 95,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "**Las Malvinas son nuestras**\n\nSí, las islas son nuestras. Esta afirmación no se basa en sentimientos nacionalistas, sino en normas y princípios del derecho internacional que, si bien pueden suscitar interpretaciones en contrario por parte de los británicos, tienen la fuerza suficiente para imponerse.\n\nLos británicos optaron por sostener el derecho de autodeterminación de los habitantes de las islas, invocando la resolución 1514 de las Naciones Unidas, que acordó a los pueblos coloniales el derecho de independizarse de los Estados colonialistas. Pero esta tesitura es también indefendible. La citada resolución se aplica a los casos de pueblos sojuzgados por una potencia extranjera, que no es el caso de Malvinas, donde Gran Bretaña procedió a expulsar a los argentinos que residían en las islas, reemplazándolos por súbditos de la corona que pasaron a ser kelpers y luego ciudadanos británicos. Además, según surge de la misma resolución, el principio de autodeterminación no es de aplicación cuando afecta la integridad territorial de un país.\n\nFinalmente, en cuanto a qué haría la Argentina con los habitantes británicos de las islas en caso de ser recuperadas, la respuesta se encuentra en la cláusula transitória primera de la Constitución Nacional sancionada por la reforma de 1994, que impone respetar el modo de vida de los isleños, lo que además significa respetar sus intereses.\n\nMENEM, E. Disponível em: www.lanacion.com.ar. Acesso em: 18 fev. 2012 (adaptado).\n\nO texto apresenta uma opinião em relação à disputa entre e a Argentina e o Reino Unido pela soberania sobre as Ilhas Malvinas, ocupadas pelo Reino Unido em 1833. O autor dessa opinião apoia a reclamação argentina desse arquipélago, argumentando que",
       "options": {
@@ -3081,11 +3079,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2012/questions/143/29dbd2b9-ef4e-4af8-8de5-2a651c4935c4.png)\n\nA expressão que traduz a resistência S dessa viga de madeira é",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/143/fef35e1c-c502-4670-9b8c-cb591dce50d8.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/143/887c79e5-b54f-4164-84df-4b6150b6b726.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/143/ea36520c-f0fd-4346-824f-8027c18a169c.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/143/c637c2e1-f94b-4d64-a420-d27b03a11fdc.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/143/dd92ffbd-5cc1-48a6-9d20-5d948d58abd5.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/143/fef35e1c-c502-4670-9b8c-cb591dce50d8.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/143/887c79e5-b54f-4164-84df-4b6150b6b726.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/143/ea36520c-f0fd-4346-824f-8027c18a169c.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/143/c637c2e1-f94b-4d64-a420-d27b03a11fdc.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/143/dd92ffbd-5cc1-48a6-9d20-5d948d58abd5.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -3284,11 +3282,11 @@
       "topic": null,
       "statement": "Em exposições de artes plásticas, é usual que estátuas sejam expostas sobre plataformas giratórias. Uma medida de segurança é que a base da escultura esteja integralmente apoiada sobre a plataforma. Para que se providencie o equipamento adequado, no caso de uma base quadrada que será fixada sobre uma plataforma circular, o auxiliar técnico do evento deve estimar a medida _R_ do raio adequado para a plataforma em termos da medida _L_ do lado da base da estátua.\n\nQual relação entre R e L o auxiliar técnico deverá apresentar de modo que a exigência de segurança seja cumprida?",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/152/1dc33ce8-535d-4502-917d-b1d1ca52d5ab.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/152/66e7c13b-a7c4-431d-a72c-9f63b3b4f1f9.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/152/32ffdfbb-dd66-41a9-b2c2-cc6ed1cc2668.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/152/0b5a0e31-232e-4214-a9f3-cd4fff19cc9d.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/152/9026b0e8-1acb-4887-ada6-e1889a31ff04.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/152/1dc33ce8-535d-4502-917d-b1d1ca52d5ab.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/152/66e7c13b-a7c4-431d-a72c-9f63b3b4f1f9.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/152/32ffdfbb-dd66-41a9-b2c2-cc6ed1cc2668.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/152/0b5a0e31-232e-4214-a9f3-cd4fff19cc9d.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/152/9026b0e8-1acb-4887-ada6-e1889a31ff04.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -3305,11 +3303,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2012/questions/153/fa4fd7b5-9f57-4575-b0d7-efd5da168ad2.png)\n\nNa Figura 2, o ponto A está no plano do chão onde está colocado o globo da morte e o segmento AB passa pelo centro da esfera e é perpendicular ao plano do chão. Suponha que há um foco de luz direcionado para o chão colocado no ponto B e que um motoqueiro faça um trajeto dentro da esfera, percorrendo uma circunferência que passa pelos pontos A e B.\n\nA imagem do trajeto feito pelo motoqueiro no plano do chão é melhor representada por",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/153/4407a6d1-8bea-4593-a271-4d67fae4f8ea.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/153/c5a84103-a02d-4576-9326-bb4cc62998e1.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/153/4442f0fa-2803-46d7-bf5c-6e73037f198e.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/153/568e9422-3b06-416a-9021-dbd0345427cc.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/153/6485f40e-a5f1-4426-9075-1bc63b0c4a87.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/153/4407a6d1-8bea-4593-a271-4d67fae4f8ea.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/153/c5a84103-a02d-4576-9326-bb4cc62998e1.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/153/4442f0fa-2803-46d7-bf5c-6e73037f198e.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/153/568e9422-3b06-416a-9021-dbd0345427cc.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/153/6485f40e-a5f1-4426-9075-1bc63b0c4a87.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3374,11 +3372,11 @@
       "topic": null,
       "statement": "Com essas informações, o gráfico que melhor representa a relação entre salário e o número de produtos vendidos é",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/156/4e2c0e03-b523-4518-aaef-fb4734e8ad69.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/156/f19a221b-7715-49be-a78c-0554583108f7.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/156/35d71a7f-1928-470f-b151-e475785e7579.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/156/7ab9d513-032b-4753-81cc-95bcd632fb4d.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/156/0df218fe-bdcd-42f6-8188-5cc32405b48e.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/156/4e2c0e03-b523-4518-aaef-fb4734e8ad69.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/156/f19a221b-7715-49be-a78c-0554583108f7.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/156/35d71a7f-1928-470f-b151-e475785e7579.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/156/7ab9d513-032b-4753-81cc-95bcd632fb4d.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/156/0df218fe-bdcd-42f6-8188-5cc32405b48e.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3574,11 +3572,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2012/questions/165/3fbde9b0-ee25-43f8-8514-0b3b42bd2adc.png)\n\nO deslocamento descrito por João foi: mova-se pela pirâmide, sempre em linha reta, do ponto A ao ponto E, a seguir do ponto E ao ponto M, e depois de M a C.\n\nO desenho que Bruno deve fazer é",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/165/8889758c-e418-4553-8e26-b602b0862a7e.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/165/38082c65-4727-4561-8ea3-0de04aa0346b.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/165/8b2481ca-b8ca-4958-8eec-be9f7ce78448.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/165/2adf001e-6960-46c9-91bc-fa1ca2b925f9.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/165/1332407d-5c97-49e1-b94a-2a46220809ac.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/165/8889758c-e418-4553-8e26-b602b0862a7e.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/165/38082c65-4727-4561-8ea3-0de04aa0346b.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/165/8b2481ca-b8ca-4958-8eec-be9f7ce78448.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/165/2adf001e-6960-46c9-91bc-fa1ca2b925f9.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/165/1332407d-5c97-49e1-b94a-2a46220809ac.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3662,11 +3660,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2012/questions/169/b957b116-b45b-4ac5-8ee8-3a2519ae6e1f.png)\n\nPara obter essas médias, ele multiplicou a matriz obtida a partir da tabela por",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/169/ac49b2a2-c8b9-47db-aa0b-e3c194aa1553.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/169/f19cc62d-cb14-407a-bbd9-20d5c116cb11.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/169/07f396c3-1c1c-46aa-bbef-156e0aa6e668.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/169/943f11ff-0f7b-4ad1-8dea-915abf2ed0e7.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/169/c2bcaf1c-20e6-43b6-801f-19302b2260bb.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/169/ac49b2a2-c8b9-47db-aa0b-e3c194aa1553.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/169/f19cc62d-cb14-407a-bbd9-20d5c116cb11.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/169/07f396c3-1c1c-46aa-bbef-156e0aa6e668.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/169/943f11ff-0f7b-4ad1-8dea-915abf2ed0e7.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/169/c2bcaf1c-20e6-43b6-801f-19302b2260bb.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3685,11 +3683,11 @@
       "topic": null,
       "statement": "Existem no mercado chuveiros elétricos de diferentes potências, que representam consumos e custos diversos. A potência (P) de um chuveiro elétrico é dada pelo produto entre sua resistência elétrica (R) e o quadrado da corrente elétrica (i) que por ele circula. O consumo de energia elétrica (E), por sua vez, é diretamente proporcional à potência do aparelho.\n\nConsiderando as características apresentadas, qual dos gráficos a seguir representa a relação entre a energia consumida (E) por um chuveiro elétrico e a corrente elétrica (i) que circula por ele?",
       "options": {
-        "A": "[imagem: https://enem.dev/2012/questions/170/715a4076-666c-46a9-ae05-2a83d355296e.png]",
-        "B": "[imagem: https://enem.dev/2012/questions/170/4ac7fc20-5185-4cae-9a82-77ae7491d0ab.png]",
-        "C": "[imagem: https://enem.dev/2012/questions/170/4c3ff5e4-57b9-480b-be2f-3753e095d212.png]",
-        "D": "[imagem: https://enem.dev/2012/questions/170/d73bdaba-0aea-49f9-89e1-74929848eba9.png]",
-        "E": "[imagem: https://enem.dev/2012/questions/170/4680b091-1ae6-4487-a721-e8fcc1265f13.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2012/questions/170/715a4076-666c-46a9-ae05-2a83d355296e.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2012/questions/170/4ac7fc20-5185-4cae-9a82-77ae7491d0ab.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2012/questions/170/4c3ff5e4-57b9-480b-be2f-3753e095d212.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2012/questions/170/d73bdaba-0aea-49f9-89e1-74929848eba9.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2012/questions/170/4680b091-1ae6-4487-a721-e8fcc1265f13.png]"
       },
       "answer": "D",
       "annulled": false,

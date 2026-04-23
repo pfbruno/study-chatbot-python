@@ -2,13 +2,11 @@
   "exam_type": "enem",
   "year": 2014,
   "title": "ENEM 2014",
-  "description": "Prova oficial do ENEM 2014 importada para base local reutilizável.",
+  "description": "Prova oficial do ENEM 2014, importada via enem.dev.",
   "question_count": 180,
   "total_questions": 180,
   "has_answer_key": true,
-  "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2014",
-  "imported_from": "https://api.enem.dev/v1/exams/2014/questions",
-  "imported_at": "2026-04-23T15:56:39.486543+00:00",
+  "imported_from": "enem.dev",
   "questions": [
     {
       "number": 1,
@@ -339,11 +337,11 @@
       "topic": null,
       "statement": "**Queijo de Minas vira patrimônio cultural brasileiro**\n\nO modo artesanal da fabricação do queijo em Minas Gerais foi registrado nesta quinta-feira (15) como patrimônio cultural imaterial brasileiro pelo Conselho Consultivo do Instituto do Patrimônio Histórico e Artístico Nacional (Iphan). O veredicto foi dado em reunião do conselho realizada no Museu de Artes e Ofícios, em Belo Horizonte. O presidente do Iphan e do conselho ressaltou que a técnica de fabricação artesanal do queijo está “inserida na cultura do que é ser mineiro”.\n\nFolha de S. Paulo, 15 maio 2008\n\nEntre os bens que compõem o patrimônio nacional, o que pertence à mesma categoria citada no texto está representado em:",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/16/bf96d194-f866-48b9-8c3b-1b7291b93185.jpg]",
-        "B": "[imagem: https://enem.dev/2014/questions/16/aab0e104-3d86-451f-97c0-57e861429550.jpg]",
-        "C": "[imagem: https://enem.dev/2014/questions/16/5f786541-30d5-4f3e-bd7e-564422ceea49.jpg]",
-        "D": "[imagem: https://enem.dev/2014/questions/16/12b058f3-7cb7-4696-a970-290a425b3f89.jpg]",
-        "E": "[imagem: https://enem.dev/2014/questions/16/c56d2864-d05d-47e8-8f52-828fb4ee72ec.jpg]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/16/bf96d194-f866-48b9-8c3b-1b7291b93185.jpg]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/16/aab0e104-3d86-451f-97c0-57e861429550.jpg]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/16/5f786541-30d5-4f3e-bd7e-564422ceea49.jpg]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/16/12b058f3-7cb7-4696-a970-290a425b3f89.jpg]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/16/c56d2864-d05d-47e8-8f52-828fb4ee72ec.jpg]"
       },
       "answer": "C",
       "annulled": false,
@@ -1379,11 +1377,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2014/questions/64/8647fc4b-cf74-4480-84ae-3a7c8dbf1ade.png)\n\nO movimento dos pêndulos após a primeira colisão está representado em:",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/64/5465b02d-b7c0-4634-ab50-9c90553c64eb.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/64/71612cad-5d0b-4aad-9ffb-6734c3a014a0.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/64/304c0652-3f78-45a7-9a5a-26f66cac172a.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/64/3986d28d-2218-4e4d-8fb0-364108801ec1.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/64/04085268-f5b2-4487-8e07-811ef753a830.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/64/5465b02d-b7c0-4634-ab50-9c90553c64eb.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/64/71612cad-5d0b-4aad-9ffb-6734c3a014a0.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/64/304c0652-3f78-45a7-9a5a-26f66cac172a.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/64/3986d28d-2218-4e4d-8fb0-364108801ec1.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/64/04085268-f5b2-4487-8e07-811ef753a830.png]"
       },
       "answer": "C",
       "annulled": false,
@@ -1402,11 +1400,11 @@
       "topic": null,
       "statement": "O grupo responsável pela bioatividade desse fármaco é",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/65/a4137bfb-c853-4a14-913b-a98b7b61a017.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/65/a49ceb57-72cd-446e-a70d-71001bc9594d.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/65/65d62c42-c830-4a69-a5f5-5778f55507f1.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/65/f4c89421-78f1-4667-97e1-9966c978d6bc.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/65/591a492e-5806-4574-bf95-72849dd6ee86.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/65/a4137bfb-c853-4a14-913b-a98b7b61a017.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/65/a49ceb57-72cd-446e-a70d-71001bc9594d.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/65/65d62c42-c830-4a69-a5f5-5778f55507f1.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/65/f4c89421-78f1-4667-97e1-9966c978d6bc.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/65/591a492e-5806-4574-bf95-72849dd6ee86.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -1968,7 +1966,7 @@
       "number": 91,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "![](https://enem.dev/2014/questions/91-espanhol/8daa6152-26c6-4606-8a28-1f0bb37dffe3.jpg)\n\nDisponível em: http://azaral-canarias.blogspot.com. Acesso em: 28 maio 2014 (adaptado)\n\nAs marcas de primeira pessoa do plural no texto da campanha de amamentação têm como finalidade",
       "options": {
@@ -1991,7 +1989,7 @@
       "number": 92,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "**Emigrantes**\n\nEn todo emigrante existen dos posibles actitudes vitales: una la de considerar su experiencia como aventura pasajera, vivir mental y emocionalmente en la patria de origen, cultivando su nostalgia, y definir la realidad presente por comparación con el mundo que se ha dejado; la otra es vivir el presente tal como viene dado, proyectarlo en el futuro, cortar raíces y dominar nostalgias, sumergirse en la nueva cultura, aprenderla y asimilarla. El drama personal del emigrante reside en el hecho de que casi nunca es posible esa elección en términos absolutos y, al igual que el mestizo, se siente parte de dos mundos sin integrarse por completo en uno de ellos con exclusión del otro.\n\nDEL CASTILLO, G. C. América hispánica (1492-1892). In: DE LARA, M. T. **Historia de España.** Barcelona: Labor, 1985\n\nO texto apresenta uma reflexão sobre a condição do imigrante, o qual, para o autor, tem de lidar com o dilema da",
       "options": {
@@ -2012,7 +2010,7 @@
       "number": 93,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "En un año de campaña paraguaya, he visto muchas cosas tristes…\n\nHe visto la tierra, con su fertilidad incoercible y salvaje, sofocar al hombre, que arroja una semilla y obtiene cien plantas diferentes y no sabe cuál es la suya. He visto los viejos caminos que abrió la tiranía devorados por la vegetación, desleídos por las innundaciones, borrados por el abandono.\n\nBARRET, R. **Lo que he visto.** Cuba: XX Feria Internacional del Libro de la Habana, 2011.\n\nRafael Barret nasceu na Espanha e, ainda jovem, foi viver no Paraguai.\n\nO fragmento do texto Lo que hai visto revela um pouco da percepção do escritor sobre a realidade paraguaia, marcada, em essência, pelo(a)",
       "options": {
@@ -2033,7 +2031,7 @@
       "number": 94,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "Aunque me cuesta mucho trabajo y me hace sudar la gota gorda, y, como todo escritor, siento a veces la amenaza de la parálisis, de la sequía de la imaginación, nada me ha hecho gozar en la vida tanto como pasarme los meses y los años construyendo una historia, desde su incierto despuntar, esa imagen que la memoria almacenó de alguna experiencia vivida, que se volvió un desasosiego, un entusiasmo, un fantaseo que germinó luego en un proyecto y en la decisión de intentar convertir esa niebla agitada de fantasmas en una historia. “Escribir es una manera de vivir”, dijo Flaubert.\n\nDiscurso de Mario Vargas Llosa al recibir el Premio Nobel de Literatura 2010.\n\nDisponível em: www.nobelprize.org. Acesso em: 7 maio 2014 (fragmento)\n\nO trecho apresentado trata do fazer literário, a partir da perspectiva de Vargas Llosa.\n\nCom base no fragmento “me hace sudar la gota gorda”, infere-se que o artifício da escritura, para o escritor,",
       "options": {
@@ -2054,7 +2052,7 @@
       "number": 95,
       "day": 2,
       "area": "Linguagens",
-      "subject": "Espanhol",
+      "subject": "Linguagens",
       "topic": null,
       "statement": "**El robo**\n\nPara los niños  \nanchos espacios tiene el día  \ny las horas  \nson calles despejadas  \nabiertas avenidas.\n\nA nosotros, se estrecha  \nel tiempo de tal modo  \nque todo está apretado y oprimido.\n\nSe atropellan los tiempos  \nCasi no da lugar un día a otro.  \nNo bien ha amanecido  \ncae la luz a pique  \nen veloz mediodía  \ny apenas la contemplas  \nhuye en atardeceres  \nhacia pozos de sombra.\n\nDice una voz:  \nentre vueltas y vueltas  \nse me fue el día.\n\nAlgún ladrón  \noculto roba mi vida.\n\nMAIA, C. **Obra poética**. Montevidéu: Rebecalinke, 2010.\n\nO poema El robo, de Circe Maia, poetisa uruguaia contemporânea, trata do(a)",
       "options": {
@@ -3094,11 +3092,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2014/questions/143/7bcb5fac-8918-4e78-8ef7-d6e64ee5a6a4.png)\n\nNo topo da escultura foi ligada uma torneira que verte água, para dentro dela, com vazão constante.\n\nO gráfico que expressa a altura (h) da água na escultura em função do tempo (t) decorrido é:",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/143/4d7826cb-921c-4dff-97ce-81149babd82f.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/143/2d316985-fd36-476a-bbe0-7afe7e3b023f.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/143/8e77cb3b-c40c-4d99-99ed-8570710b158b.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/143/34491019-1b0e-408f-8215-32a73523f426.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/143/98ea7324-d1b1-4850-8c7e-e38c23efd1f6.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/143/4d7826cb-921c-4dff-97ce-81149babd82f.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/143/2d316985-fd36-476a-bbe0-7afe7e3b023f.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/143/8e77cb3b-c40c-4d99-99ed-8570710b158b.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/143/34491019-1b0e-408f-8215-32a73523f426.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/143/98ea7324-d1b1-4850-8c7e-e38c23efd1f6.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -3117,11 +3115,11 @@
       "topic": null,
       "statement": "Qual deverá ser a forma do adesivo?",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/144/44526171-b101-4a97-acc1-054ba72d0fa7.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/144/a2d14544-a249-440f-b625-70e5ac48098c.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/144/1cb65586-4441-4648-95ca-f2d2d2219c50.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/144/d9792780-c879-4c1d-921c-dd1b1ac88884.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/144/fda755b2-ba2a-4f7f-84a5-6a29fb07e1e0.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/144/44526171-b101-4a97-acc1-054ba72d0fa7.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/144/a2d14544-a249-440f-b625-70e5ac48098c.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/144/1cb65586-4441-4648-95ca-f2d2d2219c50.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/144/d9792780-c879-4c1d-921c-dd1b1ac88884.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/144/fda755b2-ba2a-4f7f-84a5-6a29fb07e1e0.png]"
       },
       "answer": "E",
       "annulled": false,
@@ -3138,11 +3136,11 @@
       "topic": null,
       "statement": "A expressão da função y = f(x) a ser utilizada pelo professor é",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/145/fb982b59-0d4c-4072-a3f3-0d07ba073215.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/145/b3e30fe0-d8fb-4cca-abc7-8d2723b68bcc.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/145/e22c424c-ede8-4fc6-9030-a7293c0164df.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/145/f987fd5b-b6b5-44ae-a434-054759e16220.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/145/764cd798-3b7c-4607-9287-1364cfc323dc.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/145/fb982b59-0d4c-4072-a3f3-0d07ba073215.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/145/b3e30fe0-d8fb-4cca-abc7-8d2723b68bcc.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/145/e22c424c-ede8-4fc6-9030-a7293c0164df.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/145/f987fd5b-b6b5-44ae-a434-054759e16220.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/145/764cd798-3b7c-4607-9287-1364cfc323dc.png]"
       },
       "answer": "A",
       "annulled": false,
@@ -3203,11 +3201,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2014/questions/148/925f6a93-dd23-47d0-9176-6aa8754c38dd.png)\n\nNa figura, considere o plano cartesiano que contém a trajetória do assento do balanço, no qual a origem está localizada no topo do suporte do balanço, o eixo _X_ é paralelo ao chão do parque, e o eixo _Y_ tem orientação positiva para cima.\n\nA curva determinada pela trajetória do assento do balanço é parte do gráfico da função",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/148/b3d12a51-2044-42f4-9140-e1f94db0869a.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/148/a6615a80-066b-48bb-b21f-e7afe60a2bb8.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/148/b27e051a-39e5-4a70-a1fa-416e9ede79de.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/148/94b0c3ef-ada7-4aff-8d8e-7f0f5e4b0328.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/148/03e71b23-821a-4ec1-b825-ea5526695497.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/148/b3d12a51-2044-42f4-9140-e1f94db0869a.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/148/a6615a80-066b-48bb-b21f-e7afe60a2bb8.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/148/b27e051a-39e5-4a70-a1fa-416e9ede79de.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/148/94b0c3ef-ada7-4aff-8d8e-7f0f5e4b0328.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/148/03e71b23-821a-4ec1-b825-ea5526695497.png]"
       },
       "answer": "D",
       "annulled": false,
@@ -3469,11 +3467,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2014/questions/160/11f9c9a3-5c62-4447-a760-38bc9e08fad7.png)\n\nA figura que melhor representa a projeção ortogonal, sobre o piso da casa (plano), do caminho percorrido pela mão dessa pessoa é:",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/160/142a57c8-6522-4336-a5a0-05764ab1ebcb.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/160/919d8e0f-3413-404e-9860-6026cf5673fa.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/160/9f27ec03-1133-457b-96f5-3889bb9c7f0a.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/160/7d666080-f366-4e80-8841-c44ed37580d3.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/160/440c2296-9aec-4eeb-a029-7cdf4cb320c2.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/160/142a57c8-6522-4336-a5a0-05764ab1ebcb.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/160/919d8e0f-3413-404e-9860-6026cf5673fa.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/160/9f27ec03-1133-457b-96f5-3889bb9c7f0a.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/160/7d666080-f366-4e80-8841-c44ed37580d3.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/160/440c2296-9aec-4eeb-a029-7cdf4cb320c2.png]"
       },
       "answer": "C",
       "annulled": false,
@@ -3538,11 +3536,11 @@
       "topic": null,
       "statement": "De quantas formas distintas a estratégia desse cliente poderá ser posta em prática?",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/163/d5d5048f-7ee3-40c6-b96b-ba9980dc7d05.png]",
-        "B": "[imagem: https://enem.dev/2014/questions/163/41b3be85-5bb9-46db-9a3b-867bd95c514a.png]",
-        "C": "[imagem: https://enem.dev/2014/questions/163/c02a3e9d-3cd7-4b47-91d5-d99aa1ee7b5d.png]",
-        "D": "[imagem: https://enem.dev/2014/questions/163/2940ac08-b920-4111-9d2c-1d107c65df28.png]",
-        "E": "[imagem: https://enem.dev/2014/questions/163/17d5d462-0b07-4324-9f98-61f36a9f808c.png]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/163/d5d5048f-7ee3-40c6-b96b-ba9980dc7d05.png]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/163/41b3be85-5bb9-46db-9a3b-867bd95c514a.png]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/163/c02a3e9d-3cd7-4b47-91d5-d99aa1ee7b5d.png]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/163/2940ac08-b920-4111-9d2c-1d107c65df28.png]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/163/17d5d462-0b07-4324-9f98-61f36a9f808c.png]"
       },
       "answer": "B",
       "annulled": false,
@@ -3580,11 +3578,11 @@
       "topic": null,
       "statement": "![](https://enem.dev/2014/questions/165/b6b29eae-3d2d-447e-8ebf-a7e7c23b4e8f.png)\n\nAs medições de velocidade deixariam de ocorrer de maneira instantânea, ao se passar pelo radar, e seriam feitas a partir da velocidade média no trecho, considerando o tempo gasto no percurso entre um radar e outro. Sabe-se que a velocidade média é calculada como sendo a razão entre a distância percorrida e o tempo gasto para percorrê-la. O teste realizado mostrou que o tempo que permite uma condução segura de deslocamento no percurso entre os dois radares deveria ser de, no mínimo, 1 minuto e 24 segundos. Com isso, a CET precisa instalar uma placa antes do primeiro radar informando a velocidade média máxima permitida nesse trecho da via. O valor a ser exibido na placa deve ser o maior possível, entre os que atendem às condições de condução segura observadas.\n\nDisponível em: www1.folha.uol.com.br. Acesso em: 11 jan. 2014 (adaptado).\n\nA placa de sinalização que informa a velocidade que atende a essas condições é",
       "options": {
-        "A": "[imagem: https://enem.dev/2014/questions/165/f4a4d1b9-83d7-4a83-947e-98fb97f81fbc.bmp]",
-        "B": "[imagem: https://enem.dev/2014/questions/165/37cfc841-1368-4c3e-9518-13619ab55123.bmp]",
-        "C": "[imagem: https://enem.dev/2014/questions/165/c18ced6c-5bd6-4ec4-b375-e136f68d1416.bmp]",
-        "D": "[imagem: https://enem.dev/2014/questions/165/9fb1f2ca-3cfc-4eb1-83a5-0dd17ccc96cd.bmp]",
-        "E": "[imagem: https://enem.dev/2014/questions/165/f3c38b54-c09a-429b-ba43-e4e735a5c9f0.bmp]"
+        "A": "[Imagem da alternativa: https://enem.dev/2014/questions/165/f4a4d1b9-83d7-4a83-947e-98fb97f81fbc.bmp]",
+        "B": "[Imagem da alternativa: https://enem.dev/2014/questions/165/37cfc841-1368-4c3e-9518-13619ab55123.bmp]",
+        "C": "[Imagem da alternativa: https://enem.dev/2014/questions/165/c18ced6c-5bd6-4ec4-b375-e136f68d1416.bmp]",
+        "D": "[Imagem da alternativa: https://enem.dev/2014/questions/165/9fb1f2ca-3cfc-4eb1-83a5-0dd17ccc96cd.bmp]",
+        "E": "[Imagem da alternativa: https://enem.dev/2014/questions/165/f3c38b54-c09a-429b-ba43-e4e735a5c9f0.bmp]"
       },
       "answer": "C",
       "annulled": false,
