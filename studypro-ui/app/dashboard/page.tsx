@@ -3,17 +3,25 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Award,
   BarChart3,
   BookOpen,
+  Brain,
   Clock3,
   FileText,
+  Flame,
   GraduationCap,
   History,
   Layers3,
   Loader2,
   Lock,
+  Medal,
   Sparkles,
+  Star,
+  Swords,
   Target,
+  TrendingUp,
+  Trophy,
 } from "lucide-react";
 import {
   Bar,
@@ -36,6 +44,12 @@ import {
 import { AUTH_TOKEN_KEY } from "@/lib/api";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useBillingStatus } from "@/hooks/use-billing-status";
+import {
+  achievements,
+  gamificationProfile,
+  recentUnlocks,
+  weeklyEvolution,
+} from "@/lib/mock-gamification";
 
 type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes";
 type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade";
@@ -181,6 +195,26 @@ function getBestLocalStreak(currentStreak: number) {
   return best;
 }
 
+function rarityLabel(value: string) {
+  if (value === "legendary") return "Lendária";
+  if (value === "epic") return "Épica";
+  if (value === "rare") return "Rara";
+  return "Comum";
+}
+
+function rarityClass(value: string) {
+  if (value === "legendary") {
+    return "border-yellow-400/30 bg-yellow-400/10 text-yellow-300";
+  }
+  if (value === "epic") {
+    return "border-purple-400/30 bg-purple-400/10 text-purple-300";
+  }
+  if (value === "rare") {
+    return "border-blue-400/30 bg-blue-400/10 text-blue-300";
+  }
+  return "border-white/10 bg-white/5 text-slate-300";
+}
+
 export default function DashboardPage() {
   const [token, setToken] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DashboardTab>("evolucao");
@@ -248,7 +282,7 @@ export default function DashboardPage() {
   const accuracyRate = useMemo(() => {
     if (!data.questions) return 0;
     return data.correct / data.questions;
-  }, [data.questions, data.correct]);
+  }, [data.correct, data.questions]);
 
   const accuracyPercent = useMemo(
     () => Number((accuracyRate * 100).toFixed(1)),
@@ -266,7 +300,7 @@ export default function DashboardPage() {
     const min = Math.floor(seconds / 60);
     const sec = String(seconds % 60).padStart(2, "0");
     return `${min}:${sec}`;
-  }, [data.questions, accuracyPercent]);
+  }, [accuracyPercent, data.questions]);
 
   const currentPlan = billing?.user.plan ?? data.user?.plan ?? "free";
   const isPro = currentPlan === "pro";
@@ -297,7 +331,7 @@ export default function DashboardPage() {
       {
         title: "Taxa de acerto",
         value: `${accuracyPercent.toFixed(0)}%`,
-        subtitle: `Base atual de desempenho`,
+        subtitle: "Base atual de desempenho",
         icon: <Target className="size-5 text-blue-400" />,
         iconBg: "bg-blue-500/15",
       },
@@ -382,46 +416,14 @@ export default function DashboardPage() {
     const base = clamp(accuracyPercent || 52, 35, 95);
 
     return [
-      {
-        subject: "Mate",
-        voce: clamp(base + 4, 25, 100),
-        media: clamp(base - 6, 20, 100),
-      },
-      {
-        subject: "Biol",
-        voce: clamp(base + 2, 25, 100),
-        media: clamp(base - 7, 20, 100),
-      },
-      {
-        subject: "Quím",
-        voce: clamp(base + 1, 25, 100),
-        media: clamp(base - 5, 20, 100),
-      },
-      {
-        subject: "Físi",
-        voce: clamp(base - 3, 25, 100),
-        media: clamp(base - 9, 20, 100),
-      },
-      {
-        subject: "Port",
-        voce: clamp(base + 6, 25, 100),
-        media: clamp(base - 4, 20, 100),
-      },
-      {
-        subject: "Hist",
-        voce: clamp(base - 1, 25, 100),
-        media: clamp(base - 8, 20, 100),
-      },
-      {
-        subject: "Geog",
-        voce: clamp(base + 1, 25, 100),
-        media: clamp(base - 6, 20, 100),
-      },
-      {
-        subject: "Reda",
-        voce: clamp(base + 5, 25, 100),
-        media: clamp(base - 7, 20, 100),
-      },
+      { subject: "Mate", voce: clamp(base + 4, 25, 100), media: clamp(base - 6, 20, 100) },
+      { subject: "Biol", voce: clamp(base + 2, 25, 100), media: clamp(base - 7, 20, 100) },
+      { subject: "Quím", voce: clamp(base + 1, 25, 100), media: clamp(base - 5, 20, 100) },
+      { subject: "Físi", voce: clamp(base - 3, 25, 100), media: clamp(base - 9, 20, 100) },
+      { subject: "Port", voce: clamp(base + 6, 25, 100), media: clamp(base - 4, 20, 100) },
+      { subject: "Hist", voce: clamp(base - 1, 25, 100), media: clamp(base - 8, 20, 100) },
+      { subject: "Geog", voce: clamp(base + 1, 25, 100), media: clamp(base - 6, 20, 100) },
+      { subject: "Reda", voce: clamp(base + 5, 25, 100), media: clamp(base - 7, 20, 100) },
     ];
   }, [accuracyPercent]);
 
@@ -447,7 +449,7 @@ export default function DashboardPage() {
         minutos,
       };
     });
-  }, [data.questions, accuracyPercent]);
+  }, [accuracyPercent, data.questions]);
 
   const localStreak = useMemo(() => {
     if (!goalLoaded) return 0;
@@ -470,6 +472,13 @@ export default function DashboardPage() {
     if (!dailyGoal) return 0;
     return clamp(Math.round((completedToday / dailyGoal) * 100), 0, 100);
   }, [completedToday, dailyGoal]);
+
+  const unlockedAchievements = achievements.filter(
+    (item) => item.status === "unlocked"
+  );
+  const nextWins = achievements
+    .filter((item) => item.status === "in_progress")
+    .slice(0, 3);
 
   function handleSelectGoal(selectedGoal: StudyGoal) {
     localStorage.setItem(STUDY_GOAL_KEY, selectedGoal);
@@ -509,7 +518,7 @@ export default function DashboardPage() {
 
               <p className="mt-4 text-lg leading-8 text-slate-300">
                 Escolha um foco inicial para organizar melhor seu painel,
-                direcionar seus estudos e preparar a jornada de conversão.
+                direcionar seus estudos e preparar sua experiência.
               </p>
             </div>
 
@@ -518,7 +527,7 @@ export default function DashboardPage() {
               <ul className="mt-4 space-y-3 text-slate-300">
                 <li>• Dashboard mais orientado para ação</li>
                 <li>• Próximos passos mais claros</li>
-                <li>• Base pronta para monetização contextual</li>
+                <li>• Base pronta para gamificação e conversão</li>
               </ul>
             </div>
           </div>
@@ -678,6 +687,267 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1fr_1fr_1fr_1fr]">
+        <GameStatCard
+          icon={<Flame className="size-5 text-orange-300" />}
+          iconBg="bg-orange-500/15"
+          title="Streak atual"
+          value={`${localStreak} dias`}
+          helper={`Melhor sequência: ${bestLocalStreak} dias`}
+        />
+        <GameStatCard
+          icon={<Sparkles className="size-5 text-blue-300" />}
+          iconBg="bg-blue-500/15"
+          title="XP total"
+          value={`${gamificationProfile.totalXP}`}
+          helper={`Nível ${gamificationProfile.level}`}
+        />
+        <GameStatCard
+          icon={<Award className="size-5 text-purple-300" />}
+          iconBg="bg-purple-500/15"
+          title="Conquistas"
+          value={`${gamificationProfile.unlockedAchievements}/${gamificationProfile.totalAchievements}`}
+          helper="Coleção desbloqueada"
+        />
+        <GameStatCard
+          icon={<Swords className="size-5 text-emerald-300" />}
+          iconBg="bg-emerald-500/15"
+          title="Desafios"
+          value={`${gamificationProfile.completedChallenges}`}
+          helper="Concluídos recentemente"
+        />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                <Trophy className="size-5 text-blue-300" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Gamificação
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Sua evolução visual integrada ao dashboard
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard/conquistas"
+              className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+            >
+              Abrir módulo
+            </Link>
+          </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-slate-400">XP atual</p>
+                  <p className="mt-2 text-3xl font-bold text-white">
+                    {gamificationProfile.currentXP}/{gamificationProfile.nextLevelXP}
+                  </p>
+                </div>
+                <div className="rounded-full bg-blue-500/10 px-3 py-1 text-sm font-semibold text-blue-300">
+                  Nível {gamificationProfile.level}
+                </div>
+              </div>
+
+              <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#071225]">
+                <div
+                  className="h-full rounded-full bg-[#2f7cff]"
+                  style={{
+                    width: `${Math.round(
+                      (gamificationProfile.currentXP / gamificationProfile.nextLevelXP) * 100
+                    )}%`,
+                  }}
+                />
+              </div>
+
+              <p className="mt-3 text-sm text-slate-400">
+                Progresso até o próximo nível
+              </p>
+            </div>
+
+            <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <p className="text-sm text-slate-400">Melhor dia recente</p>
+              <p className="mt-2 text-3xl font-bold text-white">
+                {
+                  [...weeklyEvolution].sort((a, b) => b.xp - a.xp)[0]?.label
+                }
+              </p>
+              <p className="mt-3 text-sm text-slate-300">
+                {
+                  [...weeklyEvolution].sort((a, b) => b.xp - a.xp)[0]?.xp
+                }{" "}
+                XP acumulados
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-2xl bg-purple-500/10">
+              <Star className="size-5 text-purple-300" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold text-white">
+                Próximas wins
+              </h2>
+              <p className="mt-1 text-sm text-slate-400">
+                O que está mais perto de desbloquear
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {nextWins.map((item) => {
+              const percent = Math.round((item.progress / item.target) * 100);
+
+              return (
+                <div
+                  key={item.id}
+                  className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-base font-semibold text-white">
+                        {item.title}
+                      </div>
+                      <div className="mt-2 text-sm text-[#7ea0d6]">
+                        {item.progress}/{item.target} • +{item.xpReward} XP
+                      </div>
+                    </div>
+
+                    <div
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarityClass(
+                        item.rarity
+                      )}`}
+                    >
+                      {rarityLabel(item.rarity)}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#071225]">
+                    <div
+                      className="h-full rounded-full bg-[#2f7cff]"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+        <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-500/10">
+                <Medal className="size-5 text-emerald-300" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Conquistas recentes
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  Últimos desbloqueios confirmados
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard/conquistas"
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Ver todas
+            </Link>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {recentUnlocks.map((item) => (
+              <div
+                key={item.id}
+                className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-base font-semibold text-white">
+                      {item.title}
+                    </div>
+                    <div className="mt-2 text-sm text-[#7ea0d6]">
+                      Desbloqueada em {formatDate(item.unlockedAt)}
+                    </div>
+                  </div>
+
+                  <div
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarityClass(
+                      item.rarity
+                    )}`}
+                  >
+                    +{item.xpReward} XP
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
+                <TrendingUp className="size-5 text-blue-300" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-semibold text-white">
+                  Evolução gamificada
+                </h2>
+                <p className="mt-1 text-sm text-slate-400">
+                  XP acumulado na última semana
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/dashboard/ranking"
+              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Abrir ranking
+            </Link>
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {weeklyEvolution.map((point) => {
+              const max = Math.max(...weeklyEvolution.map((item) => item.xp));
+              const percent = Math.max(8, Math.round((point.xp / max) * 100));
+
+              return (
+                <div key={point.label} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-white">{point.label}</span>
+                    <span className="text-[#7ea0d6]">{point.xp} XP</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-[#020b18]">
+                    <div
+                      className="h-full rounded-full bg-[#2f7cff]"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </article>
       </section>
 
       {latestSimulation ? (
@@ -870,30 +1140,8 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <QuickActionCard
-          label="Próxima ação"
-          value={
-            !isPro && !canGenerateSimulation
-              ? "Fazer upgrade"
-              : getNextAction(goal)
-          }
-          helper="Use este atalho para continuar o fluxo de estudo."
-        />
-        <QuickActionCard
-          label="Sequência atual"
-          value={`${localStreak} dia(s)`}
-          helper="Manter consistência aumenta retenção e percepção de valor."
-        />
-        <QuickActionCard
-          label="Prioridade"
-          value={getGoalLabel(goal)}
-          helper="Seu painel agora está orientado pelo foco principal."
-        />
-      </section>
-
-      <section>
-        <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
+      <section className="overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
+        <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-5 py-4">
           <TabButton
             active={activeTab === "evolucao"}
             onClick={() => setActiveTab("evolucao")}
@@ -919,324 +1167,198 @@ export default function DashboardPage() {
             Detalhes
           </TabButton>
         </div>
-      </section>
 
-      <section className="relative grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <div
-          className={
-            hasAdvancedAnalytics
-              ? ""
-              : "pointer-events-none select-none blur-[2px] opacity-40"
-          }
-        >
-          <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-              <h2 className="text-2xl font-semibold text-white">
-                Evolução de Acertos vs Média da Plataforma
-              </h2>
+        <div className="p-5">
+          {activeTab === "evolucao" ? (
+            <div className="grid gap-6 xl:grid-cols-2">
+              <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <h2 className="text-xl font-semibold text-white">
+                  Evolução de acertos vs média da plataforma
+                </h2>
 
-              <div className="mt-6 h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={evolutionData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="rgba(148,163,184,0.12)"
-                    />
-                    <XAxis
-                      dataKey="month"
-                      stroke="#7c8aa5"
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <YAxis
-                      stroke="#7c8aa5"
-                      tickLine={false}
-                      axisLine={false}
-                      domain={[40, 90]}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#081224",
-                        border: "1px solid rgba(255,255,255,0.08)",
-                        borderRadius: 16,
-                        color: "#fff",
-                      }}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="voce"
-                      name="Você"
-                      stroke="#2f7cff"
-                      strokeWidth={3}
-                      dot={false}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="media"
-                      name="Média"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      dot={false}
-                      strokeDasharray="6 6"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </article>
-
-            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-              <h2 className="text-2xl font-semibold text-white">
-                Radar de Habilidades
-              </h2>
-
-              <div className="mt-6 h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData}>
-                    <PolarGrid stroke="rgba(148,163,184,0.3)" />
-                    <PolarAngleAxis
-                      dataKey="subject"
-                      tick={{ fill: "#8ea3c7", fontSize: 13 }}
-                    />
-                    <PolarRadiusAxis tick={false} axisLine={false} />
-                    <Radar
-                      name="Você"
-                      dataKey="voce"
-                      stroke="#2f7cff"
-                      fill="#2f7cff"
-                      fillOpacity={0.22}
-                      strokeWidth={2}
-                    />
-                    <Radar
-                      name="Média"
-                      dataKey="media"
-                      stroke="#10b981"
-                      fill="#10b981"
-                      fillOpacity={0.18}
-                      strokeWidth={2}
-                    />
-                    <Legend />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </article>
-          </div>
-        </div>
-
-        {!hasAdvancedAnalytics ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="max-w-md rounded-[24px] border border-amber-500/20 bg-[#071225] p-6 text-center shadow-xl">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-amber-500/15">
-                <Lock className="size-6 text-amber-200" />
-              </div>
-
-              <h3 className="mt-4 text-2xl font-semibold text-white">
-                Analytics avançado é recurso PRO
-              </h3>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                Desbloqueie comparativos, leitura mais profunda do desempenho e
-                visão premium da sua evolução.
-              </p>
-
-              <Link
-                href="/pricing"
-                className="mt-5 inline-flex rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-              >
-                Desbloquear analytics
-              </Link>
-            </div>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-        <h2 className="text-2xl font-semibold text-white">Estudo da Semana</h2>
-
-        <div className="mt-6 h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={weeklyData}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="rgba(148,163,184,0.12)"
-              />
-              <XAxis
-                dataKey="day"
-                stroke="#7c8aa5"
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                yAxisId="left"
-                stroke="#7c8aa5"
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#7c8aa5"
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#081224",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  borderRadius: 16,
-                  color: "#fff",
-                }}
-              />
-              <Legend />
-              <Bar
-                yAxisId="left"
-                dataKey="questoes"
-                name="Questões"
-                fill="#2f7cff"
-                radius={[6, 6, 0, 0]}
-              />
-              <Bar
-                yAxisId="right"
-                dataKey="minutos"
-                name="Minutos"
-                fill="#10b981"
-                radius={[6, 6, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
-      <section className="grid gap-6 xl:grid-cols-2">
-        <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-          <p className="text-sm text-slate-400">Performance</p>
-          <h2 className="mt-3 text-[20px] font-semibold text-white">
-            Distribuição de acertos e erros
-          </h2>
-
-          <div className="mt-8 h-5 overflow-hidden rounded-full bg-[#020b18]">
-            <div className="flex h-full w-full">
-              <div
-                className="h-full bg-[#2f7cff]"
-                style={{ width: `${accuracyPercent}%` }}
-              />
-              <div
-                className="h-full bg-[#0f172a]"
-                style={{ width: `${100 - accuracyPercent}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <InfoStat label="Acertos" value={`${accuracyPercent.toFixed(0)}%`} />
-            <InfoStat
-              label="Erros"
-              value={`${(100 - accuracyPercent).toFixed(0)}%`}
-            />
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-base text-slate-300">
-            Total de questões consideradas:{" "}
-            <span className="font-semibold text-white">{data.questions}</span>
-          </div>
-        </article>
-
-        <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-          <p className="text-sm text-slate-400">Insights</p>
-          <h2 className="mt-3 text-[20px] font-semibold text-white">
-            Leitura inteligente do seu momento
-          </h2>
-
-          {hasSmartInsights ? (
-            <>
-              <div className="mt-8 rounded-[24px] border border-white/10 bg-[#020b18] px-5 py-6 text-base leading-8 text-slate-300">
-                {data.insights ||
-                  "Você ainda não possui tentativas registradas. Resolva uma prova ou simulado para começar a gerar insights."}
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <InfoStat label="Sequência atual" value={String(localStreak)} />
-                <InfoStat
-                  label="Melhor sequência"
-                  value={String(bestLocalStreak)}
-                />
-                <InfoStat
-                  label="Aproveitamento"
-                  value={`${accuracyPercent.toFixed(1)}%`}
-                />
-              </div>
-            </>
-          ) : (
-            <div className="mt-8 rounded-[24px] border border-amber-500/20 bg-amber-500/10 px-5 py-6">
-              <div className="flex items-start gap-4">
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
-                  <Lock className="size-5 text-amber-200" />
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-white">
-                    Insights inteligentes liberados no PRO
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">
-                    Desbloqueie leitura premium do seu desempenho, padrões de
-                    evolução e prioridade de estudo.
-                  </p>
-
-                  <Link
-                    href="/pricing"
-                    className="mt-4 inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                  >
-                    Ver plano PRO
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-        </article>
-      </section>
-
-      <section className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm text-slate-400">Atividade recente</p>
-            <h2 className="mt-3 text-[20px] font-semibold text-white">
-              Últimas tentativas
-            </h2>
-          </div>
-
-          <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
-            Histórico consolidado
-          </div>
-        </div>
-
-        <div className="mt-6 space-y-4">
-          {data.recent_attempts.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-5 text-base text-slate-300">
-              Nenhuma tentativa recente encontrada.
-            </div>
-          ) : (
-            data.recent_attempts.map((attempt, index) => (
-              <article
-                key={`${attempt.exam_id ?? "attempt"}-${index}`}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-5"
-              >
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <div className="text-lg font-semibold text-white">
-                      {attempt.title || "Prova"}
-                    </div>
-                    <div className="mt-1 text-sm text-slate-400">
-                      {formatDate(attempt.created_at)}
-                    </div>
-                  </div>
-
-                  <div className="rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-                    Nota: {attempt.score_percentage ?? 0}%
-                  </div>
+                <div className="mt-6 h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={evolutionData}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                      <XAxis dataKey="month" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="voce"
+                        stroke="#2f7cff"
+                        strokeWidth={3}
+                        dot={false}
+                        name="Você"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="media"
+                        stroke="#22c55e"
+                        strokeWidth={2}
+                        dot={false}
+                        name="Média"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </article>
-            ))
-          )}
+
+              <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <h2 className="text-xl font-semibold text-white">
+                  Radar de habilidades
+                </h2>
+
+                <div className="mt-6 h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData}>
+                      <PolarGrid />
+                      <PolarAngleAxis dataKey="subject" stroke="#94a3b8" />
+                      <PolarRadiusAxis stroke="#64748b" />
+                      <Radar
+                        name="Você"
+                        dataKey="voce"
+                        stroke="#2f7cff"
+                        fill="#2f7cff"
+                        fillOpacity={0.35}
+                      />
+                      <Radar
+                        name="Média"
+                        dataKey="media"
+                        stroke="#22c55e"
+                        fill="#22c55e"
+                        fillOpacity={0.18}
+                      />
+                      <Legend />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+              </article>
+            </div>
+          ) : null}
+
+          {activeTab === "materias" ? (
+            <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <h2 className="text-xl font-semibold text-white">
+                Desempenho por matéria
+              </h2>
+
+              <div className="mt-6 h-[360px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={radarData}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="subject" stroke="#94a3b8" />
+                    <YAxis stroke="#94a3b8" />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="voce" fill="#2f7cff" name="Você" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="media" fill="#22c55e" name="Média" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </article>
+          ) : null}
+
+          {activeTab === "simulados" ? (
+            <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <h2 className="text-xl font-semibold text-white">
+                Estudo da semana
+              </h2>
+
+              <div className="mt-6 h-[360px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyData}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                    <XAxis dataKey="day" stroke="#94a3b8" />
+                    <YAxis stroke="#94a3b8" />
+                    <Tooltip />
+                    <Legend />
+                    <Bar
+                      dataKey="questoes"
+                      fill="#2f7cff"
+                      name="Questões"
+                      radius={[8, 8, 0, 0]}
+                    />
+                    <Bar
+                      dataKey="minutos"
+                      fill="#22c55e"
+                      name="Minutos"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </article>
+          ) : null}
+
+          {activeTab === "detalhes" ? (
+            <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+              <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <h2 className="text-xl font-semibold text-white">
+                  Leitura inteligente do seu momento
+                </h2>
+                <p className="mt-4 text-sm leading-7 text-slate-300">
+                  {hasSmartInsights
+                    ? data.insights ||
+                      "Você ainda não possui tentativas registradas. Resolva uma prova ou simulado para começar a gerar insights."
+                    : "Insights inteligentes fazem parte do fluxo premium. Ative o Pro para desbloquear leitura avançada do seu desempenho."}
+                </p>
+
+                {!hasSmartInsights ? (
+                  <Link
+                    href="/pricing"
+                    className="mt-5 inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                  >
+                    Desbloquear insights
+                  </Link>
+                ) : null}
+              </article>
+
+              <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+                <h2 className="text-xl font-semibold text-white">
+                  Histórico consolidado
+                </h2>
+
+                {data.recent_attempts.length === 0 ? (
+                  <p className="mt-4 text-sm text-slate-300">
+                    Nenhuma tentativa recente encontrada.
+                  </p>
+                ) : (
+                  <div className="mt-4 space-y-3">
+                    {data.recent_attempts.map((attempt, index) => (
+                      <div
+                        key={`${attempt.created_at}-${index}`}
+                        className="rounded-2xl border border-white/10 bg-[#071225] px-4 py-4"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-sm font-semibold text-white">
+                              {attempt.title || "Prova"}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-400">
+                              {formatDate(attempt.created_at)}
+                            </div>
+                          </div>
+
+                          <div className="text-sm font-semibold text-blue-300">
+                            Nota: {attempt.score_percentage ?? 0}%
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </article>
+            </div>
+          ) : null}
         </div>
+      </section>
+
+      <section className="rounded-[24px] border border-white/10 bg-[#071225] px-5 py-4 text-sm text-slate-400">
+        Visual alinhado ao novo módulo de gamificação. Os cards de streak, XP,
+        conquistas recentes e próximos wins já estão integrados ao dashboard
+        principal e preparados para backend depois.
       </section>
     </div>
   );
@@ -1252,34 +1374,16 @@ function GoalCard({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-[24px] border border-white/10 bg-[#071225] p-6 text-left transition hover:border-blue-500/40 hover:bg-[#09172c]"
-    >
-      <h2 className="text-2xl font-semibold text-white">{title}</h2>
-      <p className="mt-4 text-base leading-7 text-slate-300">{description}</p>
-      <div className="mt-6 text-sm font-medium text-blue-300">
+    <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5 transition hover:border-[#2f7cff]/30 hover:bg-[#0a1730]">
+      <h2 className="text-2xl font-bold tracking-tight text-white">{title}</h2>
+      <p className="mt-3 text-sm leading-7 text-slate-300">{description}</p>
+      <button
+        type="button"
+        onClick={onClick}
+        className="mt-5 rounded-2xl bg-[#2f7cff] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+      >
         Selecionar objetivo
-      </div>
-    </button>
-  );
-}
-
-function QuickActionCard({
-  label,
-  value,
-  helper,
-}: {
-  label: string;
-  value: string;
-  helper: string;
-}) {
-  return (
-    <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
-      <p className="text-sm text-slate-400">{label}</p>
-      <h3 className="mt-3 text-2xl font-semibold text-white">{value}</h3>
-      <p className="mt-3 text-sm leading-6 text-slate-300">{helper}</p>
+      </button>
     </article>
   );
 }
@@ -1297,12 +1401,11 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={[
-        "rounded-xl px-4 py-2.5 text-sm font-medium transition",
+      className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${
         active
-          ? "bg-[#020b18] text-white"
-          : "text-[#89a2c7] hover:text-white",
-      ].join(" ")}
+          ? "bg-[#2f7cff] text-white"
+          : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+      }`}
     >
       {children}
     </button>
@@ -1311,9 +1414,40 @@ function TabButton({
 
 function InfoStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-      <p className="text-base text-slate-400">{label}</p>
-      <p className="mt-3 text-2xl font-bold text-white">{value}</p>
+    <div className="rounded-[20px] border border-white/10 bg-[#020b18] p-4">
+      <div className="text-sm text-slate-400">{label}</div>
+      <div className="mt-2 text-xl font-bold text-white">{value}</div>
     </div>
+  );
+}
+
+function GameStatCard({
+  icon,
+  iconBg,
+  title,
+  value,
+  helper,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  title: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div className={`flex size-10 items-center justify-center rounded-2xl ${iconBg}`}>
+          {icon}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-3xl font-bold tracking-tight text-white">
+            {value}
+          </div>
+          <div className="mt-1 text-base text-slate-300">{title}</div>
+        </div>
+      </div>
+      <div className="mt-5 text-sm text-slate-400">{helper}</div>
+    </article>
   );
 }
