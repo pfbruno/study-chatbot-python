@@ -8,7 +8,7 @@
   "has_answer_key": true,
   "official_page_url": "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2012",
   "imported_from": "https://api.enem.dev/v1/exams/2012/questions",
-  "imported_at": "2026-04-23T15:25:20.422141+00:00",
+  "imported_at": "2026-04-23T16:02:08.684055+00:00",
   "questions": [
     {
       "number": 1,
