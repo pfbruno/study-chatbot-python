@@ -6,7 +6,6 @@ import {
   Award,
   BarChart3,
   BookOpen,
-  Brain,
   Clock3,
   FileText,
   Flame,
@@ -44,11 +43,12 @@ import {
 import { AUTH_TOKEN_KEY } from "@/lib/api";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useBillingStatus } from "@/hooks/use-billing-status";
+import { useGamificationSummary } from "@/hooks/use-gamification";
 import {
-  achievements,
-  gamificationProfile,
-  recentUnlocks,
-  weeklyEvolution,
+  achievements as fallbackAchievements,
+  gamificationProfile as fallbackProfile,
+  recentUnlocks as fallbackRecentUnlocks,
+  weeklyEvolution as fallbackWeeklyEvolution,
 } from "@/lib/mock-gamification";
 
 type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes";
@@ -103,8 +103,6 @@ const STUDY_GOAL_KEY = "studypro_goal";
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history";
 const REVIEW_SUMMARY_KEY = "studypro_review_summary";
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards";
-const LOCAL_STREAK_KEY = "studypro_local_streak";
-const LOCAL_BEST_STREAK_KEY = "studypro_local_best_streak";
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -173,28 +171,6 @@ function getDailyGoal(dataQuestions: number) {
   return 10;
 }
 
-function getLocalStreak() {
-  if (typeof window === "undefined") return 0;
-
-  const stored = localStorage.getItem(LOCAL_STREAK_KEY);
-  if (!stored) {
-    localStorage.setItem(LOCAL_STREAK_KEY, "2");
-    return 2;
-  }
-
-  return Number(stored) || 2;
-}
-
-function getBestLocalStreak(currentStreak: number) {
-  if (typeof window === "undefined") return currentStreak;
-
-  const stored = Number(localStorage.getItem(LOCAL_BEST_STREAK_KEY) || "0");
-  const best = Math.max(stored, currentStreak);
-
-  localStorage.setItem(LOCAL_BEST_STREAK_KEY, String(best));
-  return best;
-}
-
 function rarityLabel(value: string) {
   if (value === "legendary") return "Lendária";
   if (value === "epic") return "Épica";
@@ -241,9 +217,7 @@ export default function DashboardPage() {
     if (rawHistory) {
       try {
         const parsed = JSON.parse(rawHistory) as SimulationHistoryEntry[];
-        if (Array.isArray(parsed)) {
-          setSimulationHistory(parsed);
-        }
+        if (Array.isArray(parsed)) setSimulationHistory(parsed);
       } catch {
         localStorage.removeItem(SIMULATION_HISTORY_KEY);
       }
@@ -252,9 +226,7 @@ export default function DashboardPage() {
     if (rawSummary) {
       try {
         const parsed = JSON.parse(rawSummary) as ReviewSummaryPayload;
-        if (parsed?.title && parsed?.revisionSummary) {
-          setReviewSummary(parsed);
-        }
+        if (parsed?.title && parsed?.revisionSummary) setReviewSummary(parsed);
       } catch {
         localStorage.removeItem(REVIEW_SUMMARY_KEY);
       }
@@ -263,9 +235,7 @@ export default function DashboardPage() {
     if (rawFlashcards) {
       try {
         const parsed = JSON.parse(rawFlashcards) as ReviewCard[];
-        if (Array.isArray(parsed)) {
-          setReviewFlashcards(parsed);
-        }
+        if (Array.isArray(parsed)) setReviewFlashcards(parsed);
       } catch {
         localStorage.removeItem(REVIEW_FLASHCARDS_KEY);
       }
@@ -278,6 +248,12 @@ export default function DashboardPage() {
     loading: billingLoading,
     error: billingError,
   } = useBillingStatus(token);
+
+  const {
+    data: gamification,
+    loading: gamificationLoading,
+    error: gamificationError,
+  } = useGamificationSummary(token);
 
   const accuracyRate = useMemo(() => {
     if (!data.questions) return 0;
@@ -310,11 +286,6 @@ export default function DashboardPage() {
   const simulationRemaining = billing?.usage.remaining_today ?? null;
   const canGenerateSimulation = billing?.usage.can_generate ?? true;
 
-  const hasAdvancedAnalytics =
-    billing?.entitlements.can_access_advanced_analytics ??
-    data.entitlements?.can_access_advanced_analytics ??
-    isPro;
-
   const hasSmartInsights =
     billing?.entitlements.can_access_smart_insights ??
     data.entitlements?.can_access_smart_insights ??
@@ -325,6 +296,34 @@ export default function DashboardPage() {
     simulationHistory.length > 0
       ? Math.max(...simulationHistory.map((item) => item.score_percentage))
       : null;
+
+  const gameProfile =
+    token && gamification.profile.userName !== "Usuário"
+      ? gamification.profile
+      : fallbackProfile;
+
+  const gameAchievements =
+    token && gamification.achievements.length > 0
+      ? gamification.achievements
+      : fallbackAchievements;
+
+  const gameRecentUnlocks =
+    token && gamification.recentUnlocks.length > 0
+      ? gamification.recentUnlocks
+      : fallbackRecentUnlocks;
+
+  const gameWeeklyEvolution =
+    token && gamification.weeklyEvolution.length > 0
+      ? gamification.weeklyEvolution
+      : fallbackWeeklyEvolution;
+
+  const nextWins = gameAchievements
+    .filter((item) => item.status === "in_progress")
+    .slice(0, 3);
+
+  const unlockedAchievementsCount = gameAchievements.filter(
+    (item) => item.status === "unlocked"
+  ).length;
 
   const topCards = useMemo(
     () => [
@@ -451,16 +450,6 @@ export default function DashboardPage() {
     });
   }, [accuracyPercent, data.questions]);
 
-  const localStreak = useMemo(() => {
-    if (!goalLoaded) return 0;
-    return getLocalStreak();
-  }, [goalLoaded]);
-
-  const bestLocalStreak = useMemo(
-    () => getBestLocalStreak(localStreak),
-    [localStreak]
-  );
-
   const dailyGoal = useMemo(() => getDailyGoal(data.questions), [data.questions]);
 
   const completedToday = useMemo(() => {
@@ -473,12 +462,8 @@ export default function DashboardPage() {
     return clamp(Math.round((completedToday / dailyGoal) * 100), 0, 100);
   }, [completedToday, dailyGoal]);
 
-  const unlockedAchievements = achievements.filter(
-    (item) => item.status === "unlocked"
-  );
-  const nextWins = achievements
-    .filter((item) => item.status === "in_progress")
-    .slice(0, 3);
+  const bestGameDay = [...gameWeeklyEvolution].sort((a, b) => b.xp - a.xp)[0];
+  const totalWeekXP = gameWeeklyEvolution.reduce((acc, item) => acc + item.xp, 0);
 
   function handleSelectGoal(selectedGoal: StudyGoal) {
     localStorage.setItem(STUDY_GOAL_KEY, selectedGoal);
@@ -527,7 +512,7 @@ export default function DashboardPage() {
               <ul className="mt-4 space-y-3 text-slate-300">
                 <li>• Dashboard mais orientado para ação</li>
                 <li>• Próximos passos mais claros</li>
-                <li>• Base pronta para gamificação e conversão</li>
+                <li>• Base pronta para analytics e gamificação</li>
               </ul>
             </div>
           </div>
@@ -580,6 +565,12 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {(gamificationError || billingError) ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {[gamificationError, billingError].filter(Boolean).join(" | ")}
+        </div>
+      ) : null}
+
       <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
           <div className="max-w-3xl">
@@ -663,12 +654,6 @@ export default function DashboardPage() {
                       Restante hoje: {simulationRemaining}
                     </p>
                   ) : null}
-
-                  {billingError ? (
-                    <p className="mt-2 text-xs text-amber-100/80">
-                      {billingError}
-                    </p>
-                  ) : null}
                 </div>
 
                 <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
@@ -694,28 +679,28 @@ export default function DashboardPage() {
           icon={<Flame className="size-5 text-orange-300" />}
           iconBg="bg-orange-500/15"
           title="Streak atual"
-          value={`${localStreak} dias`}
-          helper={`Melhor sequência: ${bestLocalStreak} dias`}
+          value={`${gameProfile.streakDays} dias`}
+          helper="Sequência real registrada"
         />
         <GameStatCard
           icon={<Sparkles className="size-5 text-blue-300" />}
           iconBg="bg-blue-500/15"
           title="XP total"
-          value={`${gamificationProfile.totalXP}`}
-          helper={`Nível ${gamificationProfile.level}`}
+          value={`${gameProfile.totalXP}`}
+          helper={`Nível ${gameProfile.level}`}
         />
         <GameStatCard
           icon={<Award className="size-5 text-purple-300" />}
           iconBg="bg-purple-500/15"
           title="Conquistas"
-          value={`${gamificationProfile.unlockedAchievements}/${gamificationProfile.totalAchievements}`}
+          value={`${unlockedAchievementsCount}/${gameAchievements.length}`}
           helper="Coleção desbloqueada"
         />
         <GameStatCard
           icon={<Swords className="size-5 text-emerald-300" />}
           iconBg="bg-emerald-500/15"
           title="Desafios"
-          value={`${gamificationProfile.completedChallenges}`}
+          value={`${gameProfile.completedChallenges}`}
           helper="Concluídos recentemente"
         />
       </section>
@@ -732,61 +717,82 @@ export default function DashboardPage() {
                   Gamificação
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Sua evolução visual integrada ao dashboard
+                  Dados reais integrados ao painel principal
                 </p>
               </div>
             </div>
 
-            <Link
-              href="/dashboard/conquistas"
-              className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-            >
-              Abrir módulo
-            </Link>
+            <div className="flex gap-2">
+              <Link
+                href="/dashboard/conquistas"
+                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+              >
+                Conquistas
+              </Link>
+              <Link
+                href="/dashboard/desafios"
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                Desafios
+              </Link>
+              <Link
+                href="/dashboard/ranking"
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              >
+                Ranking
+              </Link>
+            </div>
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-slate-400">XP atual</p>
-                  <p className="mt-2 text-3xl font-bold text-white">
-                    {gamificationProfile.currentXP}/{gamificationProfile.nextLevelXP}
+              {gamificationLoading ? (
+                <div className="flex items-center gap-3 text-slate-300">
+                  <Loader2 className="size-4 animate-spin" />
+                  Sincronizando XP...
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-400">XP atual</p>
+                      <p className="mt-2 text-3xl font-bold text-white">
+                        {gameProfile.currentXP}/{gameProfile.nextLevelXP}
+                      </p>
+                    </div>
+                    <div className="rounded-full bg-blue-500/10 px-3 py-1 text-sm font-semibold text-blue-300">
+                      Nível {gameProfile.level}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#071225]">
+                    <div
+                      className="h-full rounded-full bg-[#2f7cff]"
+                      style={{
+                        width: `${Math.round(
+                          (gameProfile.currentXP / Math.max(1, gameProfile.nextLevelXP)) * 100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <p className="mt-3 text-sm text-slate-400">
+                    Progresso até o próximo nível
                   </p>
-                </div>
-                <div className="rounded-full bg-blue-500/10 px-3 py-1 text-sm font-semibold text-blue-300">
-                  Nível {gamificationProfile.level}
-                </div>
-              </div>
-
-              <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#071225]">
-                <div
-                  className="h-full rounded-full bg-[#2f7cff]"
-                  style={{
-                    width: `${Math.round(
-                      (gamificationProfile.currentXP / gamificationProfile.nextLevelXP) * 100
-                    )}%`,
-                  }}
-                />
-              </div>
-
-              <p className="mt-3 text-sm text-slate-400">
-                Progresso até o próximo nível
-              </p>
+                </>
+              )}
             </div>
 
             <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <p className="text-sm text-slate-400">Melhor dia recente</p>
               <p className="mt-2 text-3xl font-bold text-white">
-                {
-                  [...weeklyEvolution].sort((a, b) => b.xp - a.xp)[0]?.label
-                }
+                {bestGameDay?.label ?? "N/D"}
               </p>
               <p className="mt-3 text-sm text-slate-300">
-                {
-                  [...weeklyEvolution].sort((a, b) => b.xp - a.xp)[0]?.xp
-                }{" "}
-                XP acumulados
+                {bestGameDay?.xp ?? 0} XP acumulados
+              </p>
+              <p className="mt-2 text-sm text-slate-400">
+                Total da semana: {totalWeekXP} XP
               </p>
             </div>
           </div>
@@ -808,42 +814,49 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {nextWins.map((item) => {
-              const percent = Math.round((item.progress / item.target) * 100);
+            {nextWins.length > 0 ? (
+              nextWins.map((item) => {
+                const percent =
+                  item.target > 0 ? Math.round((item.progress / item.target) * 100) : 0;
 
-              return (
-                <div
-                  key={item.id}
-                  className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-base font-semibold text-white">
-                        {item.title}
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-base font-semibold text-white">
+                          {item.title}
+                        </div>
+                        <div className="mt-2 text-sm text-[#7ea0d6]">
+                          {item.progress}/{item.target} • +{item.xpReward} XP
+                        </div>
                       </div>
-                      <div className="mt-2 text-sm text-[#7ea0d6]">
-                        {item.progress}/{item.target} • +{item.xpReward} XP
+
+                      <div
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarityClass(
+                          item.rarity
+                        )}`}
+                      >
+                        {rarityLabel(item.rarity)}
                       </div>
                     </div>
 
-                    <div
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarityClass(
-                        item.rarity
-                      )}`}
-                    >
-                      {rarityLabel(item.rarity)}
+                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#071225]">
+                      <div
+                        className="h-full rounded-full bg-[#2f7cff]"
+                        style={{ width: `${percent}%` }}
+                      />
                     </div>
                   </div>
-
-                  <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#071225]">
-                    <div
-                      className="h-full rounded-full bg-[#2f7cff]"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4 text-sm text-slate-300">
+                Nenhuma conquista em progresso no momento.
+              </div>
+            )}
           </div>
         </article>
       </section>
@@ -874,31 +887,37 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {recentUnlocks.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-base font-semibold text-white">
-                      {item.title}
+            {gameRecentUnlocks.length > 0 ? (
+              gameRecentUnlocks.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-base font-semibold text-white">
+                        {item.title}
+                      </div>
+                      <div className="mt-2 text-sm text-[#7ea0d6]">
+                        Desbloqueada em {formatDate(item.unlockedAt)}
+                      </div>
                     </div>
-                    <div className="mt-2 text-sm text-[#7ea0d6]">
-                      Desbloqueada em {formatDate(item.unlockedAt)}
-                    </div>
-                  </div>
 
-                  <div
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarityClass(
-                      item.rarity
-                    )}`}
-                  >
-                    +{item.xpReward} XP
+                    <div
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarityClass(
+                        item.rarity
+                      )}`}
+                    >
+                      +{item.xpReward} XP
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4 text-sm text-slate-300">
+                Nenhuma conquista desbloqueada ainda.
               </div>
-            ))}
+            )}
           </div>
         </article>
 
@@ -927,8 +946,8 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {weeklyEvolution.map((point) => {
-              const max = Math.max(...weeklyEvolution.map((item) => item.xp));
+            {gameWeeklyEvolution.map((point) => {
+              const max = Math.max(...gameWeeklyEvolution.map((item) => item.xp), 1);
               const percent = Math.max(8, Math.round((point.xp / max) * 100));
 
               return (
@@ -948,6 +967,27 @@ export default function DashboardPage() {
             })}
           </div>
         </article>
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-3">
+        <CrossCtaCard
+          href="/dashboard/conquistas"
+          icon={<Award className="size-6 text-purple-300" />}
+          title="Explorar conquistas"
+          description="Veja o catálogo completo, raridades e desbloqueios mais próximos."
+        />
+        <CrossCtaCard
+          href="/dashboard/desafios"
+          icon={<Swords className="size-6 text-emerald-300" />}
+          title="Acompanhar desafios"
+          description="Missões diárias, semanais e especiais com progresso real."
+        />
+        <CrossCtaCard
+          href="/dashboard/ranking"
+          icon={<Trophy className="size-6 text-yellow-300" />}
+          title="Subir no ranking"
+          description="Compare seu XP, streak e evolução com os demais usuários."
+        />
       </section>
 
       {latestSimulation ? (
@@ -1356,9 +1396,9 @@ export default function DashboardPage() {
       </section>
 
       <section className="rounded-[24px] border border-white/10 bg-[#071225] px-5 py-4 text-sm text-slate-400">
-        Visual alinhado ao novo módulo de gamificação. Os cards de streak, XP,
-        conquistas recentes e próximos wins já estão integrados ao dashboard
-        principal e preparados para backend depois.
+        Dashboard principal agora consome gamificação real do backend para XP,
+        streak, conquistas recentes, desafios concluídos e próximas wins, com
+        fallback visual local caso a API falhe.
       </section>
     </div>
   );
@@ -1449,5 +1489,34 @@ function GameStatCard({
       </div>
       <div className="mt-5 text-sm text-slate-400">{helper}</div>
     </article>
+  );
+}
+
+function CrossCtaCard({
+  href,
+  icon,
+  title,
+  description,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-[24px] border border-white/10 bg-[#071225] p-5 transition hover:border-[#2f7cff]/30 hover:bg-[#0a1730]"
+    >
+      <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0e2347]">
+        {icon}
+      </div>
+      <div className="mt-5 text-2xl font-bold tracking-tight text-white">
+        {title}
+      </div>
+      <div className="mt-3 text-sm leading-7 text-[#7ea0d6]">
+        {description}
+      </div>
+    </Link>
   );
 }
