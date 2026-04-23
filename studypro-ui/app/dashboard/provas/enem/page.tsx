@@ -1,17 +1,20 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   Calendar,
   Clock3,
   FileText,
   GraduationCap,
+  Loader2,
   Play,
   RotateCcw,
   Search,
   Trophy,
 } from "lucide-react"
+
+import { getExamYears } from "@/lib/api"
 
 type ExamEditionStatus = "available" | "in_progress" | "completed"
 
@@ -24,42 +27,18 @@ type ExamEdition = {
   href: string
 }
 
-const EDITIONS: ExamEdition[] = [
-  {
-    year: 2023,
-    questionCount: 180,
-    status: "available",
-    href: "/dashboard/provas/enem/2023",
-  },
-  {
-    year: 2022,
-    questionCount: 180,
-    status: "in_progress",
-    progress: 38,
-    lastAccessLabel: "Há 2 dias",
-    href: "/dashboard/provas/enem/2022",
-  },
-  {
-    year: 2021,
-    questionCount: 180,
-    status: "completed",
-    progress: 100,
-    lastAccessLabel: "Há 2 semanas",
-    href: "/dashboard/provas/enem/2021",
-  },
-  {
-    year: 2020,
-    questionCount: 180,
-    status: "available",
-    href: "/dashboard/provas/enem/2020",
-  },
-  {
-    year: 2019,
-    questionCount: 180,
-    status: "available",
-    href: "/dashboard/provas/enem/2019",
-  },
-]
+type SavedExamResult = {
+  unanswered_count?: number
+}
+
+type SavedExamProgress = {
+  answers?: Record<number, string>
+}
+
+const FALLBACK_YEARS = [2023, 2022, 2021, 2020, 2019]
+
+const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
+const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -94,12 +73,122 @@ function getStatusBadge(status: ExamEditionStatus) {
   }
 }
 
+function buildEditionStatus(year: number): {
+  status: ExamEditionStatus
+  progress?: number
+  lastAccessLabel?: string
+} {
+  if (typeof window === "undefined") {
+    return { status: "available" }
+  }
+
+  const resultKey = `${OFFICIAL_EXAM_RESULT_PREFIX}enem_${year}`
+  const progressKey = `${OFFICIAL_EXAM_PROGRESS_PREFIX}enem_${year}`
+
+  try {
+    const rawResult = localStorage.getItem(resultKey)
+    if (rawResult) {
+      const parsedResult = JSON.parse(rawResult) as SavedExamResult
+      if (parsedResult?.unanswered_count === 0) {
+        return {
+          status: "completed",
+          progress: 100,
+          lastAccessLabel: "Tentativa finalizada",
+        }
+      }
+    }
+  } catch {
+    localStorage.removeItem(resultKey)
+  }
+
+  try {
+    const rawProgress = localStorage.getItem(progressKey)
+    if (rawProgress) {
+      const parsedProgress = JSON.parse(rawProgress) as SavedExamProgress
+      const answersCount = Object.keys(parsedProgress?.answers ?? {}).length
+
+      if (answersCount > 0) {
+        const progress = Math.round((answersCount / 180) * 100)
+
+        return {
+          status: "in_progress",
+          progress,
+          lastAccessLabel: `${answersCount} resposta(s) marcada(s)`,
+        }
+      }
+    }
+  } catch {
+    localStorage.removeItem(progressKey)
+  }
+
+  return { status: "available" }
+}
+
 export default function EnemHubPage() {
   const [search, setSearch] = useState("")
   const [sort, setSort] = useState("Mais recentes primeiro")
+  const [editions, setEditions] = useState<ExamEdition[]>([])
+  const [loading, setLoading] = useState(true)
+  const [warning, setWarning] = useState("")
+
+  useEffect(() => {
+    async function loadYears() {
+      try {
+        setLoading(true)
+        setWarning("")
+
+        const data = await getExamYears()
+        const years =
+          Array.isArray(data?.years) && data.years.length > 0
+            ? data.years
+            : FALLBACK_YEARS
+
+        const mapped = [...years]
+          .sort((a, b) => b - a)
+          .map((year) => {
+            const statusData = buildEditionStatus(year)
+
+            return {
+              year,
+              questionCount: 180,
+              status: statusData.status,
+              progress: statusData.progress,
+              lastAccessLabel: statusData.lastAccessLabel,
+              href: `/dashboard/provas/enem/${year}`,
+            } satisfies ExamEdition
+          })
+
+        setEditions(mapped)
+      } catch {
+        const mapped = [...FALLBACK_YEARS]
+          .sort((a, b) => b - a)
+          .map((year) => {
+            const statusData = buildEditionStatus(year)
+
+            return {
+              year,
+              questionCount: 180,
+              status: statusData.status,
+              progress: statusData.progress,
+              lastAccessLabel: statusData.lastAccessLabel,
+              href: `/dashboard/provas/enem/${year}`,
+            } satisfies ExamEdition
+          })
+
+        setEditions(mapped)
+        setWarning(
+          "A API não retornou a listagem de anos. Foi exibido o fallback local."
+        )
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void loadYears()
+  }, [])
 
   const filteredEditions = useMemo(() => {
-    let items = [...EDITIONS]
+    let items = [...editions]
 
     if (search.trim()) {
       const q = search.trim().toLowerCase()
@@ -113,7 +202,7 @@ export default function EnemHubPage() {
     }
 
     return items
-  }, [search, sort])
+  }, [editions, search, sort])
 
   const inProgressEdition = filteredEditions.find(
     (edition) => edition.status === "in_progress"
@@ -121,6 +210,12 @@ export default function EnemHubPage() {
 
   return (
     <div className="space-y-8">
+      {warning ? (
+        <section className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {warning}
+        </section>
+      ) : null}
+
       <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8 shadow-[0_10px_50px_-28px_rgba(59,130,246,0.45)]">
         <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
           <div>
@@ -150,7 +245,7 @@ export default function EnemHubPage() {
             <div className="mt-8 flex flex-wrap gap-6 text-base text-[#7ea0d6]">
               <span className="inline-flex items-center gap-2">
                 <FileText className="size-4" />
-                5 edições disponíveis
+                {loading ? "Carregando edições..." : `${editions.length} edição(ões) disponível(is)`}
               </span>
               <span className="inline-flex items-center gap-2">
                 <Trophy className="size-4" />
@@ -164,91 +259,96 @@ export default function EnemHubPage() {
               <div className="text-sm uppercase tracking-[0.18em] text-[#7ea0d6]">
                 Edições disponíveis
               </div>
-              <div className="text-sm text-[#7ea0d6]">
-                {sort}
+              <div className="text-sm text-[#7ea0d6]">{sort}</div>
+            </div>
+
+            {loading ? (
+              <div className="mt-8 flex items-center gap-3 text-slate-300">
+                <Loader2 className="size-4 animate-spin" />
+                Carregando anos do ENEM...
               </div>
-            </div>
+            ) : (
+              <div className="mt-6 grid gap-4">
+                {filteredEditions.slice(0, 3).map((edition) => {
+                  const badge = getStatusBadge(edition.status)
 
-            <div className="mt-6 grid gap-4">
-              {filteredEditions.slice(0, 3).map((edition) => {
-                const badge = getStatusBadge(edition.status)
-
-                return (
-                  <article
-                    key={edition.year}
-                    className="rounded-[24px] border border-white/10 bg-[#071225] p-5"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
-                          Edição
+                  return (
+                    <article
+                      key={edition.year}
+                      className="rounded-[24px] border border-white/10 bg-[#071225] p-5"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
+                            Edição
+                          </div>
+                          <div className="mt-2 text-5xl font-bold tracking-tight text-white">
+                            {edition.year}
+                          </div>
                         </div>
-                        <div className="mt-2 text-5xl font-bold tracking-tight text-white">
-                          {edition.year}
-                        </div>
-                      </div>
 
-                      <div
-                        className={`rounded-full border px-3 py-1 text-sm font-medium ${badge.className}`}
-                      >
-                        {badge.label}
-                      </div>
-                    </div>
-
-                    <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
-                      <span className="inline-flex items-center gap-2">
-                        <FileText className="size-4" />
-                        {edition.questionCount} questões
-                      </span>
-
-                      {edition.lastAccessLabel ? (
-                        <span className="inline-flex items-center gap-2">
-                          <Clock3 className="size-4" />
-                          {edition.lastAccessLabel}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    {typeof edition.progress === "number" ? (
-                      <div className="mt-5 space-y-2">
-                        <div className="flex items-center justify-between text-sm text-slate-300">
-                          <span>Progresso</span>
-                          <span>{edition.progress}%</span>
-                        </div>
-                        <ProgressBar value={edition.progress} />
-                      </div>
-                    ) : null}
-
-                    <div className="mt-6 flex gap-3">
-                      {edition.status === "completed" ? (
-                        <>
-                          <Link
-                            href={`${edition.href}/resultado`}
-                            className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#0a1730]"
-                          >
-                            Resultado
-                          </Link>
-                          <button
-                            type="button"
-                            className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#071225] px-4 py-3 text-white transition hover:bg-white/5"
-                          >
-                            <RotateCcw className="size-5" />
-                          </button>
-                        </>
-                      ) : (
-                        <Link
-                          href={edition.href}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-lg font-semibold text-white transition hover:opacity-90"
+                        <div
+                          className={`rounded-full border px-3 py-1 text-sm font-medium ${badge.className}`}
                         >
-                          <Play className="size-4" />
-                          {edition.status === "in_progress" ? "Continuar" : "Resolver"}
-                        </Link>
-                      )}
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
+                          {badge.label}
+                        </div>
+                      </div>
+
+                      <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
+                        <span className="inline-flex items-center gap-2">
+                          <FileText className="size-4" />
+                          {edition.questionCount} questões
+                        </span>
+
+                        {edition.lastAccessLabel ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Clock3 className="size-4" />
+                            {edition.lastAccessLabel}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {typeof edition.progress === "number" ? (
+                        <div className="mt-5 space-y-2">
+                          <div className="flex items-center justify-between text-sm text-slate-300">
+                            <span>Progresso</span>
+                            <span>{edition.progress}%</span>
+                          </div>
+                          <ProgressBar value={edition.progress} />
+                        </div>
+                      ) : null}
+
+                      <div className="mt-6 flex gap-3">
+                        {edition.status === "completed" ? (
+                          <>
+                            <Link
+                              href={edition.href}
+                              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#0a1730]"
+                            >
+                              Revisar prova
+                            </Link>
+                            <button
+                              type="button"
+                              className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#071225] px-4 py-3 text-white transition hover:bg-white/5"
+                            >
+                              <RotateCcw className="size-5" />
+                            </button>
+                          </>
+                        ) : (
+                          <Link
+                            href={edition.href}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-lg font-semibold text-white transition hover:opacity-90"
+                          >
+                            <Play className="size-4" />
+                            {edition.status === "in_progress" ? "Continuar" : "Resolver"}
+                          </Link>
+                        )}
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -300,9 +400,7 @@ export default function EnemHubPage() {
             Edições disponíveis
           </h2>
 
-          <div className="text-sm text-[#7ea0d6]">
-            {sort}
-          </div>
+          <div className="text-sm text-[#7ea0d6]">{sort}</div>
         </div>
 
         <div className="mt-6 grid gap-3 xl:grid-cols-[1fr_220px]">
@@ -326,86 +424,93 @@ export default function EnemHubPage() {
           </select>
         </div>
 
-        <div className="mt-8 grid gap-5 xl:grid-cols-2">
-          {filteredEditions.map((edition) => {
-            const badge = getStatusBadge(edition.status)
+        {loading ? (
+          <div className="mt-8 flex items-center gap-3 text-slate-300">
+            <Loader2 className="size-4 animate-spin" />
+            Carregando catálogo...
+          </div>
+        ) : (
+          <div className="mt-8 grid gap-5 xl:grid-cols-2">
+            {filteredEditions.map((edition) => {
+              const badge = getStatusBadge(edition.status)
 
-            return (
-              <article
-                key={edition.year}
-                className="rounded-[28px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.25)]"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
-                      Edição
+              return (
+                <article
+                  key={edition.year}
+                  className="rounded-[28px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.25)]"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
+                        Edição
+                      </div>
+                      <div className="mt-2 text-6xl font-bold tracking-tight text-white">
+                        {edition.year}
+                      </div>
                     </div>
-                    <div className="mt-2 text-6xl font-bold tracking-tight text-white">
-                      {edition.year}
-                    </div>
-                  </div>
 
-                  <div
-                    className={`rounded-full border px-3 py-1 text-sm font-medium ${badge.className}`}
-                  >
-                    {badge.label}
-                  </div>
-                </div>
-
-                <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
-                  <span className="inline-flex items-center gap-2">
-                    <FileText className="size-4" />
-                    {edition.questionCount} questões
-                  </span>
-
-                  {edition.lastAccessLabel ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Clock3 className="size-4" />
-                      {edition.lastAccessLabel}
-                    </span>
-                  ) : null}
-                </div>
-
-                {typeof edition.progress === "number" ? (
-                  <div className="mt-6 space-y-3">
-                    <div className="flex items-center justify-between text-sm text-slate-300">
-                      <span>Progresso</span>
-                      <span>{edition.progress}%</span>
-                    </div>
-                    <ProgressBar value={edition.progress} />
-                  </div>
-                ) : null}
-
-                <div className="mt-7 flex gap-3">
-                  {edition.status === "completed" ? (
-                    <>
-                      <Link
-                        href={`${edition.href}/resultado`}
-                        className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
-                      >
-                        Resultado
-                      </Link>
-                      <button
-                        type="button"
-                        className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#071225] px-4 py-4 text-white transition hover:bg-white/5"
-                      >
-                        <RotateCcw className="size-5" />
-                      </button>
-                    </>
-                  ) : (
-                    <Link
-                      href={edition.href}
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-4 text-xl font-semibold text-white transition hover:opacity-90"
+                    <div
+                      className={`rounded-full border px-3 py-1 text-sm font-medium ${badge.className}`}
                     >
-                      <Play className="size-4" />
-                      {edition.status === "in_progress" ? "Continuar" : "Resolver"}
-                    </Link>
-                  )}
-                </div>
-              </article>
-            )
-          })}
-        </div>
+                      {badge.label}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
+                    <span className="inline-flex items-center gap-2">
+                      <FileText className="size-4" />
+                      {edition.questionCount} questões
+                    </span>
+
+                    {edition.lastAccessLabel ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Clock3 className="size-4" />
+                        {edition.lastAccessLabel}
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {typeof edition.progress === "number" ? (
+                    <div className="mt-6 space-y-3">
+                      <div className="flex items-center justify-between text-sm text-slate-300">
+                        <span>Progresso</span>
+                        <span>{edition.progress}%</span>
+                      </div>
+                      <ProgressBar value={edition.progress} />
+                    </div>
+                  ) : null}
+
+                  <div className="mt-7 flex gap-3">
+                    {edition.status === "completed" ? (
+                      <>
+                        <Link
+                          href={edition.href}
+                          className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
+                        >
+                          Revisar prova
+                        </Link>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#071225] px-4 py-4 text-white transition hover:bg-white/5"
+                        >
+                          <RotateCcw className="size-5" />
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        href={edition.href}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-4 text-xl font-semibold text-white transition hover:opacity-90"
+                      >
+                        <Play className="size-4" />
+                        {edition.status === "in_progress" ? "Continuar" : "Resolver"}
+                      </Link>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </section>
     </div>
   )
