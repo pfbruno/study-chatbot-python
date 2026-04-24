@@ -2,7 +2,13 @@
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import {
   Bot,
   Check,
@@ -10,7 +16,6 @@ import {
   FileText,
   History,
   Layers3,
-  Loader2,
   MessageSquare,
   PanelLeft,
   Plus,
@@ -31,6 +36,7 @@ import {
   getChatEntitlement,
   sendChatMessage,
   type ChatEntitlementResponse,
+  type ChatMessageResponse,
 } from "@/lib/chat-api"
 
 type Message = {
@@ -47,45 +53,17 @@ type ChatSession = {
   messages: Message[]
 }
 
-type SimulationMode = "balanced" | "random"
-
-type SimulationHistoryEntry = {
-  id: string
-  saved_at: string
-  title: string
-  exam_type: string
-  year: number
-  mode: SimulationMode
-  total_questions: number
-  correct_answers: number
-  wrong_answers: number
-  unanswered_count: number
-  score_percentage: number
-  subjects_summary: Array<{
-    subject: string
-    total: number
-    correct: number
-    wrong: number
-    blank: number
-    accuracy_percentage: number
-  }>
-}
-
-const SESSION_STORAGE_KEY = "studypro_active_simulation"
 const CHAT_SESSIONS_KEY = "studypro_chat_sessions"
 const CHAT_ACTIVE_SESSION_KEY = "studypro_chat_active_session"
+const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
+const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
+const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
 
-const INITIAL_ASSISTANT_MESSAGE = `Olá. Posso responder perguntas, explicar conteúdos e também criar simulados a partir do seu comando.
-
-Exemplos:
-- "Explique mitose e meiose de forma simples"
-- "Crie um simulado de 10 questões de biologia do enem"
-- "Monte um cronograma de estudos de 4 semanas"
-- "Transforme este tema em flashcards"`
+const INITIAL_ASSISTANT_MESSAGE = `Olá! Como posso ajudar você hoje?`
 
 const QUICK_PROMPTS = [
   "Explique mitose e meiose de forma simples",
-  "Crie um simulado de 10 questões de biologia do enem",
+  "Crie um simulado de 10 questões de biologia do ENEM",
   "Monte um cronograma de estudos de 4 semanas para o ENEM",
   "Gere 5 questões estilo ENEM com gabarito sobre genética",
 ]
@@ -187,7 +165,7 @@ function renderInline(text: string) {
 
 function renderContent(content: string) {
   const lines = content.split("\n")
-  const elements: JSX.Element[] = []
+  const elements: ReactNode[] = []
   let listBuffer: { ordered: boolean; items: string[] } | null = null
 
   const flushList = () => {
@@ -283,23 +261,136 @@ function renderContent(content: string) {
   return elements
 }
 
+function sanitizeAssistantText(raw: string | null | undefined) {
+  const normalized = (raw ?? "").replace(/\r\n/g, "\n").trim()
+
+  if (!normalized) return ""
+
+  const explanationMatch = normalized.match(
+    /(?:^|\n)Explicação:\s*([\s\S]*?)(?=\n(?:Resumo|Sugestão de estudo|Tema identificado):|$)/i
+  )
+
+  if (explanationMatch?.[1]?.trim()) {
+    return explanationMatch[1].trim()
+  }
+
+  const ignoredLabel = /^(Tema identificado|Resumo|Sugestão de estudo):/i
+  const lines = normalized.split("\n").filter((line) => !ignoredLabel.test(line.trim()))
+  return lines.join("\n").trim()
+}
+
+function getAssistantMessageText(response: ChatMessageResponse) {
+  const candidates = [
+    response.formatted_response,
+    response.content,
+    response.explanation,
+  ]
+
+  for (const candidate of candidates) {
+    const sanitized = sanitizeAssistantText(candidate)
+    if (sanitized) return sanitized
+  }
+
+  return "Não consegui gerar uma resposta agora."
+}
+
+function ConversationsPanel({
+  search,
+  setSearch,
+  sessions,
+  activeSessionId,
+  setActiveSessionId,
+  deleteSession,
+}: {
+  search: string
+  setSearch: (value: string) => void
+  sessions: ChatSession[]
+  activeSessionId: string
+  setActiveSessionId: (value: string) => void
+  deleteSession: (value: string) => void
+}) {
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar conversas..."
+          className="h-12 w-full rounded-2xl border border-white/10 bg-[#020b18] pl-10 pr-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-blue-500/40"
+        />
+      </div>
+
+      <div className="mt-4 min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+        {sessions.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm text-slate-400">
+            Nenhuma conversa encontrada.
+          </div>
+        ) : (
+          sessions.map((session) => {
+            const isActive = session.id === activeSessionId
+
+            return (
+              <div
+                key={session.id}
+                className={`group rounded-2xl border transition ${
+                  isActive
+                    ? "border-blue-400/30 bg-blue-500/10"
+                    : "border-white/10 bg-[#081224] hover:bg-white/[0.04]"
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveSessionId(session.id)}
+                  className="w-full px-4 py-3 text-left"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-semibold text-white">
+                        {session.title}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-400">
+                        {formatLocalDate(session.updatedAt)}
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        deleteSession(session.id)
+                      }}
+                      className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 opacity-0 transition hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                      aria-label="Excluir conversa"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                </button>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function ChatIA() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const bottomRef = useRef<HTMLDivElement | null>(null)
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const messagesViewportRef = useRef<HTMLDivElement | null>(null)
+  const pendingAutoScrollRef = useRef(false)
   const hasAutoRunExecutedRef = useRef(false)
 
   const [token, setToken] = useState<string | null>(null)
   const [entitlement, setEntitlement] =
     useState<ChatEntitlementResponse | null>(null)
 
-  const [simulationHistory, setSimulationHistory] = useState<
-    SimulationHistoryEntry[]
-  >([])
-
   const [sessions, setSessions] = useState<ChatSession[]>([])
-  const [activeSessionId, setActiveSessionId] = useState<string>("")
+  const [activeSessionId, setActiveSessionId] = useState("")
   const [search, setSearch] = useState("")
   const [input, setInput] = useState("")
   const [loadingEntitlement, setLoadingEntitlement] = useState(true)
@@ -309,23 +400,15 @@ export function ChatIA() {
   const [showSidebar, setShowSidebar] = useState(false)
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" })
+  }, [])
+
+  useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
-    const rawHistory = localStorage.getItem("studypro_simulation_history")
     const rawSessions = localStorage.getItem(CHAT_SESSIONS_KEY)
     const storedActiveSessionId = localStorage.getItem(CHAT_ACTIVE_SESSION_KEY)
 
     setToken(storedToken)
-
-    if (rawHistory) {
-      try {
-        const parsed = JSON.parse(rawHistory) as SimulationHistoryEntry[]
-        if (Array.isArray(parsed)) {
-          setSimulationHistory(parsed)
-        }
-      } catch {
-        localStorage.removeItem("studypro_simulation_history")
-      }
-    }
 
     if (rawSessions) {
       try {
@@ -367,7 +450,7 @@ export function ChatIA() {
   }, [searchParams])
 
   useEffect(() => {
-    async function load() {
+    async function loadEntitlement() {
       try {
         setLoadingEntitlement(true)
         setError("")
@@ -389,12 +472,8 @@ export function ChatIA() {
       }
     }
 
-    load()
+    void loadEntitlement()
   }, [token])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [sessions, activeSessionId, sending])
 
   useEffect(() => {
     if (!textareaRef.current) return
@@ -433,6 +512,26 @@ export function ChatIA() {
   }, [entitlement, isPro, remainingToday])
 
   const isEmptyState = !activeSession || activeSession.messages.length <= 1
+
+  function scrollMessagesToBottom(behavior: ScrollBehavior = "smooth") {
+    const viewport = messagesViewportRef.current
+    if (!viewport) return
+    viewport.scrollTo({
+      top: viewport.scrollHeight,
+      behavior,
+    })
+  }
+
+  useEffect(() => {
+    if (!messagesViewportRef.current) return
+    messagesViewportRef.current.scrollTop = 0
+  }, [activeSessionId])
+
+  useEffect(() => {
+    if (!pendingAutoScrollRef.current) return
+    scrollMessagesToBottom(sending ? "auto" : "smooth")
+    pendingAutoScrollRef.current = false
+  }, [activeSession?.messages.length, sending])
 
   function createNewChat(prefill?: string) {
     const now = new Date().toISOString()
@@ -522,6 +621,8 @@ export function ChatIA() {
       createdAt: new Date().toISOString(),
     }
 
+    pendingAutoScrollRef.current = true
+
     updateSessionMessages(targetSessionId, (session) => ({
       ...session,
       title:
@@ -548,18 +649,24 @@ export function ChatIA() {
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.access.user))
       }
 
-      const assistantMessage: Message = {
-        id: messageId(),
-        role: "assistant",
-        content: response.content,
-        createdAt: new Date().toISOString(),
-      }
+      const assistantText = getAssistantMessageText(response)
 
-      updateSessionMessages(targetSessionId, (session) => ({
-        ...session,
-        updatedAt: new Date().toISOString(),
-        messages: [...session.messages, assistantMessage],
-      }))
+      if (assistantText) {
+        const assistantMessage: Message = {
+          id: messageId(),
+          role: "assistant",
+          content: assistantText,
+          createdAt: new Date().toISOString(),
+        }
+
+        pendingAutoScrollRef.current = true
+
+        updateSessionMessages(targetSessionId, (session) => ({
+          ...session,
+          updatedAt: new Date().toISOString(),
+          messages: [...session.messages, assistantMessage],
+        }))
+      }
 
       if (
         response.kind === "action" &&
@@ -570,10 +677,9 @@ export function ChatIA() {
           token
         )
 
-        sessionStorage.setItem(
-          SESSION_STORAGE_KEY,
-          JSON.stringify(simulation)
-        )
+        sessionStorage.setItem(ACTIVE_SIMULATION_KEY, JSON.stringify(simulation))
+        sessionStorage.removeItem(ACTIVE_SIMULATION_ANSWERS_KEY)
+        sessionStorage.removeItem(LAST_SIMULATION_RESULT_KEY)
 
         const finalMessage: Message = {
           id: messageId(),
@@ -582,6 +688,8 @@ export function ChatIA() {
             "Simulado criado com sucesso. Vou te encaminhar para a área de resolução agora.",
           createdAt: new Date().toISOString(),
         }
+
+        pendingAutoScrollRef.current = true
 
         updateSessionMessages(targetSessionId, (session) => ({
           ...session,
@@ -605,6 +713,8 @@ export function ChatIA() {
         content: message,
         createdAt: new Date().toISOString(),
       }
+
+      pendingAutoScrollRef.current = true
 
       updateSessionMessages(targetSessionId, (session) => ({
         ...session,
@@ -638,13 +748,14 @@ export function ChatIA() {
   }
 
   async function copyMessage(message: Message) {
+    if (!navigator?.clipboard) return
     await navigator.clipboard.writeText(message.content)
     setCopiedMessageId(message.id)
     setTimeout(() => setCopiedMessageId(null), 1800)
   }
 
   return (
-    <div className="relative h-[calc(100vh-9rem)] min-h-[720px]">
+    <div className="relative flex h-[calc(100vh-9rem)] min-h-0 flex-col">
       {showSidebar ? (
         <div className="fixed inset-0 z-40 bg-black/60">
           <button
@@ -689,7 +800,7 @@ export function ChatIA() {
         </div>
       ) : null}
 
-      <section className="flex h-full min-w-0 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
+      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
         <div className="border-b border-white/10 px-4 py-4 md:px-6">
           <div className="mx-auto flex w-full max-w-[1200px] items-center gap-3">
             <button
@@ -725,8 +836,11 @@ export function ChatIA() {
           </div>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6">
-          <div className="mx-auto max-w-[1200px]">
+        <div
+          ref={messagesViewportRef}
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6"
+        >
+          <div className="mx-auto flex w-full max-w-[1200px] flex-col">
             {isEmptyState ? (
               <div className="mb-8">
                 <div className="mb-6 rounded-[28px] border border-white/10 bg-[#020b18] p-6">
@@ -875,14 +989,12 @@ export function ChatIA() {
                   </div>
                 </div>
               ) : null}
-
-              <div ref={bottomRef} />
             </div>
           </div>
         </div>
 
         <div className="border-t border-white/10 bg-[#071225] px-4 py-3 md:px-6">
-          <div className="mx-auto max-w-[1200px]">
+          <div className="mx-auto flex w-full max-w-[1200px] flex-col">
             {error ? (
               <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                 {error}
@@ -928,14 +1040,13 @@ export function ChatIA() {
                 className="max-h-[180px] min-h-[52px] w-full resize-none bg-transparent px-2 py-1.5 text-sm leading-6 text-white outline-none placeholder:text-slate-500"
               />
 
-              <div className="mt-1.5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-2">
+              <div className="mt-1.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => createNewChat()}
-                    className="inline-flex size-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
+                    className="inline-flex size-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white transition hover:bg-white/10"
                     aria-label="Nova conversa"
-                    title="Nova conversa"
                   >
                     <Plus className="size-4" />
                   </button>
@@ -943,9 +1054,9 @@ export function ChatIA() {
                   <button
                     type="button"
                     onClick={() => setShowSidebar(true)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
                   >
-                    <History className="size-3.5" />
+                    <History className="size-4" />
                     Conversas
                   </button>
                 </div>
@@ -953,14 +1064,10 @@ export function ChatIA() {
                 <button
                   type="button"
                   onClick={() => void handleSubmit()}
-                  disabled={sending || !canAsk || !input.trim()}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#2f7cff] to-cyan-400 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_50px_-20px_rgba(59,130,246,0.95)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={sending || !input.trim() || !canAsk}
+                  className="inline-flex items-center gap-2 rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {sending ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <SendHorizonal className="size-4" />
-                  )}
+                  <SendHorizonal className="size-4" />
                   Enviar
                 </button>
               </div>
@@ -968,99 +1075,6 @@ export function ChatIA() {
           </div>
         </div>
       </section>
-    </div>
-  )
-}
-
-function ConversationsPanel({
-  search,
-  setSearch,
-  sessions,
-  activeSessionId,
-  setActiveSessionId,
-  deleteSession,
-}: {
-  search: string
-  setSearch: (value: string) => void
-  sessions: ChatSession[]
-  activeSessionId: string
-  setActiveSessionId: (value: string) => void
-  deleteSession: (id: string) => void
-}) {
-  return (
-    <div className="space-y-5">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Buscar conversas..."
-          className="h-10 w-full rounded-2xl border border-white/10 bg-[#020b18] pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500/40"
-        />
-      </div>
-
-      <div>
-        <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-          <History className="size-3.5" />
-          Histórico
-        </div>
-
-        <div className="space-y-2">
-          {sessions.map((session) => {
-            const active = session.id === activeSessionId
-
-            return (
-              <div
-                key={session.id}
-                className={`rounded-2xl border px-3 py-3 transition ${
-                  active
-                    ? "border-blue-500/30 bg-blue-500/10"
-                    : "border-white/10 bg-[#020b18] hover:border-white/15 hover:bg-white/[0.04]"
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setActiveSessionId(session.id)}
-                  className="w-full text-left"
-                >
-                  <div className="flex items-start gap-3">
-                    <div
-                      className={`mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl ${
-                        active
-                          ? "bg-blue-500/20 text-blue-300"
-                          : "bg-white/5 text-slate-400"
-                      }`}
-                    >
-                      <MessageSquare className="size-4" />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-white">
-                        {session.title}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        {formatLocalDate(session.updatedAt)}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-
-                {sessions.length > 1 ? (
-                  <div className="mt-3 flex justify-end">
-                    <button
-                      type="button"
-                      onClick={() => deleteSession(session.id)}
-                      className="rounded-xl px-2 py-1 text-[11px] font-medium text-slate-500 transition hover:bg-rose-500/10 hover:text-rose-300"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            )
-          })}
-        </div>
-      </div>
     </div>
   )
 }
