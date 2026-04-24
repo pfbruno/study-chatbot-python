@@ -1,4 +1,4 @@
-"use client";
+"use client"
 
 import {
   Award,
@@ -8,211 +8,109 @@ import {
   Clock3,
   Crown,
   Flame,
-  Gift,
   Rocket,
   Sparkles,
-  Star,
   Swords,
   Target,
   Trophy,
-} from "lucide-react";
+} from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 
-type ChallengeStatus = "active" | "completed" | "locked";
-type ChallengeDifficulty = "easy" | "medium" | "hard";
-type ChallengeType = "daily" | "weekly" | "special";
+import {
+  getStudyProgress,
+  STUDY_PROGRESS_UPDATED_EVENT,
+  type StudyProgressSnapshot,
+} from "@/lib/study-progress"
+
+type ChallengeStatus = "active" | "completed" | "locked"
+type ChallengeDifficulty = "easy" | "medium" | "hard"
+type ChallengeType = "daily" | "weekly" | "special"
 
 type ChallengeItem = {
-  id: string;
-  title: string;
-  description: string;
-  type: ChallengeType;
-  difficulty: ChallengeDifficulty;
-  status: ChallengeStatus;
-  progress: number;
-  target: number;
-  xpReward: number;
-  rewardLabel: string;
-  expiresIn: string;
-  icon: "target" | "brain" | "flame" | "rocket" | "award" | "trophy";
-};
+  id: string
+  title: string
+  description: string
+  type: ChallengeType
+  difficulty: ChallengeDifficulty
+  status: ChallengeStatus
+  progress: number
+  target: number
+  xpReward: number
+  rewardLabel: string
+  expiresIn: string
+  icon: "target" | "brain" | "flame" | "rocket" | "award" | "trophy"
+}
 
-const challengeOverview = {
-  activeChallenges: 6,
-  completedThisWeek: 9,
-  weeklyXP: 1140,
-  currentStreak: 9,
-};
-
-const challenges: ChallengeItem[] = [
-  {
-    id: "daily-1",
-    title: "Sprint de 20 questões",
-    description:
-      "Resolva 20 questões hoje para manter o ritmo e aumentar seu XP diário.",
-    type: "daily",
-    difficulty: "easy",
-    status: "active",
-    progress: 12,
-    target: 20,
-    xpReward: 90,
-    rewardLabel: "Bônus de consistência",
-    expiresIn: "Expira em 8h",
-    icon: "target",
-  },
-  {
-    id: "daily-2",
-    title: "Revisão inteligente",
-    description:
-      "Revise 10 flashcards hoje para consolidar memória de curto prazo.",
-    type: "daily",
-    difficulty: "easy",
-    status: "active",
-    progress: 6,
-    target: 10,
-    xpReward: 60,
-    rewardLabel: "Memória em ação",
-    expiresIn: "Expira em 8h",
-    icon: "brain",
-  },
-  {
-    id: "weekly-1",
-    title: "Semana sem falhas",
-    description:
-      "Estude por 7 dias seguidos e mantenha a sequência ativa até o final da semana.",
-    type: "weekly",
-    difficulty: "medium",
-    status: "active",
-    progress: 5,
-    target: 7,
-    xpReward: 280,
-    rewardLabel: "Selo de constância",
-    expiresIn: "Termina domingo",
-    icon: "flame",
-  },
-  {
-    id: "weekly-2",
-    title: "Domínio em Biologia",
-    description:
-      "Complete 3 sessões fortes de Biologia com correção concluída.",
-    type: "weekly",
-    difficulty: "medium",
-    status: "active",
-    progress: 2,
-    target: 3,
-    xpReward: 220,
-    rewardLabel: "Boost temático",
-    expiresIn: "Termina domingo",
-    icon: "award",
-  },
-  {
-    id: "special-1",
-    title: "Maratona ENEM",
-    description:
-      "Finalize uma prova oficial completa e gere materiais de revisão a partir do resultado.",
-    type: "special",
-    difficulty: "hard",
-    status: "active",
-    progress: 0,
-    target: 1,
-    xpReward: 420,
-    rewardLabel: "Baú premium",
-    expiresIn: "Evento de 5 dias",
-    icon: "trophy",
-  },
-  {
-    id: "special-2",
-    title: "Ascensão no ranking",
-    description:
-      "Ganhe 1500 XP na semana e entre na zona alta do ranking.",
-    type: "special",
-    difficulty: "hard",
-    status: "locked",
-    progress: 0,
-    target: 1500,
-    xpReward: 500,
-    rewardLabel: "Distintivo competitivo",
-    expiresIn: "Bloqueado",
-    icon: "rocket",
-  },
-  {
-    id: "weekly-3",
-    title: "Volume de treino",
-    description:
-      "Conclua 5 simulados curtos na mesma semana.",
-    type: "weekly",
-    difficulty: "medium",
-    status: "completed",
-    progress: 5,
-    target: 5,
-    xpReward: 240,
-    rewardLabel: "Meta batida",
-    expiresIn: "Concluído",
-    icon: "target",
-  },
-];
+const EMPTY_PROGRESS: StudyProgressSnapshot = {
+  totalAnsweredQuestions: 0,
+  totalCompletedSimulations: 0,
+  totalCorrectAnswers: 0,
+  completedAttemptIds: [],
+  updatedAt: null,
+}
 
 function difficultyStyles(difficulty: ChallengeDifficulty) {
   if (difficulty === "hard") {
-    return "border-rose-500/30 bg-rose-500/10 text-rose-300";
+    return "border-rose-500/30 bg-rose-500/10 text-rose-300"
   }
   if (difficulty === "medium") {
-    return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300";
+    return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
   }
-  return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+  return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
 }
 
 function difficultyLabel(difficulty: ChallengeDifficulty) {
-  if (difficulty === "hard") return "Difícil";
-  if (difficulty === "medium") return "Médio";
-  return "Fácil";
+  if (difficulty === "hard") return "Difícil"
+  if (difficulty === "medium") return "Médio"
+  return "Fácil"
 }
 
 function typeStyles(type: ChallengeType) {
   if (type === "special") {
-    return "border-purple-400/30 bg-purple-400/10 text-purple-300";
+    return "border-purple-400/30 bg-purple-400/10 text-purple-300"
   }
   if (type === "weekly") {
-    return "border-blue-400/30 bg-blue-400/10 text-blue-300";
+    return "border-blue-400/30 bg-blue-400/10 text-blue-300"
   }
-  return "border-white/10 bg-white/5 text-slate-300";
+  return "border-white/10 bg-white/5 text-slate-300"
 }
 
 function typeLabel(type: ChallengeType) {
-  if (type === "special") return "Especial";
-  if (type === "weekly") return "Semanal";
-  return "Diário";
+  if (type === "special") return "Especial"
+  if (type === "weekly") return "Semanal"
+  return "Diário"
 }
 
 function statusStyles(status: ChallengeStatus) {
   if (status === "completed") {
-    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300";
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
   }
   if (status === "locked") {
-    return "border-white/10 bg-white/5 text-slate-400";
+    return "border-white/10 bg-white/5 text-slate-400"
   }
-  return "border-[#2f7cff]/30 bg-[#2f7cff]/10 text-[#79a6ff]";
+  return "border-[#2f7cff]/30 bg-[#2f7cff]/10 text-[#79a6ff]"
 }
 
 function statusLabel(status: ChallengeStatus) {
-  if (status === "completed") return "Concluído";
-  if (status === "locked") return "Bloqueado";
-  return "Ativo";
+  if (status === "completed") return "Concluído"
+  if (status === "locked") return "Bloqueado"
+  return "Ativo"
 }
 
 function iconForChallenge(icon: ChallengeItem["icon"]) {
   switch (icon) {
     case "brain":
-      return Brain;
+      return Brain
     case "flame":
-      return Flame;
+      return Flame
     case "rocket":
-      return Rocket;
+      return Rocket
     case "award":
-      return Award;
+      return Award
     case "trophy":
-      return Trophy;
+      return Trophy
     default:
-      return Target;
+      return Target
   }
 }
 
@@ -224,7 +122,7 @@ function ProgressLine({ value }: { value: number }) {
         style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
       />
     </div>
-  );
+  )
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -233,13 +131,110 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       <p className="text-sm text-slate-400">{label}</p>
       <h3 className="mt-3 text-3xl font-bold text-white">{value}</h3>
     </article>
-  );
+  )
+}
+
+function buildChallenges(progress: StudyProgressSnapshot): ChallengeItem[] {
+  const questions = progress.totalAnsweredQuestions
+  const simulations = progress.totalCompletedSimulations
+
+  return [
+    {
+      id: "daily-questions-20",
+      title: "Sprint de 20 questões",
+      description:
+        "Resolva 20 questões em simulados para começar a subir seu volume de treino.",
+      type: "daily",
+      difficulty: "easy",
+      status: questions >= 20 ? "completed" : "active",
+      progress: questions,
+      target: 20,
+      xpReward: 90,
+      rewardLabel: "Bônus de consistência",
+      expiresIn: questions >= 20 ? "Concluído" : "Em andamento",
+      icon: "target",
+    },
+    {
+      id: "weekly-questions-50",
+      title: "Volume de 50 questões",
+      description:
+        "Acumule 50 respostas em simulados para consolidar ritmo de resolução.",
+      type: "weekly",
+      difficulty: "medium",
+      status: questions >= 50 ? "completed" : "active",
+      progress: questions,
+      target: 50,
+      xpReward: 220,
+      rewardLabel: "Boost de treino",
+      expiresIn: questions >= 50 ? "Concluído" : "Em andamento",
+      icon: "brain",
+    },
+    {
+      id: "weekly-simulado-1",
+      title: "Primeiro simulado concluído",
+      description:
+        "Finalize um simulado completo para registrar histórico e desempenho.",
+      type: "weekly",
+      difficulty: "easy",
+      status: simulations >= 1 ? "completed" : "active",
+      progress: simulations,
+      target: 1,
+      xpReward: 120,
+      rewardLabel: "Marco inicial",
+      expiresIn: simulations >= 1 ? "Concluído" : "Em andamento",
+      icon: "award",
+    },
+    {
+      id: "weekly-simulado-3",
+      title: "Trilogia de simulados",
+      description:
+        "Conclua 3 simulados para construir regularidade e base estatística de desempenho.",
+      type: "weekly",
+      difficulty: "medium",
+      status: simulations >= 3 ? "completed" : "active",
+      progress: simulations,
+      target: 3,
+      xpReward: 260,
+      rewardLabel: "Selo de persistência",
+      expiresIn: simulations >= 3 ? "Concluído" : "Em andamento",
+      icon: "flame",
+    },
+    {
+      id: "special-simulado-5",
+      title: "Maratona de simulados",
+      description:
+        "Chegue a 5 simulados concluídos e entre na zona alta da progressão gamificada.",
+      type: "special",
+      difficulty: "hard",
+      status: simulations >= 5 ? "completed" : "active",
+      progress: simulations,
+      target: 5,
+      xpReward: 420,
+      rewardLabel: "Baú premium",
+      expiresIn: simulations >= 5 ? "Concluído" : "Em andamento",
+      icon: "trophy",
+    },
+    {
+      id: "special-questions-100",
+      title: "Centena resolvida",
+      description:
+        "Resolva 100 questões em simulados para desbloquear um marco de volume avançado.",
+      type: "special",
+      difficulty: "hard",
+      status: questions >= 100 ? "completed" : "active",
+      progress: questions,
+      target: 100,
+      xpReward: 500,
+      rewardLabel: "Distintivo competitivo",
+      expiresIn: questions >= 100 ? "Concluído" : "Em andamento",
+      icon: "rocket",
+    },
+  ]
 }
 
 function ChallengeCard({ item }: { item: ChallengeItem }) {
-  const Icon = iconForChallenge(item.icon);
-  const progress =
-    item.target > 0 ? Math.round((item.progress / item.target) * 100) : 0;
+  const Icon = iconForChallenge(item.icon)
+  const progress = item.target > 0 ? Math.round((item.progress / item.target) * 100) : 0
 
   return (
     <article className="overflow-hidden rounded-[28px] border border-white/10 bg-[#071225] transition hover:border-[#2f7cff]/30 hover:bg-[#0a1730]">
@@ -289,7 +284,7 @@ function ChallengeCard({ item }: { item: ChallengeItem }) {
           <div className="flex items-center justify-between gap-4 text-sm">
             <span className="text-slate-400">Progresso</span>
             <span className="font-semibold text-white">
-              {item.progress}/{item.target}
+              {Math.min(item.progress, item.target)}/{item.target}
             </span>
           </div>
 
@@ -298,7 +293,7 @@ function ChallengeCard({ item }: { item: ChallengeItem }) {
           </div>
 
           <div className="mt-3 flex items-center justify-between gap-4 text-sm text-[#7ea0d6]">
-            <span>{progress}%</span>
+            <span>{Math.min(progress, 100)}%</span>
             <span>+{item.xpReward} XP</span>
           </div>
         </div>
@@ -328,30 +323,99 @@ function ChallengeCard({ item }: { item: ChallengeItem }) {
             className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${
               item.status === "completed"
                 ? "bg-emerald-400 text-[#071225] hover:opacity-90"
-                : item.status === "locked"
-                ? "border border-white/10 bg-transparent text-slate-400"
                 : "bg-[#4b8df7] text-white hover:opacity-90"
             }`}
           >
-            {item.status === "completed"
-              ? "Resgatar"
-              : item.status === "locked"
-              ? "Bloqueado"
-              : "Acompanhar"}
+            {item.status === "completed" ? "Concluído" : "Acompanhar"}
           </button>
         </div>
       </div>
     </article>
-  );
+  )
+}
+
+function CompactChallengeItem({ item }: { item: ChallengeItem }) {
+  const Icon = iconForChallenge(item.icon)
+  const progress = item.target > 0 ? Math.round((item.progress / item.target) * 100) : 0
+
+  return (
+    <div className="rounded-[22px] border border-white/10 bg-[#081224] p-4">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-[#0f1d3d] text-[#79a6ff]">
+          <Icon className="size-5" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="text-base font-semibold text-white">{item.title}</div>
+          <div className="mt-2 text-sm text-[#7ea0d6]">
+            {Math.min(item.progress, item.target)}/{item.target} • +{item.xpReward} XP
+          </div>
+          <div className="mt-3">
+            <ProgressLine value={progress} />
+          </div>
+        </div>
+
+        {item.status === "completed" ? (
+          <CheckCircle2 className="size-5 text-emerald-300" />
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function SummaryRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+      <div className="flex items-center gap-3">
+        {icon}
+        <span className="text-sm text-slate-300">{label}</span>
+      </div>
+      <span className="text-sm font-semibold text-white">{value}</span>
+    </div>
+  )
 }
 
 export default function DesafiosPage() {
-  const dailyChallenges = challenges.filter((item) => item.type === "daily");
-  const weeklyChallenges = challenges.filter((item) => item.type === "weekly");
-  const specialChallenges = challenges.filter((item) => item.type === "special");
-  const completedCount = challenges.filter(
-    (item) => item.status === "completed"
-  ).length;
+  const [progress, setProgress] = useState<StudyProgressSnapshot>(EMPTY_PROGRESS)
+
+  useEffect(() => {
+    const sync = () => setProgress(getStudyProgress())
+
+    sync()
+    window.addEventListener("storage", sync)
+    window.addEventListener(
+      STUDY_PROGRESS_UPDATED_EVENT,
+      sync as EventListener
+    )
+
+    return () => {
+      window.removeEventListener("storage", sync)
+      window.removeEventListener(
+        STUDY_PROGRESS_UPDATED_EVENT,
+        sync as EventListener
+      )
+    }
+  }, [])
+
+  const challenges = useMemo(() => buildChallenges(progress), [progress])
+
+  const dailyChallenges = challenges.filter((item) => item.type === "daily")
+  const weeklyChallenges = challenges.filter((item) => item.type === "weekly")
+  const specialChallenges = challenges.filter((item) => item.type === "special")
+  const completedCount = challenges.filter((item) => item.status === "completed").length
+  const activeChallenges = challenges.filter((item) => item.status === "active").length
+
+  const weeklyXP = challenges
+    .filter((item) => item.status === "completed")
+    .reduce((acc, item) => acc + item.xpReward, 0)
 
   return (
     <div className="space-y-8">
@@ -368,26 +432,15 @@ export default function DesafiosPage() {
             </h1>
 
             <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-              Complete missões diárias, semanais e especiais para manter constância, desbloquear recompensas e acelerar sua evolução.
+              Agora os desafios de questões e simulados passam a ler seu progresso
+              real salvo após cada conclusão de simulado.
             </p>
 
             <div className="mt-8 grid gap-4 md:grid-cols-4">
-              <MetricCard
-                label="Ativos"
-                value={String(challengeOverview.activeChallenges)}
-              />
-              <MetricCard
-                label="Concluídos na semana"
-                value={String(challengeOverview.completedThisWeek)}
-              />
-              <MetricCard
-                label="XP semanal"
-                value={String(challengeOverview.weeklyXP)}
-              />
-              <MetricCard
-                label="Streak"
-                value={`${challengeOverview.currentStreak} dias`}
-              />
+              <MetricCard label="Ativos" value={String(activeChallenges)} />
+              <MetricCard label="Concluídos" value={String(completedCount)} />
+              <MetricCard label="Questões contadas" value={String(progress.totalAnsweredQuestions)} />
+              <MetricCard label="Simulados contados" value={String(progress.totalCompletedSimulations)} />
             </div>
           </div>
 
@@ -411,14 +464,15 @@ export default function DesafiosPage() {
                 value={`${specialChallenges.length} em destaque`}
               />
               <SummaryRow
-                icon={<Gift className="size-4 text-[#79a6ff]" />}
-                label="Recompensas prontas"
-                value={`${completedCount} resgate(s)`}
+                icon={<Sparkles className="size-4 text-[#79a6ff]" />}
+                label="XP já garantido"
+                value={`${weeklyXP} XP`}
               />
             </div>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-              O objetivo da gamificação aqui é manter você em movimento: metas curtas, feedback rápido e sensação clara de progresso.
+              O progresso desta tela é alimentado pelas tentativas concluídas na
+              área de simulados.
             </div>
           </div>
         </div>
@@ -508,129 +562,6 @@ export default function DesafiosPage() {
           ))}
         </div>
       </section>
-
-      <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0e2347] text-[#79a6ff]">
-              <Sparkles className="size-6" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-white">
-                Motivação da semana
-              </h2>
-              <p className="mt-1 text-sm text-[#7ea0d6]">
-                Insight para sustentar o fluxo
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#081224] p-5">
-            <p className="text-lg leading-8 text-white">
-              Você está com boa constância e já acumula volume semanal suficiente para transformar revisões em ganho real de desempenho.
-            </p>
-            <p className="mt-4 text-sm leading-7 text-[#7ea0d6]">
-              O melhor próximo passo é completar as metas semanais antes de abrir novas frentes de estudo.
-            </p>
-          </div>
-        </article>
-
-        <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0e2347] text-[#79a6ff]">
-              <Star className="size-6" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-white">
-                Recompensas em destaque
-              </h2>
-              <p className="mt-1 text-sm text-[#7ea0d6]">
-                Benefícios associados às missões atuais
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            <RewardCard
-              title="Selo de constância"
-              description="Concedido ao completar os ciclos semanais de estudo."
-            />
-            <RewardCard
-              title="Boost temático"
-              description="Evolução acelerada em áreas específicas do seu estudo."
-            />
-            <RewardCard
-              title="Baú premium"
-              description="Recompensa visual reservada para desafios especiais de alto impacto."
-            />
-          </div>
-        </article>
-      </section>
     </div>
-  );
-}
-
-function SummaryRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <div className="flex items-center gap-3">
-        {icon}
-        <span className="text-sm text-slate-300">{label}</span>
-      </div>
-      <span className="text-sm font-semibold text-white">{value}</span>
-    </div>
-  );
-}
-
-function CompactChallengeItem({ item }: { item: ChallengeItem }) {
-  const Icon = iconForChallenge(item.icon);
-  const progress =
-    item.target > 0 ? Math.round((item.progress / item.target) * 100) : 0;
-
-  return (
-    <div className="rounded-[22px] border border-white/10 bg-[#081224] p-4">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-[#0f1d3d] text-[#79a6ff]">
-          <Icon className="size-5" />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="text-base font-semibold text-white">{item.title}</div>
-          <div className="mt-2 text-sm text-[#7ea0d6]">
-            {item.progress}/{item.target} • +{item.xpReward} XP
-          </div>
-          <div className="mt-3">
-            <ProgressLine value={progress} />
-          </div>
-        </div>
-
-        {item.status === "completed" ? (
-          <CheckCircle2 className="size-5 text-emerald-300" />
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
-function RewardCard({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-[22px] border border-white/10 bg-[#081224] p-4">
-      <div className="text-lg font-semibold text-white">{title}</div>
-      <div className="mt-2 text-sm leading-7 text-[#7ea0d6]">{description}</div>
-    </div>
-  );
+  )
 }

@@ -1,19 +1,8 @@
 "use client"
 
-import { trackStudyEvent } from "@/lib/study-events"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
-import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  Circle,
-  ClipboardList,
-  Loader2,
-} from "lucide-react"
-
-import { AUTH_TOKEN_KEY } from "@/lib/api"
+import { useEffect, useMemo, useState } from "react"
 
 type SimulationMode = "balanced" | "random"
 
@@ -79,33 +68,28 @@ const API_BASE_URL =
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
-const OPTION_ORDER = ["A", "B", "C", "D", "E"]
+const OPTION_ORDER = ["A", "B", "C", "D", "E"] as const
 
 export default function ResolverSimuladoPage() {
   const router = useRouter()
-  const hasTrackedStartRef = useRef(false)
 
-  const [simulation, setSimulation] =
-    useState<SimulationGenerationResponse | null>(null)
+  const [simulation, setSimulation] = useState<SimulationGenerationResponse | null>(null)
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [currentIndex, setCurrentIndex] = useState(0)
-
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [loadError, setLoadError] = useState("")
   const [submitError, setSubmitError] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     try {
       const rawSimulation = sessionStorage.getItem(ACTIVE_SIMULATION_KEY)
+
       if (!rawSimulation) {
         setLoadError("Nenhum simulado ativo foi encontrado nesta sessão.")
         return
       }
 
-      const parsedSimulation = JSON.parse(
-        rawSimulation
-      ) as SimulationGenerationResponse
-
+      const parsedSimulation = JSON.parse(rawSimulation) as SimulationGenerationResponse
       setSimulation(parsedSimulation)
 
       const rawAnswers = sessionStorage.getItem(ACTIVE_SIMULATION_ANSWERS_KEY)
@@ -117,25 +101,6 @@ export default function ResolverSimuladoPage() {
       setLoadError("Não foi possível carregar o simulado salvo localmente.")
     }
   }, [])
-
-  useEffect(() => {
-  if (!simulation || hasTrackedStartRef.current) return
-
-  hasTrackedStartRef.current = true
-
-  void trackStudyEvent({
-    eventType: "simulation_started",
-    module: "simulados",
-    metadata: {
-      simulation_id: simulation.simulation_id,
-      exam_type: simulation.exam_type,
-      year: simulation.year,
-      question_count: simulation.generated_question_count,
-      mode: simulation.mode,
-      subjects: simulation.subjects_used,
-    },
-  })
-}, [simulation])
 
   useEffect(() => {
     if (!simulation) return
@@ -151,7 +116,7 @@ export default function ResolverSimuladoPage() {
       const value = answers[question.number]
       return typeof value === "string" && value.trim() !== ""
     }).length
-  }, [answers, questions])
+  }, [questions, answers])
 
   const unansweredCount = totalQuestions - answeredCount
   const progressPercentage = totalQuestions
@@ -159,27 +124,11 @@ export default function ResolverSimuladoPage() {
     : 0
 
   function handleSelectAnswer(questionNumber: number, optionKey: string) {
-  const question = questions.find((item) => item.number === questionNumber)
-  const previousAnswer = answers[questionNumber]
-
-  setAnswers((current) => ({
-    ...current,
-    [questionNumber]: optionKey,
-  }))
-
-  if (previousAnswer !== optionKey) {
-    void trackStudyEvent({
-      eventType: "question_answered",
-      module: "simulados",
-      subject: question?.subject ?? null,
-      metadata: {
-        simulation_id: simulation?.simulation_id ?? null,
-        question_number: questionNumber,
-        selected_answer: optionKey,
-      },
-    })
+    setAnswers((current) => ({
+      ...current,
+      [questionNumber]: optionKey,
+    }))
   }
-}
 
   function handleClearAnswer(questionNumber: number) {
     setAnswers((current) => {
@@ -201,14 +150,13 @@ export default function ResolverSimuladoPage() {
     const confirmed = window.confirm(
       "Deseja finalizar o simulado e enviar para correção?"
     )
+
     if (!confirmed) return
 
     setIsSubmitting(true)
     setSubmitError("")
 
     try {
-      const token = localStorage.getItem(AUTH_TOKEN_KEY)
-
       const payload = {
         exam_type: simulation.exam_type,
         year: simulation.year,
@@ -220,7 +168,13 @@ export default function ResolverSimuladoPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(localStorage.getItem("studypro_auth_token")
+            ? {
+                Authorization: `Bearer ${localStorage.getItem(
+                  "studypro_auth_token"
+                )}`,
+              }
+            : {}),
         },
         body: JSON.stringify(payload),
       })
@@ -231,10 +185,12 @@ export default function ResolverSimuladoPage() {
       }
 
       const result = (await response.json()) as SimulationSubmissionResponse
+      const attemptId = `${simulation.simulation_id}-${Date.now()}`
 
       sessionStorage.setItem(
         LAST_SIMULATION_RESULT_KEY,
         JSON.stringify({
+          attempt_id: attemptId,
           simulation,
           answers,
           result,
@@ -256,280 +212,198 @@ export default function ResolverSimuladoPage() {
 
   if (loadError) {
     return (
-      <div className="space-y-6">
-        <section className="rounded-[32px] border border-rose-500/20 bg-rose-500/10 p-6">
-          <h1 className="text-2xl font-semibold text-white">
-            Simulado não encontrado
-          </h1>
-          <p className="mt-3 text-sm text-rose-100">{loadError}</p>
-
-          <div className="mt-5">
-            <Link
-              href="/dashboard/simulados"
-              className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-            >
-              Voltar para simulados
-            </Link>
-          </div>
-        </section>
+      <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8">
+        <h1 className="text-2xl font-bold text-white">Simulado não encontrado</h1>
+        <p className="mt-3 text-slate-300">{loadError}</p>
+        <Link
+          href="/dashboard/simulados"
+          className="mt-6 inline-flex rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+        >
+          Voltar para simulados
+        </Link>
       </div>
     )
   }
 
   if (!simulation || !currentQuestion) {
     return (
-      <div className="rounded-[32px] border border-white/10 bg-[#071225] p-6 text-sm text-slate-300">
-        <div className="flex items-center gap-3">
-          <Loader2 className="size-4 animate-spin" />
-          Carregando simulado...
-        </div>
+      <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8 text-slate-300">
+        Carregando simulado...
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-              <ClipboardList className="size-4" />
-              Resolver simulado
-            </div>
+      <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+        <p className="text-sm uppercase tracking-[0.18em] text-[#7ea0d6]">
+          Resolver simulado
+        </p>
+        <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">
+          {simulation.title}
+        </h1>
 
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-              {simulation.title}
-            </h1>
+        <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-300">
+          <span>{simulation.exam_type.toUpperCase()}</span>
+          <span>{String(simulation.year)}</span>
+          <span>{simulation.mode === "balanced" ? "Balanceado" : "Aleatório"}</span>
+          <span>{simulation.generated_question_count} questões</span>
+        </div>
 
-            <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-300">
-              <Badge>{simulation.exam_type.toUpperCase()}</Badge>
-              <Badge>{String(simulation.year)}</Badge>
-              <Badge>
-                {simulation.mode === "balanced" ? "Balanceado" : "Aleatório"}
-              </Badge>
-              <Badge>{simulation.generated_question_count} questões</Badge>
-            </div>
-          </div>
-
-          <div className="w-full xl:max-w-[360px]">
-            <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-slate-400">Progresso</p>
-                  <h2 className="mt-1 text-2xl font-bold text-white">
-                    {answeredCount}/{totalQuestions}
-                  </h2>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-slate-400">Em branco</p>
-                  <h2 className="mt-1 text-2xl font-bold text-white">
-                    {unansweredCount}
-                  </h2>
-                </div>
-              </div>
-
-              <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#071225]">
-                <div
-                  className="h-full rounded-full bg-[#2f7cff]"
-                  style={{ width: `${progressPercentage}%` }}
-                />
-              </div>
-
-              <p className="mt-3 text-sm text-slate-300">
-                {progressPercentage}% concluído
-              </p>
-            </div>
-          </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-3">
+          <InfoCard
+            label="Respondidas"
+            value={`${answeredCount}/${totalQuestions}`}
+          />
+          <InfoCard
+            label="Em branco"
+            value={String(unansweredCount)}
+          />
+          <InfoCard
+            label="Progresso"
+            value={`${progressPercentage}%`}
+          />
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <article className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm text-slate-400">
-                Questão {currentIndex + 1} de {totalQuestions}
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">
-                Nº {currentQuestion.number}
-              </h2>
-            </div>
-
-            <div className="text-right">
-              <InfoRow label="Disciplina" value={currentQuestion.subject} />
-              {currentQuestion.source_pdf_label ? (
-                <InfoRow
-                  label="Referência"
-                  value={currentQuestion.source_pdf_label}
-                />
-              ) : null}
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-base leading-8 text-slate-200">
-            {currentQuestion.statement}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            {OPTION_ORDER.filter((key) => currentQuestion.options[key]).map((key) => {
-              const isSelected = answers[currentQuestion.number] === key
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => handleSelectAnswer(currentQuestion.number, key)}
-                  className={`w-full rounded-2xl border p-4 text-left transition ${
-                    isSelected
-                      ? "border-emerald-400/50 bg-emerald-400/10"
-                      : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5">
-                      {isSelected ? (
-                        <CheckCircle2 className="size-5 text-emerald-300" />
-                      ) : (
-                        <Circle className="size-5 text-slate-400" />
-                      )}
-                    </div>
-
-                    <div>
-                      <div className="text-sm font-semibold text-white">{key}</div>
-                      <div className="mt-1 text-sm leading-7 text-slate-300">
-                        {currentQuestion.options[key]}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => handleClearAnswer(currentQuestion.number)}
-              className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
-            >
-              Limpar resposta
-            </button>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <button
-              type="button"
-              onClick={() => goToQuestion(currentIndex - 1)}
-              disabled={currentIndex === 0}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ArrowLeft className="size-4" />
-              Questão anterior
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSubmitSimulation}
-              disabled={isSubmitting}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : null}
-              {isSubmitting ? "Enviando..." : "Finalizar e corrigir"}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => goToQuestion(currentIndex + 1)}
-              disabled={currentIndex === totalQuestions - 1}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Próxima questão
-              <ArrowRight className="size-4" />
-            </button>
-          </div>
-
-          {submitError ? (
-            <div className="mt-5 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-              {submitError}
-            </div>
-          ) : null}
-        </article>
-
-        <aside className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-          <h3 className="text-xl font-semibold text-white">Mapa de questões</h3>
-          <p className="mt-2 text-sm text-slate-400">
-            Clique em uma questão para navegar rapidamente.
-          </p>
-
-          <div className="mt-6 grid grid-cols-5 gap-3">
-            {questions.map((question, index) => {
-              const selectedAnswer = answers[question.number]
-              const isCurrent = index === currentIndex
-              const isAnswered = Boolean(selectedAnswer)
-
-              return (
-                <button
-                  key={question.number}
-                  type="button"
-                  onClick={() => goToQuestion(index)}
-                  className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                    isCurrent
-                      ? "border-emerald-300 bg-emerald-300 text-black"
-                      : isAnswered
-                      ? "border-sky-400/40 bg-sky-400/10 text-sky-100"
-                      : "border-white/10 bg-black/20 text-neutral-300 hover:bg-white/5"
-                  }`}
-                >
-                  {question.number}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="mt-6 space-y-3">
-            <Legend color="bg-emerald-300" text="Questão atual" />
-            <Legend color="bg-sky-400/30" text="Respondida" />
-            <Legend color="bg-white/10" text="Ainda em branco" />
-          </div>
-
-          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-            <h4 className="text-lg font-semibold text-white">Resumo</h4>
-            <p className="mt-3 text-sm leading-7 text-slate-300">
-              As respostas são mantidas localmente durante esta sessão para
-              evitar perda acidental de progresso.
+      <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm text-slate-400">
+              Questão {currentIndex + 1} de {totalQuestions}
             </p>
+            <h2 className="mt-2 text-3xl font-bold text-white">
+              Nº {currentQuestion.number}
+            </h2>
+            <p className="mt-2 text-sm text-[#7ea0d6]">
+              Disciplina: {currentQuestion.subject}
+            </p>
+            {currentQuestion.source_pdf_label ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Referência: {currentQuestion.source_pdf_label}
+              </p>
+            ) : null}
           </div>
-        </aside>
+
+          <button
+            type="button"
+            onClick={() => handleClearAnswer(currentQuestion.number)}
+            className="rounded-2xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+          >
+            Limpar resposta
+          </button>
+        </div>
+
+        <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-200">
+          {currentQuestion.statement}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {OPTION_ORDER.filter((key) => currentQuestion.options[key]).map((key) => {
+            const isSelected = answers[currentQuestion.number] === key
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleSelectAnswer(currentQuestion.number, key)}
+                className={`w-full rounded-2xl border p-4 text-left transition ${
+                  isSelected
+                    ? "border-emerald-400/50 bg-emerald-400/10"
+                    : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5"
+                }`}
+              >
+                <div className="flex gap-3">
+                  <span className="font-semibold text-white">{key}</span>
+                  <span className="text-slate-200">{currentQuestion.options[key]}</span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => goToQuestion(currentIndex - 1)}
+            disabled={currentIndex === 0}
+            className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Questão anterior
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSubmitSimulation}
+            disabled={isSubmitting}
+            className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSubmitting ? "Enviando..." : "Finalizar e corrigir"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => goToQuestion(currentIndex + 1)}
+            disabled={currentIndex === totalQuestions - 1}
+            className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Próxima questão
+          </button>
+        </div>
+
+        {submitError ? (
+          <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            {submitError}
+          </div>
+        ) : null}
+      </section>
+
+      <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+        <h3 className="text-2xl font-bold text-white">Mapa de questões</h3>
+        <p className="mt-2 text-sm text-[#7ea0d6]">
+          Clique em uma questão para navegar rapidamente.
+        </p>
+
+        <div className="mt-6 flex flex-wrap gap-2">
+          {questions.map((question, index) => {
+            const selectedAnswer = answers[question.number]
+            const isCurrent = index === currentIndex
+            const isAnswered = !!selectedAnswer
+
+            return (
+              <button
+                key={question.number}
+                type="button"
+                onClick={() => goToQuestion(index)}
+                className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                  isCurrent
+                    ? "border-emerald-300 bg-emerald-300 text-black"
+                    : isAnswered
+                    ? "border-sky-400/40 bg-sky-400/10 text-sky-100"
+                    : "border-white/10 bg-black/20 text-neutral-300 hover:bg-white/5"
+                }`}
+              >
+                {question.number}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="mt-6 text-sm text-slate-400">
+          As respostas são mantidas localmente durante esta sessão para evitar
+          perda acidental de progresso.
+        </div>
       </section>
     </div>
   )
 }
 
-function Badge({ children }: { children: React.ReactNode }) {
+function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-200">
-      {children}
-    </div>
-  )
-}
-
-function Legend({ color, text }: { color: string; text: string }) {
-  return (
-    <div className="flex items-center gap-3 text-sm text-slate-300">
-      <div className={`size-4 rounded ${color}`} />
-      <span>{text}</span>
-    </div>
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="text-sm text-slate-300">
-      <span className="text-slate-400">{label}: </span>
-      <span className="text-white">{value}</span>
-    </div>
+    <article className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
+      <p className="text-sm text-slate-400">{label}</p>
+      <h3 className="mt-3 text-3xl font-bold text-white">{value}</h3>
+    </article>
   )
 }
 
