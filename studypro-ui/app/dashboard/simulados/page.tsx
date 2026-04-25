@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   BookOpen,
   Clock,
@@ -10,6 +11,7 @@ import {
   GraduationCap,
   Loader2,
   Lock,
+  Play,
   Search,
   Sparkles,
   Star,
@@ -18,15 +20,15 @@ import {
 } from "lucide-react"
 
 import {
-  getExamByTypeAndYear,
+  AUTH_TOKEN_KEY,
+  generateRandomSimulation,
   getSimulationEntitlement,
-  type ExamDetail,
+  type RandomSimulationResponse,
   type SimulationEntitlementResponse,
 } from "@/lib/api"
 
 type Difficulty = "easy" | "medium" | "hard"
-type CardKind = "official_exam" | "generated_simulation" | "premium_offer"
-
+type CardKind = "preset" | "history" | "premium_offer"
 type SimulationMode = "balanced" | "random"
 
 type SimulationHistoryEntry = {
@@ -66,12 +68,23 @@ type SimuladoCard = {
   rating: number
   author: string
   createdAt: string
+  mode: SimulationMode
+  href?: string
   isPremium?: boolean
-  href: string
+  payload?: {
+    exam_type: string
+    year: number
+    question_count: number
+    subjects?: string[] | null
+    mode?: SimulationMode
+    seed?: number | null
+  }
 }
 
-const AUTH_TOKEN_KEY = "studypro_auth_token"
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
+const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
+const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
+const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
 
 const difficulties = [
   { value: "all", label: "Todas" },
@@ -98,6 +111,209 @@ const difficultyLabels: Record<Difficulty, string> = {
   hard: "Difícil",
 }
 
+const PRESET_SIMULATIONS: SimuladoCard[] = [
+  {
+    id: "preset-bio-10",
+    kind: "preset",
+    title: "Biologia • 10 questões",
+    description:
+      "Simulado curto para treinar genética, citologia, ecologia e fisiologia.",
+    subject: "Biologia",
+    subjects: ["Biologia"],
+    difficulty: "easy",
+    tags: ["ENEM", "Biologia", "Rápido"],
+    questionCount: 10,
+    duration: 20,
+    timesCompleted: 0,
+    rating: 4.8,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "balanced",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 10,
+      subjects: ["Biologia"],
+      mode: "balanced",
+    },
+  },
+  {
+    id: "preset-math-10",
+    kind: "preset",
+    title: "Matemática • 10 questões",
+    description:
+      "Treino rápido de matemática do ENEM com foco em interpretação e cálculo.",
+    subject: "Matemática",
+    subjects: ["Matemática"],
+    difficulty: "easy",
+    tags: ["ENEM", "Matemática", "Rápido"],
+    questionCount: 10,
+    duration: 20,
+    timesCompleted: 0,
+    rating: 4.8,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "balanced",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 10,
+      subjects: ["Matemática"],
+      mode: "balanced",
+    },
+  },
+  {
+    id: "preset-humanas-15",
+    kind: "preset",
+    title: "Ciências Humanas • 15 questões",
+    description:
+      "História, geografia, filosofia e sociologia em um treino intermediário.",
+    subject: "Ciências Humanas",
+    subjects: ["Ciências Humanas", "História", "Geografia"],
+    difficulty: "medium",
+    tags: ["ENEM", "Humanas", "Intermediário"],
+    questionCount: 15,
+    duration: 30,
+    timesCompleted: 0,
+    rating: 4.7,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "balanced",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 15,
+      subjects: ["Ciências Humanas"],
+      mode: "balanced",
+    },
+  },
+  {
+    id: "preset-natureza-15",
+    kind: "preset",
+    title: "Ciências da Natureza • 15 questões",
+    description:
+      "Treino combinado de biologia, física e química com perfil ENEM.",
+    subject: "Ciências da Natureza",
+    subjects: ["Ciências da Natureza", "Biologia", "Física", "Química"],
+    difficulty: "medium",
+    tags: ["ENEM", "Natureza", "Intermediário"],
+    questionCount: 15,
+    duration: 30,
+    timesCompleted: 0,
+    rating: 4.7,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "balanced",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 15,
+      subjects: ["Ciências da Natureza"],
+      mode: "balanced",
+    },
+  },
+  {
+    id: "preset-linguagens-12",
+    kind: "preset",
+    title: "Linguagens • 12 questões",
+    description:
+      "Questões para reforçar interpretação textual e leitura de linguagem do ENEM.",
+    subject: "Linguagens",
+    subjects: ["Linguagens", "Português"],
+    difficulty: "medium",
+    tags: ["ENEM", "Linguagens"],
+    questionCount: 12,
+    duration: 24,
+    timesCompleted: 0,
+    rating: 4.6,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "balanced",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 12,
+      subjects: ["Linguagens"],
+      mode: "balanced",
+    },
+  },
+  {
+    id: "preset-misto-20",
+    kind: "preset",
+    title: "Simulado Misto • 20 questões",
+    description:
+      "Treino balanceado com várias áreas para simular uma sessão real de prova.",
+    subject: "Geral",
+    subjects: ["Biologia", "Matemática", "Ciências Humanas", "Linguagens"],
+    difficulty: "medium",
+    tags: ["ENEM", "Misto", "Balanceado"],
+    questionCount: 20,
+    duration: 40,
+    timesCompleted: 0,
+    rating: 4.9,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "balanced",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 20,
+      subjects: null,
+      mode: "balanced",
+    },
+  },
+  {
+    id: "preset-math-hard-20",
+    kind: "preset",
+    title: "Matemática Intensivo • 20 questões",
+    description:
+      "Volume maior de matemática para ganhar ritmo e resistência de resolução.",
+    subject: "Matemática",
+    subjects: ["Matemática"],
+    difficulty: "hard",
+    tags: ["ENEM", "Matemática", "Intensivo"],
+    questionCount: 20,
+    duration: 45,
+    timesCompleted: 0,
+    rating: 4.8,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "random",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 20,
+      subjects: ["Matemática"],
+      mode: "random",
+    },
+  },
+  {
+    id: "preset-bio-hard-20",
+    kind: "preset",
+    title: "Biologia Intensivo • 20 questões",
+    description:
+      "Mais volume em biologia para consolidar assuntos recorrentes do ENEM.",
+    subject: "Biologia",
+    subjects: ["Biologia"],
+    difficulty: "hard",
+    tags: ["ENEM", "Biologia", "Intensivo"],
+    questionCount: 20,
+    duration: 45,
+    timesCompleted: 0,
+    rating: 4.8,
+    author: "StudyPro",
+    createdAt: "2026-04-26",
+    mode: "random",
+    payload: {
+      exam_type: "enem",
+      year: 2022,
+      question_count: 20,
+      subjects: ["Biologia"],
+      mode: "random",
+    },
+  },
+]
+
 function formatCount(value: number) {
   return value.toLocaleString("pt-BR")
 }
@@ -121,12 +337,6 @@ function normalizeSubject(subject?: string | null): string {
   return subject
 }
 
-function inferDifficultyFromQuestionCount(questionCount: number): Difficulty {
-  if (questionCount <= 10) return "easy"
-  if (questionCount <= 20) return "medium"
-  return "hard"
-}
-
 function inferDifficultyFromScore(score: number): Difficulty {
   if (score >= 75) return "easy"
   if (score >= 45) return "medium"
@@ -144,52 +354,6 @@ function groupHistoryByTitle(history: SimulationHistoryEntry[]) {
   }
 
   return grouped
-}
-
-function buildOfficialCard(
-  detail: ExamDetail,
-  history: SimulationHistoryEntry[]
-): SimuladoCard {
-  const relatedHistory = history.filter(
-    (item) =>
-      item.exam_type.toLowerCase() === detail.exam_type.toLowerCase() &&
-      item.year === detail.year
-  )
-
-  const uniqueSubjects = Array.from(
-    new Set(
-      relatedHistory
-        .flatMap((item) => item.subjects_summary ?? [])
-        .map((subject) => normalizeSubject(subject.subject))
-        .filter(Boolean)
-    )
-  )
-
-  const avgScore =
-    relatedHistory.length > 0
-      ? relatedHistory.reduce((acc, item) => acc + item.score_percentage, 0) /
-        relatedHistory.length
-      : 0
-
-  return {
-    id: `official-${detail.exam_type}-${detail.year}`,
-    kind: "official_exam",
-    title: `${detail.title} — Prova Oficial`,
-    description:
-      detail.description ||
-      `Prova oficial completa de ${detail.exam_type.toUpperCase()} ${detail.year}.`,
-    subject: uniqueSubjects[0] ?? "Geral",
-    subjects: uniqueSubjects.length > 0 ? uniqueSubjects : ["Geral"],
-    difficulty: inferDifficultyFromQuestionCount(detail.question_count),
-    tags: [detail.exam_type.toUpperCase(), "Oficial"],
-    questionCount: detail.question_count,
-    duration: Math.max(30, Math.round(detail.question_count * 1.5)),
-    timesCompleted: relatedHistory.length,
-    rating: Number(Math.max(0, Math.min(5, avgScore / 20)).toFixed(1)),
-    author: "Base oficial",
-    createdAt: `${detail.year}-01-01`,
-    href: `/dashboard/provas/${detail.exam_type}/${detail.year}`,
-  }
 }
 
 function buildHistoryCards(history: SimulationHistoryEntry[]): SimuladoCard[] {
@@ -216,7 +380,7 @@ function buildHistoryCards(history: SimulationHistoryEntry[]): SimuladoCard[] {
 
     cards.push({
       id: `history-${latest.id}`,
-      kind: "generated_simulation",
+      kind: "history",
       title: latest.title,
       description: `Simulado já resolvido ${items.length} vez(es). Último resultado: ${latest.correct_answers} acerto(s), ${latest.wrong_answers} erro(s) e ${latest.unanswered_count} em branco.`,
       subject: subjects[0] ?? "Geral",
@@ -232,6 +396,7 @@ function buildHistoryCards(history: SimulationHistoryEntry[]): SimuladoCard[] {
       rating: Number(Math.max(0, Math.min(5, averageScore / 20)).toFixed(1)),
       author: "Seu histórico",
       createdAt: latest.saved_at,
+      mode: latest.mode,
       href: "/dashboard/simulados/resultado",
     })
   }
@@ -242,32 +407,13 @@ function buildHistoryCards(history: SimulationHistoryEntry[]): SimuladoCard[] {
 function buildPremiumOfferCards(): SimuladoCard[] {
   return [
     {
-      id: "premium-balanced-bio",
+      id: "premium-natureza-25",
       kind: "premium_offer",
-      title: "Simulado Premium de Biologia",
+      title: "Natureza Premium • 25 questões",
       description:
-        "Treino focado em genética, citologia, ecologia e fisiologia com volume ampliado de prática.",
-      subject: "Biologia",
-      subjects: ["Biologia"],
-      difficulty: "medium",
-      tags: ["Premium", "Foco por matéria"],
-      questionCount: 20,
-      duration: 45,
-      timesCompleted: 0,
-      rating: 5,
-      author: "StudyPro Pro",
-      createdAt: "2026-04-21",
-      href: "/pricing",
-      isPremium: true,
-    },
-    {
-      id: "premium-balanced-math",
-      kind: "premium_offer",
-      title: "Simulado Premium de Matemática",
-      description:
-        "Mais volume de treino com questões selecionadas para reforçar raciocínio, interpretação e cálculo.",
-      subject: "Matemática",
-      subjects: ["Matemática"],
+        "Mais volume de treino em biologia, física e química com sessão ampliada.",
+      subject: "Ciências da Natureza",
+      subjects: ["Ciências da Natureza", "Biologia", "Física", "Química"],
       difficulty: "hard",
       tags: ["Premium", "Volume extra"],
       questionCount: 25,
@@ -275,7 +421,28 @@ function buildPremiumOfferCards(): SimuladoCard[] {
       timesCompleted: 0,
       rating: 5,
       author: "StudyPro Pro",
-      createdAt: "2026-04-21",
+      createdAt: "2026-04-26",
+      mode: "balanced",
+      href: "/pricing",
+      isPremium: true,
+    },
+    {
+      id: "premium-misto-30",
+      kind: "premium_offer",
+      title: "Misto Premium • 30 questões",
+      description:
+        "Sessão mais longa para simular constância e aumentar resistência de prova.",
+      subject: "Geral",
+      subjects: ["Biologia", "Matemática", "Ciências Humanas", "Linguagens"],
+      difficulty: "hard",
+      tags: ["Premium", "Resistência"],
+      questionCount: 30,
+      duration: 70,
+      timesCompleted: 0,
+      rating: 5,
+      author: "StudyPro Pro",
+      createdAt: "2026-04-26",
+      mode: "balanced",
       href: "/pricing",
       isPremium: true,
     },
@@ -318,7 +485,7 @@ function FreeUsageCard({
           ? "Verificando status da sua conta."
           : isPro
           ? "Seu plano já está liberado para gerar mais simulados e estudar sem interrupções."
-          : "O plano gratuito serve para experimentar. O Pro remove as travas de geração e mantém seu ritmo de estudo."}
+          : "Agora você tem vários simulados prontos para localizar e iniciar. O Pro amplia o volume de treino e reduz as travas do dia."}
       </p>
 
       {!isPro ? (
@@ -351,8 +518,8 @@ function PaywallCard() {
             O Pro existe para manter continuidade
           </h3>
           <p className="mt-3 text-sm leading-7 text-amber-100">
-            No gratuito você testa a experiência. No Pro você aumenta volume de
-            treino, remove travas e mantém constância quando está motivado.
+            No gratuito você já consegue começar com simulados prontos. No Pro
+            você aumenta o volume, reduz interrupções e expande o treino.
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -376,7 +543,62 @@ function PaywallCard() {
   )
 }
 
+function SimuladoActionButton({
+  card,
+  isPro,
+  generatingId,
+  onStart,
+}: {
+  card: SimuladoCard
+  isPro: boolean
+  generatingId: string | null
+  onStart: (card: SimuladoCard) => void
+}) {
+  const isGenerating = generatingId === card.id
+  const isLocked = card.isPremium && !isPro
+
+  if (card.kind === "history") {
+    return (
+      <Link
+        href={card.href || "/dashboard/simulados/resultado"}
+        className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+      >
+        Ver último resultado
+      </Link>
+    )
+  }
+
+  if (isLocked) {
+    return (
+      <Link
+        href={card.href || "/pricing"}
+        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+      >
+        Ver plano Pro
+      </Link>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onStart(card)}
+      disabled={isGenerating}
+      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {isGenerating ? (
+        <Loader2 className="size-4 animate-spin" />
+      ) : (
+        <Play className="size-4" />
+      )}
+      {isGenerating ? "Preparando..." : "Fazer agora"}
+    </button>
+  )
+}
+
 export default function SimuladosPage() {
+  const router = useRouter()
+
   const [search, setSearch] = useState("")
   const [subject, setSubject] = useState("Todas")
   const [difficulty, setDifficulty] =
@@ -387,6 +609,9 @@ export default function SimuladosPage() {
   const [cards, setCards] = useState<SimuladoCard[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [actionError, setActionError] = useState("")
+  const [generatingId, setGeneratingId] = useState<string | null>(null)
+
   const [entitlement, setEntitlement] =
     useState<SimulationEntitlementResponse | null>(null)
   const [loadingEntitlement, setLoadingEntitlement] = useState(true)
@@ -409,7 +634,7 @@ export default function SimuladosPage() {
   }, [])
 
   useEffect(() => {
-    async function loadRealCards() {
+    function loadCards() {
       try {
         setLoading(true)
         setError("")
@@ -428,27 +653,26 @@ export default function SimuladosPage() {
           }
         }
 
-        const officialExam = await getExamByTypeAndYear("enem", 2022)
-        const officialCard = buildOfficialCard(officialExam, history)
         const historyCards = buildHistoryCards(history)
         const premiumCards = buildPremiumOfferCards()
 
-        setCards([officialCard, ...historyCards, ...premiumCards])
+        setCards([...PRESET_SIMULATIONS, ...historyCards, ...premiumCards])
       } catch (err) {
         setError(
           err instanceof Error
             ? err.message
-            : "Não foi possível carregar os simulados reais."
+            : "Não foi possível carregar o catálogo de simulados."
         )
       } finally {
         setLoading(false)
       }
     }
 
-    void loadRealCards()
+    loadCards()
   }, [])
 
   const isPro = entitlement?.entitlements.is_pro ?? false
+  const canGenerate = entitlement?.usage.can_generate ?? true
 
   const availableSubjects = useMemo(() => {
     const values = Array.from(
@@ -486,10 +710,46 @@ export default function SimuladosPage() {
       })
   }, [cards, difficulty, search, sort, subject])
 
+  async function handleStartSimulation(card: SimuladoCard) {
+    if (!card.payload) return
+
+    if (!canGenerate && !isPro) {
+      setActionError(
+        "Você atingiu o limite diário do plano gratuito. Vá para o Pro ou tente novamente no próximo dia."
+      )
+      return
+    }
+
+    try {
+      setActionError("")
+      setGeneratingId(card.id)
+
+      const token = localStorage.getItem(AUTH_TOKEN_KEY)
+      const simulation: RandomSimulationResponse = await generateRandomSimulation(
+        card.payload,
+        token
+      )
+
+      sessionStorage.setItem(ACTIVE_SIMULATION_KEY, JSON.stringify(simulation))
+      sessionStorage.removeItem(ACTIVE_SIMULATION_ANSWERS_KEY)
+      sessionStorage.removeItem(LAST_SIMULATION_RESULT_KEY)
+
+      router.push("/dashboard/simulados/resolver")
+    } catch (err) {
+      setActionError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível preparar este simulado agora."
+      )
+    } finally {
+      setGeneratingId(null)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.45)]">
-        <div className="flex items-start justify-between gap-6 flex-wrap">
+        <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="flex items-center gap-3">
             <div className="flex size-11 items-center justify-center rounded-2xl bg-blue-500/10">
               <GraduationCap className="size-5 text-blue-300" />
@@ -499,7 +759,7 @@ export default function SimuladosPage() {
                 Simulados
               </h1>
               <p className="mt-2 text-xl text-[#7ea0d6]">
-                Treine com base real, acompanhe histórico e converta ritmo em evolução
+                Encontre simulados prontos, filtre por área e comece a resolver.
               </p>
             </div>
           </div>
@@ -585,10 +845,16 @@ export default function SimuladosPage() {
           </div>
         </div>
 
+        {actionError ? (
+          <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+            {actionError}
+          </div>
+        ) : null}
+
         {loading ? (
           <div className="mt-6 flex items-center gap-3 text-lg text-[#7ea0d6]">
             <Loader2 className="size-5 animate-spin" />
-            Carregando simulados reais...
+            Carregando catálogo de simulados...
           </div>
         ) : error ? (
           <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
@@ -597,7 +863,7 @@ export default function SimuladosPage() {
         ) : (
           <>
             <p className="mt-6 text-lg text-[#7ea0d6]">
-              {filtered.length} simulados encontrados
+              {filtered.length} simulado(s) encontrado(s)
             </p>
 
             {filtered.length === 0 ? (
@@ -610,10 +876,9 @@ export default function SimuladosPage() {
                   const locked = sim.isPremium && !isPro
 
                   return (
-                    <Link
+                    <article
                       key={sim.id}
-                      href={locked ? "/pricing" : sim.href}
-                      className={`group rounded-[24px] border p-5 transition ${
+                      className={`rounded-[24px] border p-5 transition ${
                         locked
                           ? "border-amber-500/20 bg-amber-500/10 hover:border-amber-400/40"
                           : "border-white/10 bg-[#081224] hover:border-[#2f7cff]/40 hover:bg-[#0a1830]"
@@ -686,8 +951,17 @@ export default function SimuladosPage() {
                             Disponível no Pro para aumentar seu volume de treino.
                           </div>
                         ) : null}
+
+                        <div className="mt-5">
+                          <SimuladoActionButton
+                            card={sim}
+                            isPro={isPro}
+                            generatingId={generatingId}
+                            onStart={handleStartSimulation}
+                          />
+                        </div>
                       </div>
-                    </Link>
+                    </article>
                   )
                 })}
               </div>
