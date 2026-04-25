@@ -11,13 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react"
 
-type ReviewCard = {
-  id: string
-  subject: string
-  questionNumber: number
-  front: string
-  back: string
-}
+import type { ReviewCard } from "@/lib/review-content"
 
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
@@ -117,7 +111,7 @@ export default function FlashcardsPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
               <Brain className="size-4" />
-              Revisão por flashcards
+              Flashcards de estudo
             </div>
 
             <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
@@ -125,8 +119,8 @@ export default function FlashcardsPage() {
             </h1>
 
             <p className="mt-4 text-lg leading-8 text-slate-300">
-              Revise rapidamente os seus erros e questões em branco em um formato
-              simples de repetição.
+              Cartões curtos para memorização direta: frente com a pergunta ou
+              conceito, verso com a resposta objetiva.
             </p>
           </div>
 
@@ -167,7 +161,7 @@ export default function FlashcardsPage() {
               {showBack ? "Verso" : "Frente"}
             </p>
 
-            <div className="mt-4 min-h-[220px] text-base leading-8 text-slate-200">
+            <div className="mt-4 min-h-[220px] text-lg leading-9 text-slate-100 whitespace-pre-line">
               {showBack ? currentCard.back : currentCard.front}
             </div>
 
@@ -176,7 +170,7 @@ export default function FlashcardsPage() {
               onClick={() => setShowBack((prev) => !prev)}
               className="mt-6 rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
             >
-              {showBack ? "Ver frente" : "Ver resposta"}
+              {showBack ? "Ver frente" : "Virar cartão"}
             </button>
           </div>
         </article>
@@ -192,7 +186,7 @@ export default function FlashcardsPage() {
                 Controles de revisão
               </h2>
               <p className="mt-1 text-sm text-slate-400">
-                Navegue pelos cartões e reinicie quando quiser.
+                Navegue pelos cartões e repita até fixar o conteúdo.
               </p>
             </div>
           </div>
@@ -229,8 +223,8 @@ export default function FlashcardsPage() {
           </div>
 
           <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
-            Dica: reveja primeiro os cartões das disciplinas com menor acurácia
-            e depois faça um novo simulado direcionado.
+            Use estes cartões como você usaria um flashcard feito à mão: leia a
+            frente, tente responder mentalmente e só depois vire o cartão.
           </div>
 
           <div className="mt-6 flex flex-col gap-3">

@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
 import { saveRecentAttempt } from "@/lib/activity"
@@ -9,8 +10,14 @@ import {
   recordCompletedSimulationAttempt,
   type SimulationHistoryEntry,
 } from "@/lib/study-progress"
+import {
+  buildReviewFlashcards,
+  buildReviewSummary,
+} from "@/lib/review-content"
 
 const RESULT_KEY = "studypro_last_simulation_result"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
 type ResultData = {
   attempt_id?: string
@@ -21,6 +28,12 @@ type ResultData = {
     year: number
     mode: "balanced" | "random"
     generated_question_count: number
+    questions?: Array<{
+      number: number
+      subject: string
+      statement: string
+      options: Record<string, string>
+    }>
   }
   answers: Record<number, string>
   result: {
@@ -48,6 +61,8 @@ type ResultData = {
 }
 
 export default function ResultadoSimuladoPage() {
+  const router = useRouter()
+
   const [data, setData] = useState<ResultData | null>(null)
   const [error, setError] = useState("")
 
@@ -119,6 +134,22 @@ export default function ResultadoSimuladoPage() {
     return Math.max(0, data.result.total_questions - data.result.unanswered_count)
   }, [data])
 
+  function handleGenerateSummary() {
+    if (!data) return
+
+    const summary = buildReviewSummary(data)
+    localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summary))
+    router.push("/dashboard/resumos")
+  }
+
+  function handleGenerateFlashcards() {
+    if (!data) return
+
+    const cards = buildReviewFlashcards(data)
+    localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(cards))
+    router.push("/dashboard/flashcards")
+  }
+
   if (error) {
     return (
       <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8">
@@ -154,10 +185,31 @@ export default function ResultadoSimuladoPage() {
         </h1>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
-          <Stat label="Aproveitamento" value={`${result.score_percentage.toFixed(1)}%`} />
+          <Stat
+            label="Aproveitamento"
+            value={`${result.score_percentage.toFixed(1)}%`}
+          />
           <Stat label="Acertos" value={String(result.correct_answers)} />
           <Stat label="Erros" value={String(result.wrong_answers)} />
           <Stat label="Respondidas" value={String(answeredQuestions)} />
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={handleGenerateSummary}
+            className="rounded-2xl bg-[#2f7cff] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          >
+            Gerar resumo explicativo
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGenerateFlashcards}
+            className="rounded-2xl border border-white/20 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/5"
+          >
+            Gerar flashcards de revisão
+          </button>
         </div>
       </section>
 
@@ -171,7 +223,9 @@ export default function ResultadoSimuladoPage() {
               className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
             >
               <div className="flex items-center justify-between gap-4">
-                <h3 className="text-lg font-semibold text-white">{subject.subject}</h3>
+                <h3 className="text-lg font-semibold text-white">
+                  {subject.subject}
+                </h3>
                 <span className="text-sm font-medium text-[#7ea0d6]">
                   {subject.accuracy_percentage}%
                 </span>

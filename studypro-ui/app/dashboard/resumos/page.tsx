@@ -7,22 +7,9 @@ import {
   BookOpen,
   FileText,
   RotateCcw,
-  Sparkles,
 } from "lucide-react"
 
-type SummaryPayload = {
-  title: string
-  subtitle: string
-  revisionSummary: string
-  weakestSubjects: Array<{
-    subject: string
-    accuracy: number
-    correct: number
-    wrong: number
-    blank: number
-  }>
-  generatedAt: string
-}
+import type { ReviewSummaryPayload } from "@/lib/review-content"
 
 const REVIEW_SUMMARY_KEY = "studypro_review_summary"
 
@@ -40,7 +27,7 @@ function formatLocalDate(value: string) {
 }
 
 export default function ResumosPage() {
-  const [summary, setSummary] = useState<SummaryPayload | null>(null)
+  const [summary, setSummary] = useState<ReviewSummaryPayload | null>(null)
   const [loadError, setLoadError] = useState("")
 
   useEffect(() => {
@@ -52,7 +39,7 @@ export default function ResumosPage() {
         return
       }
 
-      const parsed = JSON.parse(raw) as SummaryPayload
+      const parsed = JSON.parse(raw) as ReviewSummaryPayload
 
       if (!parsed?.title || !parsed?.revisionSummary) {
         setLoadError("Nenhum resumo de revisão foi encontrado.")
@@ -113,7 +100,7 @@ export default function ResumosPage() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
               <FileText className="size-4" />
-              Resumo de revisão
+              Resumo explicativo
             </div>
 
             <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
@@ -132,7 +119,8 @@ export default function ResumosPage() {
                 {formatLocalDate(summary.generatedAt)}
               </div>
               <p className="mt-3 text-sm text-slate-300">
-                Material salvo localmente neste navegador.
+                Texto baseado nas questões com erro ou em branco e no gabarito do
+                último simulado.
               </p>
             </div>
           </div>
@@ -148,23 +136,23 @@ export default function ResumosPage() {
 
             <div>
               <h2 className="text-2xl font-semibold text-white">
-                Síntese principal
+                Explicação principal
               </h2>
               <p className="mt-1 text-sm text-slate-400">
-                Direção prática para o seu próximo estudo.
+                Resumo em linguagem direta, sem orientação genérica de estudo.
               </p>
             </div>
           </div>
 
-          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-8 text-slate-300">
+          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-8 text-slate-300 whitespace-pre-line">
             {summary.revisionSummary}
           </div>
         </article>
 
         <aside className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-            <Sparkles className="size-4" />
-            Prioridades
+            <FileText className="size-4" />
+            Disciplinas com menor acurácia
           </div>
 
           <div className="mt-6 space-y-4">
@@ -184,7 +172,8 @@ export default function ResumosPage() {
                         {index + 1}. {subject.subject}
                       </h3>
                       <p className="mt-1 text-sm text-slate-400">
-                        {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
+                        {subject.correct} acerto(s), {subject.wrong} erro(s),{" "}
+                        {subject.blank} em branco
                       </p>
                     </div>
 
