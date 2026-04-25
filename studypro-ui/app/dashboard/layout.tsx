@@ -27,6 +27,8 @@ export default function DashboardLayout({
   const [searchQuery, setSearchQuery] = useState("")
   const [user, setUser] = useState<DashboardUser | null>(null)
 
+  const isChatRoute = pathname === "/dashboard/chat"
+
   useEffect(() => {
     const token = localStorage.getItem(AUTH_TOKEN_KEY)
     const storedUser = localStorage.getItem(AUTH_USER_KEY)
@@ -70,10 +72,10 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
       <AppSidebar />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <DashboardTopbar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
@@ -82,7 +84,15 @@ export default function DashboardLayout({
           mobileSidebar={<AppSidebar />}
         />
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main
+          className={
+            isChatRoute
+              ? "min-h-0 flex-1 overflow-hidden"
+              : "min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
+          }
+        >
+          {children}
+        </main>
       </div>
     </div>
   )

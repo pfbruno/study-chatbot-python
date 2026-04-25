@@ -16,7 +16,6 @@ import {
   FileText,
   History,
   Layers3,
-  MessageSquare,
   PanelLeft,
   Plus,
   Search,
@@ -275,7 +274,10 @@ function sanitizeAssistantText(raw: string | null | undefined) {
   }
 
   const ignoredLabel = /^(Tema identificado|Resumo|Sugestão de estudo):/i
-  const lines = normalized.split("\n").filter((line) => !ignoredLabel.test(line.trim()))
+  const lines = normalized
+    .split("\n")
+    .filter((line) => !ignoredLabel.test(line.trim()))
+
   return lines.join("\n").trim()
 }
 
@@ -339,34 +341,29 @@ function ConversationsPanel({
                     : "border-white/10 bg-[#081224] hover:bg-white/[0.04]"
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => setActiveSessionId(session.id)}
-                  className="w-full px-4 py-3 text-left"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-white">
-                        {session.title}
-                      </div>
-                      <div className="mt-1 text-xs text-slate-400">
-                        {formatLocalDate(session.updatedAt)}
-                      </div>
+                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveSessionId(session.id)}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <div className="truncate text-sm font-semibold text-white">
+                      {session.title}
                     </div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      {formatLocalDate(session.updatedAt)}
+                    </div>
+                  </button>
 
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation()
-                        deleteSession(session.id)
-                      }}
-                      className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 opacity-0 transition hover:bg-white/10 hover:text-white group-hover:opacity-100"
-                      aria-label="Excluir conversa"
-                    >
-                      <X className="size-3.5" />
-                    </button>
-                  </div>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteSession(session.id)}
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-400 opacity-0 transition hover:bg-white/10 hover:text-white group-hover:opacity-100"
+                    aria-label="Excluir conversa"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
               </div>
             )
           })
@@ -516,6 +513,7 @@ export function ChatIA() {
   function scrollMessagesToBottom(behavior: ScrollBehavior = "smooth") {
     const viewport = messagesViewportRef.current
     if (!viewport) return
+
     viewport.scrollTo({
       top: viewport.scrollHeight,
       behavior,
@@ -626,7 +624,8 @@ export function ChatIA() {
     updateSessionMessages(targetSessionId, (session) => ({
       ...session,
       title:
-        session.messages.filter((message) => message.role === "user").length === 0
+        session.messages.filter((message) => message.role === "user").length ===
+        0
           ? extractSessionTitle(trimmed)
           : session.title,
       updatedAt: new Date().toISOString(),
@@ -755,7 +754,7 @@ export function ChatIA() {
   }
 
   return (
-    <div className="relative flex h-[calc(100vh-9rem)] min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
       {showSidebar ? (
         <div className="fixed inset-0 z-40 bg-black/60">
           <button
@@ -800,9 +799,9 @@ export function ChatIA() {
         </div>
       ) : null}
 
-      <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#071225]">
+      <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden border-y border-white/10 bg-[#071225] sm:rounded-none">
         <div className="border-b border-white/10 px-4 py-4 md:px-6">
-          <div className="mx-auto flex w-full max-w-[1200px] items-center gap-3">
+          <div className="flex w-full items-center gap-3 px-4 md:px-6 lg:px-8">
             <button
               type="button"
               onClick={() => setShowSidebar(true)}
@@ -838,9 +837,9 @@ export function ChatIA() {
 
         <div
           ref={messagesViewportRef}
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-5 md:px-6"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-5 md:px-6 lg:px-8"
         >
-          <div className="mx-auto flex w-full max-w-[1200px] flex-col">
+          <div className="flex w-full min-w-0 flex-col">
             {isEmptyState ? (
               <div className="mb-8">
                 <div className="mb-6 rounded-[28px] border border-white/10 bg-[#020b18] p-6">
@@ -855,8 +854,8 @@ export function ChatIA() {
                     </h2>
 
                     <p className="mt-2 text-sm leading-7 text-slate-300">
-                      Tire dúvidas, peça resumos, gere questões, monte
-                      cronogramas e crie simulados em linguagem natural.
+                      Tire dúvidas, peça resumos, gere questões, monte cronogramas
+                      e crie simulados em linguagem natural.
                     </p>
                   </div>
                 </div>
@@ -911,7 +910,9 @@ export function ChatIA() {
                       </div>
 
                       <div className="rounded-3xl rounded-tl-md border border-white/10 bg-[#020b18] px-5 py-4 text-sm shadow-sm">
-                        <div className="space-y-1">{renderContent(message.content)}</div>
+                        <div className="space-y-1">
+                          {renderContent(message.content)}
+                        </div>
                       </div>
 
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -951,6 +952,7 @@ export function ChatIA() {
                           >
                             <ThumbsUp className="size-3.5" />
                           </button>
+
                           <button
                             type="button"
                             className="inline-flex size-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
@@ -993,8 +995,8 @@ export function ChatIA() {
           </div>
         </div>
 
-        <div className="border-t border-white/10 bg-[#071225] px-4 py-3 md:px-6">
-          <div className="mx-auto flex w-full max-w-[1200px] flex-col">
+        <div className="sticky bottom-0 z-20 shrink-0 border-t border-white/10 bg-[#071225] px-4 py-3 md:px-6 lg:px-8">
+          <div className="flex w-full flex-col">
             {error ? (
               <div className="mb-3 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
                 {error}
@@ -1023,7 +1025,7 @@ export function ChatIA() {
               </div>
             ) : null}
 
-            <div className="ml-auto w-full max-w-5xl rounded-[24px] border border-white/10 bg-[#020b18] p-2.5 shadow-[0_-12px_40px_-24px_rgba(0,0,0,0.8)]">
+            <div className="w-full rounded-[24px] border border-white/10 bg-[#020b18] p-2.5 shadow-[0_-12px_40px_-24px_rgba(0,0,0,0.8)]">
               <textarea
                 ref={textareaRef}
                 value={input}
