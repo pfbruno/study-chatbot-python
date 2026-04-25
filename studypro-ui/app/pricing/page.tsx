@@ -10,7 +10,6 @@ import {
   CreditCard,
   ShieldCheck,
   Sparkles,
-  Star,
   TrendingUp,
 } from "lucide-react"
 
@@ -39,12 +38,17 @@ function PricingPageContent() {
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [usage, setUsage] = useState<BillingUsage | null>(null)
-  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(null)
+  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(
+    null
+  )
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
 
-  const canceled = useMemo(() => searchParams.get("canceled") === "1", [searchParams])
+  const canceled = useMemo(
+    () => searchParams.get("canceled") === "1",
+    [searchParams]
+  )
 
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
@@ -88,7 +92,7 @@ function PricingPageContent() {
       }
     }
 
-    loadCurrentUser()
+    void loadCurrentUser()
   }, [authToken])
 
   async function handleCheckout() {
@@ -109,16 +113,21 @@ function PricingPageContent() {
       const data = await createCheckoutSession(authToken)
 
       if (!data.checkout_url) {
-        throw new Error("O backend não retornou a URL de checkout do Stripe.")
+        throw new Error("O backend não retornou a URL de checkout.")
       }
 
       window.location.href = data.checkout_url
     } catch (error) {
-      setErrorMessage(
+      const rawMessage =
         error instanceof Error
           ? error.message
           : "Erro inesperado ao iniciar o checkout."
-      )
+
+      const normalizedMessage = /Failed to fetch/i.test(rawMessage)
+        ? "Não foi possível conectar ao checkout. Verifique se o backend no Render está online e se as variáveis STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET e FRONTEND_BASE_URL estão configuradas corretamente."
+        : rawMessage
+
+      setErrorMessage(normalizedMessage)
     } finally {
       setIsCreatingCheckout(false)
     }
@@ -146,8 +155,8 @@ function PricingPageContent() {
 
               <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
                 O gratuito serve para experimentar. O Pro serve para transformar
-                intenção em constância, com mais prática, mais leitura de desempenho
-                e menos travas durante a preparação para o ENEM.
+                intenção em constância, com mais prática, mais leitura de
+                desempenho e menos travas durante a preparação.
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
@@ -217,8 +226,8 @@ function PricingPageContent() {
               </div>
 
               <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
-                Cada bloqueio no plano gratuito interrompe o seu fluxo. O Pro existe
-                para eliminar essa fricção.
+                Cada bloqueio no plano gratuito interrompe o seu fluxo. O Pro
+                existe para eliminar essa fricção.
               </div>
             </div>
           </div>
@@ -258,8 +267,8 @@ function PricingPageContent() {
             </div>
 
             <p className="mt-5 text-sm leading-7 text-slate-300">
-              Para quem quer manter consistência de estudo, sem depender do limite
-              gratuito e sem perder ritmo exatamente quando está focado.
+              Para quem quer manter consistência de estudo, sem depender do
+              limite gratuito e sem perder ritmo exatamente quando está focado.
             </p>
 
             <div className="mt-8 space-y-3">
@@ -267,7 +276,7 @@ function PricingPageContent() {
               <FeatureItem text="Mais prática por dia" />
               <FeatureItem text="Análise de desempenho completa" />
               <FeatureItem text="Insights inteligentes" />
-              <FeatureItem text="Checkout seguro com Stripe" />
+              <FeatureItem text="Checkout seguro com gateway configurado" />
             </div>
 
             <button
@@ -281,7 +290,7 @@ function PricingPageContent() {
                 : isPro
                 ? "Seu plano PRO já está ativo"
                 : isCreatingCheckout
-                ? "Redirecionando para o Stripe..."
+                ? "Abrindo checkout..."
                 : authToken
                 ? "Desbloquear Pro agora"
                 : "Entrar para assinar"}
@@ -289,7 +298,8 @@ function PricingPageContent() {
 
             <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
               <ShieldCheck className="size-4" />
-              Pagamento processado com Stripe e retorno automático para o StudyPro.
+              O pagamento só funciona quando o backend, o price ID e o webhook
+              estiverem configurados corretamente.
             </div>
           </article>
 
@@ -309,27 +319,26 @@ function PricingPageContent() {
               <PlanRow feature="Simulados" free="Limitado" pro="Ilimitado" />
               <PlanRow feature="Desempenho" free="Básico" pro="Completo" />
               <PlanRow feature="Insights" free="Não" pro="Sim" />
-              <PlanRow feature="Ritmo de estudo" free="Interrompido" pro="Contínuo" />
+              <PlanRow
+                feature="Ritmo de estudo"
+                free="Interrompido"
+                pro="Contínuo"
+              />
             </div>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="flex items-start gap-3">
-                <Star className="mt-0.5 size-4 text-primary" />
-                <div>
-                  <p className="text-sm font-semibold text-white">
-                    O que mais converte aqui
-                  </p>
-                  <p className="mt-1 text-sm leading-7 text-slate-300">
-                    O usuário não compra só “mais recursos”. Ele compra continuidade,
-                    menos fricção e mais volume de estudo quando está motivado.
-                  </p>
-                </div>
-              </div>
+              <p className="text-sm font-semibold text-white">
+                Posicionamento real da oferta
+              </p>
+              <p className="mt-2 text-sm leading-7 text-slate-300">
+                O usuário não compra só “mais recursos”. Ele compra continuidade,
+                menos fricção e mais volume de estudo quando está motivado.
+              </p>
             </div>
 
             <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
-              Quanto mais vezes você trava no gratuito, maior a chance de perder ritmo.
-              O Pro resolve exatamente esse problema.
+              Quanto mais vezes você trava no gratuito, maior a chance de perder
+              ritmo. O Pro resolve exatamente esse problema.
             </div>
           </article>
         </section>
@@ -341,7 +350,9 @@ function PricingPageContent() {
               Para testar
             </div>
 
-            <h2 className="mt-4 text-2xl font-semibold text-white">Plano Free</h2>
+            <h2 className="mt-4 text-2xl font-semibold text-white">
+              Plano Free
+            </h2>
 
             <ul className="mt-6 space-y-3">
               <FeatureItem text="Conhecer a plataforma" />
@@ -351,13 +362,15 @@ function PricingPageContent() {
             </ul>
           </article>
 
-          <article className="glass-panel rounded-[28px] p-6 border border-primary/20">
+          <article className="glass-panel rounded-[28px] border border-primary/20 p-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <Crown className="size-4" />
               Para evoluir
             </div>
 
-            <h2 className="mt-4 text-2xl font-semibold text-white">Plano Pro</h2>
+            <h2 className="mt-4 text-2xl font-semibold text-white">
+              Plano Pro
+            </h2>
 
             <ul className="mt-6 space-y-3">
               <FeatureItem text="Aumentar volume de treino" />
@@ -369,19 +382,28 @@ function PricingPageContent() {
         </section>
 
         <section className="glass-panel rounded-[28px] p-6">
-          <div className="grid gap-6 md:grid-cols-3">
-            <TestimonialCard
-              quote="Quando o fluxo de estudo não trava, a constância melhora muito."
-              author="Aluno em rotina de revisão"
-            />
-            <TestimonialCard
-              quote="O valor do Pro faz sentido quando você compara com perder ritmo."
-              author="Usuário em preparação intensiva"
-            />
-            <TestimonialCard
-              quote="O ponto forte é estudar sem interrupção bem no momento de foco."
-              author="Perfil de alta intenção"
-            />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <article className="rounded-[24px] border border-white/10 bg-white/5 p-5">
+              <h3 className="text-lg font-semibold text-white">
+                Transparência comercial
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-slate-300">
+                Ainda não estamos exibindo depoimentos reais porque o produto
+                segue em fase de ajustes e você ainda não tem base pagante
+                consolidada.
+              </p>
+            </article>
+
+            <article className="rounded-[24px] border border-white/10 bg-white/5 p-5">
+              <h3 className="text-lg font-semibold text-white">
+                O que entra depois
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-slate-300">
+                Quando houver alunos pagantes reais, aqui entram depoimentos
+                verificados, estudos de caso e sinais de confiança baseados em
+                uso real.
+              </p>
+            </article>
           </div>
         </section>
       </div>
@@ -462,22 +484,5 @@ function MetricCard({
       <p className="mt-3 text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold text-white">{value}</p>
     </div>
-  )
-}
-
-function TestimonialCard({
-  quote,
-  author,
-}: {
-  quote: string
-  author: string
-}) {
-  return (
-    <article className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-      <p className="text-sm leading-7 text-slate-200">“{quote}”</p>
-      <p className="mt-4 text-xs uppercase tracking-[0.14em] text-slate-400">
-        {author}
-      </p>
-    </article>
   )
 }
