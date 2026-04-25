@@ -223,7 +223,7 @@ export default function EnemHubPage() {
       ) : null}
 
       <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8 shadow-[0_10px_50px_-28px_rgba(59,130,246,0.45)]">
-        <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="grid gap-8 xl:grid-cols-[1fr_0.8fr]">
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
               <GraduationCap className="size-4" />
@@ -242,8 +242,7 @@ export default function EnemHubPage() {
                 <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
                   O ENEM é a maior avaliação educacional do Brasil, aplicada
                   anualmente pelo INEP. Resolva provas oficiais completas com
-                  gabarito, comentários e análise de desempenho por área de
-                  conhecimento.
+                  gabarito e análise de desempenho por área de conhecimento.
                 </p>
               </div>
             </div>
@@ -263,102 +262,25 @@ export default function EnemHubPage() {
           </div>
 
           <div className="rounded-[28px] border border-white/10 bg-[#030b1d] p-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm uppercase tracking-[0.18em] text-[#7ea0d6]">
-                Edições disponíveis
-              </div>
-              <div className="text-sm text-[#7ea0d6]">{sort}</div>
+            <div className="text-sm uppercase tracking-[0.18em] text-[#7ea0d6]">
+              Catálogo ENEM
             </div>
 
-            {loading ? (
-              <div className="mt-8 flex items-center gap-3 text-slate-300">
-                <Loader2 className="size-4 animate-spin" />
-                Carregando anos do ENEM...
-              </div>
-            ) : (
-              <div className="mt-6 grid gap-4">
-                {filteredEditions.slice(0, 3).map((edition) => {
-                  const badge = getStatusBadge(edition.status)
+            <h2 className="mt-4 text-3xl font-bold text-white">
+              Todas as edições válidas ficam listadas abaixo
+            </h2>
 
-                  return (
-                    <article
-                      key={edition.year}
-                      className="rounded-[24px] border border-white/10 bg-[#071225] p-5"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
-                            Edição
-                          </div>
-                          <div className="mt-2 text-5xl font-bold tracking-tight text-white">
-                            {edition.year}
-                          </div>
-                        </div>
+            <p className="mt-4 text-base leading-8 text-slate-300">
+              A seção inferior já mostra todas as edições disponíveis. Aqui você
+              só vê o resumo da instituição e o acesso rápido ao catálogo.
+            </p>
 
-                        <div
-                          className={`rounded-full border px-3 py-1 text-sm font-medium ${badge.className}`}
-                        >
-                          {badge.label}
-                        </div>
-                      </div>
-
-                      <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
-                        <span className="inline-flex items-center gap-2">
-                          <FileText className="size-4" />
-                          {edition.questionCount} questões
-                        </span>
-
-                        {edition.lastAccessLabel ? (
-                          <span className="inline-flex items-center gap-2">
-                            <Clock3 className="size-4" />
-                            {edition.lastAccessLabel}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      {typeof edition.progress === "number" ? (
-                        <div className="mt-5 space-y-2">
-                          <div className="flex items-center justify-between text-sm text-slate-300">
-                            <span>Progresso</span>
-                            <span>{edition.progress}%</span>
-                          </div>
-                          <ProgressBar value={edition.progress} />
-                        </div>
-                      ) : null}
-
-                      <div className="mt-6 flex gap-3">
-                        {edition.status === "completed" ? (
-                          <>
-                            <Link
-                              href={edition.href}
-                              className="inline-flex flex-1 items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#0a1730]"
-                            >
-                              Revisar prova
-                            </Link>
-                            <button
-                              type="button"
-                              className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-[#071225] px-4 py-3 text-white transition hover:bg-white/5"
-                            >
-                              <RotateCcw className="size-5" />
-                            </button>
-                          </>
-                        ) : (
-                          <Link
-                            href={edition.href}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-lg font-semibold text-white transition hover:opacity-90"
-                          >
-                            <Play className="size-4" />
-                            {edition.status === "in_progress"
-                              ? "Continuar"
-                              : "Resolver"}
-                          </Link>
-                        )}
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-            )}
+            <Link
+              href="#edicoes-enem"
+              className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[#4b8df7] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            >
+              Ir para edições
+            </Link>
           </div>
         </div>
       </section>
@@ -405,7 +327,10 @@ export default function EnemHubPage() {
         </section>
       ) : null}
 
-      <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+      <section
+        id="edicoes-enem"
+        className="rounded-[28px] border border-white/10 bg-[#071225] p-6"
+      >
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <h2 className="text-3xl font-bold tracking-tight text-white">
             Edições disponíveis
