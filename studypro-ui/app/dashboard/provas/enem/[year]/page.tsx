@@ -813,8 +813,9 @@ export default function ExamYearPage() {
                 Resultado da prova
               </h2>
               <p className="mt-2 text-base text-[#7ea0d6]">
-                Agora você consegue ver o que acertou, errou, deixou em branco e
-                quais questões foram anuladas.
+                Após a correção, o mapa de questões já destaca acertos, erros,
+                itens em branco e questões anuladas. Aqui fica apenas o resumo
+                geral e o desempenho por disciplina.
               </p>
             </div>
 
@@ -833,73 +834,28 @@ export default function ExamYearPage() {
             <StatCard label="Anuladas" value={String(result.annulled_count)} />
           </div>
 
-          <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
-            <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-              <h3 className="text-2xl font-bold text-white">
-                Desempenho por disciplina
-              </h3>
+          <article className="mt-8 rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+            <h3 className="text-2xl font-bold text-white">
+              Desempenho por disciplina
+            </h3>
 
-              <div className="mt-5 space-y-4">
-                {result.subjects_summary.map((subject) => (
-                  <div key={subject.subject} className="space-y-2">
-                    <div className="flex items-center justify-between gap-4 text-sm">
-                      <span className="font-semibold text-white">
-                        {subject.subject}
-                      </span>
-                      <span className="text-[#7ea0d6]">
-                        {subject.correct}/{subject.total} •{" "}
-                        {subject.accuracy_percentage.toFixed(1)}%
-                      </span>
-                    </div>
-                    <ProgressBar value={subject.accuracy_percentage} />
+            <div className="mt-5 space-y-4">
+              {result.subjects_summary.map((subject) => (
+                <div key={subject.subject} className="space-y-2">
+                  <div className="flex items-center justify-between gap-4 text-sm">
+                    <span className="font-semibold text-white">
+                      {subject.subject}
+                    </span>
+                    <span className="text-[#7ea0d6]">
+                      {subject.correct}/{subject.total} •{" "}
+                      {subject.accuracy_percentage.toFixed(1)}%
+                    </span>
                   </div>
-                ))}
-              </div>
-            </article>
-
-            <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-              <h3 className="text-2xl font-bold text-white">
-                Correção questão por questão
-              </h3>
-
-              <div className="mt-5 space-y-3">
-                {result.results_by_question.map((item) => (
-                  <div
-                    key={item.question_number}
-                    className={`rounded-2xl border px-4 py-3 text-sm ${
-                      item.status === "correct"
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                        : item.status === "wrong"
-                        ? "border-rose-500/30 bg-rose-500/10 text-rose-200"
-                        : item.status === "blank"
-                        ? "border-slate-500/30 bg-slate-500/10 text-slate-300"
-                        : "border-yellow-500/30 bg-yellow-500/10 text-yellow-200"
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="font-semibold text-white">
-                        Questão {item.question_number} • {item.subject}
-                      </div>
-                      <div>
-                        {item.status === "correct"
-                          ? "Acertou"
-                          : item.status === "wrong"
-                          ? "Errou"
-                          : item.status === "blank"
-                          ? "Em branco"
-                          : "Anulada"}
-                      </div>
-                    </div>
-
-                    <div className="mt-2">
-                      Sua resposta: {item.user_answer ?? "—"} | Gabarito:{" "}
-                      {item.correct_answer ?? "—"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </article>
-          </div>
+                  <ProgressBar value={subject.accuracy_percentage} />
+                </div>
+              ))}
+            </div>
+          </article>
         </section>
       ) : null}
 
@@ -1053,7 +1009,9 @@ export default function ExamYearPage() {
         <aside className="rounded-[28px] border border-white/10 bg-[#071225] p-5 xl:sticky xl:top-6 xl:h-fit">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-xl font-bold text-white">Mapa de questões</h3>
-            <span className="text-sm text-slate-400">{answeredCount}/{questions.length}</span>
+            <span className="text-sm text-slate-400">
+              {answeredCount}/{questions.length}
+            </span>
           </div>
 
           <div className="mt-4">
