@@ -1,7 +1,5 @@
 "use client"
 
-import { saveRecentAttempt } from "@/lib/activity"
-import { trackStudyEvent } from "@/lib/study-events"
 import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useParams } from "next/navigation"
@@ -13,18 +11,17 @@ import {
   FileText,
   Flag,
   GraduationCap,
-  Layers3,
   Loader2,
-  Map,
-  Menu,
-  MessageSquare,
-  PauseCircle,
-  Play,
-  RefreshCw,
-  ScrollText,
-  X,
+  RotateCcw,
+  XCircle,
 } from "lucide-react"
-import { getExamByTypeAndYear, submitExamAnswers, type ExamDetail } from "@/lib/api"
+
+import { saveRecentAttempt } from "@/lib/activity"
+import {
+  getExamByTypeAndYear,
+  submitExamAnswers,
+  type ExamDetail,
+} from "@/lib/api"
 
 type ExamQuestion = {
   number: number
@@ -56,12 +53,22 @@ type ExamPayload = {
   questions?: ExamQuestion[]
 }
 
-type LocalResultByQuestion = {
+type ResultByQuestion = {
   question_number: number
   subject: string
   user_answer: string | null
   correct_answer: string | null
   status: "correct" | "wrong" | "blank" | "annulled"
+}
+
+type SubjectSummary = {
+  subject: string
+  total: number
+  correct: number
+  wrong: number
+  blank: number
+  annulled: number
+  accuracy_percentage: number
 }
 
 type ExamResult = {
@@ -74,53 +81,15 @@ type ExamResult = {
   unanswered_count: number
   annulled_count: number
   score_percentage: number
-  results_by_question: LocalResultByQuestion[]
-  subjects_summary: Array<{
-    subject: string
-    total: number
-    correct: number
-    wrong: number
-    blank: number
-    annulled: number
-    accuracy_percentage: number
-  }>
-}
-
-type ReviewCard = {
-  id: string
-  subject: string
-  questionNumber: number
-  front: string
-  back: string
-}
-
-type ReviewSummaryPayload = {
-  title: string
-  subtitle: string
-  revisionSummary: string
-  weakestSubjects: Array<{
-    subject: string
-    accuracy: number
-    correct: number
-    wrong: number
-    blank: number
-  }>
-  generatedAt: string
+  results_by_question: ResultByQuestion[]
+  subjects_summary: SubjectSummary[]
 }
 
 type SavedProgress = {
   answers?: Record<number, string>
   currentIndex?: number
-  hasStarted?: boolean
   reviewFlags?: number[]
 }
-
-type ExamVisualStatus = "not_started" | "in_progress" | "finished"
-
-const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
-const REVIEW_SUMMARY_KEY = "studypro_review_summary"
-const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
-const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
 
 const EMPTY_EXAM: ExamDetail = {
   exam_type: "enem",
@@ -134,28 +103,22 @@ const EMPTY_EXAM: ExamDetail = {
   official_page_url: null,
 }
 
-function buildFallbackExam(year: number): ExamDetail {
-  if (year === 2022) {
-    return {
-      exam_type: "enem",
-      institution: "ENEM",
-      year: 2022,
-      title: "ENEM 2022 — Prova Oficial",
-      description:
-        "Prova oficial do ENEM 2022 disponível para resolução completa e revisão posterior.",
-      question_count: 180,
-      pdfs: [],
-      has_answer_key: true,
-      official_page_url:
-        "https://www.gov.br/inep/pt-br/areas-de-atuacao/avaliacao-e-exames-educacionais/enem/provas-e-gabaritos/2022",
-    }
-  }
+const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
+const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
 
+const OPTION_KEYS = ["A", "B", "C", "D", "E"] as const
+
+function buildFallbackExam(year: number): ExamDetail {
   return {
-    ...EMPTY_EXAM,
+    exam_type: "enem",
+    institution: "ENEM",
     year,
     title: `ENEM ${year}`,
-    description: "Metadados oficiais da prova selecionada.",
+    description: `Prova oficial do ENEM ${year}.`,
+    question_count: 180,
+    pdfs: [],
+    has_answer_key: true,
+    official_page_url: null,
   }
 }
 
@@ -164,31 +127,48 @@ function buildRawQuestionsUrl(year: number) {
 }
 
 function parseContentBlocks(text: string) {
-  const normalized = (text || "").replace(/\r\n/g, "\n")
-  const regexes = [
-    /!\[[^\]]*\]\((https?:\/\/[^)\s]+)\)/g,
-    /\[imagem:\s*(https?:\/\/[^\]\s]+)\]/gi,
+  const normalized = (text || "").replace(/\r\n/g, "\n").trim()
+
+  if (!normalized) return []
+
+  const patterns = [
+    /!\[[^\]]*]\((https?:\/\/[^\s)]+)\)/gi,
+    /\[(?:imagem|Imagem)[^\]]*?(https?:\/\/[^\]\s]+\.(?:png|jpg|jpeg|webp|gif|svg))\s*\]/gi,
+    /(https?:\/\/[^\s\]]+\.(?:png|jpg|jpeg|webp|gif|svg))/gi,
   ]
 
   const matches: Array<{ start: number; end: number; url: string }> = []
 
-  for (const regex of regexes) {
+  for (const regex of patterns) {
     let match: RegExpExecArray | null
     while ((match = regex.exec(normalized)) !== null) {
+      const url = match[1] || match[0]
       matches.push({
         start: match.index,
         end: match.index + match[0].length,
-        url: match[1],
+        url,
       })
     }
   }
 
   matches.sort((a, b) => a.start - b.start)
 
-  const blocks: Array<{ type: "text"; value: string } | { type: "image"; url: string }> = []
+  const uniqueMatches: Array<{ start: number; end: number; url: string }> = []
+  for (const match of matches) {
+    const overlaps = uniqueMatches.some(
+      (item) => match.start < item.end && match.end > item.start
+    )
+    if (!overlaps) uniqueMatches.push(match)
+  }
+
+  const blocks: Array<
+    | { type: "text"; value: string }
+    | { type: "image"; url: string }
+  > = []
+
   let cursor = 0
 
-  for (const match of matches) {
+  for (const match of uniqueMatches) {
     if (match.start > cursor) {
       const textPart = normalized.slice(cursor, match.start).trim()
       if (textPart) blocks.push({ type: "text", value: textPart })
@@ -203,8 +183,8 @@ function parseContentBlocks(text: string) {
     if (textPart) blocks.push({ type: "text", value: textPart })
   }
 
-  if (blocks.length === 0 && normalized.trim()) {
-    blocks.push({ type: "text", value: normalized.trim() })
+  if (blocks.length === 0) {
+    blocks.push({ type: "text", value: normalized })
   }
 
   return blocks
@@ -230,7 +210,7 @@ function RichContent({
             >
               <img
                 src={block.url}
-                alt="Imagem da questão"
+                alt="Imagem da questão ou alternativa"
                 className="max-h-[420px] w-full object-contain"
                 loading="lazy"
               />
@@ -239,7 +219,10 @@ function RichContent({
         }
 
         return (
-          <div key={`text-${index}`} className={`${className} whitespace-pre-line`}>
+          <div
+            key={`text-${index}`}
+            className={`${className} whitespace-pre-line`}
+          >
             {block.value}
           </div>
         )
@@ -259,16 +242,51 @@ function ProgressBar({ value }: { value: number }) {
   )
 }
 
-function badgeClass(kind: "answered" | "blank" | "current" | "review") {
-  if (kind === "current") {
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="rounded-[22px] border border-white/10 bg-[#071225] p-4">
+      <p className="text-sm text-slate-400">{label}</p>
+      <h3 className="mt-3 text-3xl font-bold text-white">{value}</h3>
+    </article>
+  )
+}
+
+function questionButtonClass(params: {
+  isCurrent: boolean
+  isAnswered: boolean
+  isFlagged: boolean
+  resultStatus?: ResultByQuestion["status"]
+}) {
+  const { isCurrent, isAnswered, isFlagged, resultStatus } = params
+
+  if (isCurrent) {
     return "border-[#2f7cff]/40 bg-[#2f7cff]/20 text-white"
   }
-  if (kind === "review") {
-    return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
-  }
-  if (kind === "answered") {
+
+  if (resultStatus === "correct") {
     return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
   }
+
+  if (resultStatus === "wrong") {
+    return "border-rose-500/30 bg-rose-500/10 text-rose-300"
+  }
+
+  if (resultStatus === "blank") {
+    return "border-slate-500/30 bg-slate-500/10 text-slate-300"
+  }
+
+  if (resultStatus === "annulled") {
+    return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+  }
+
+  if (isFlagged) {
+    return "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
+  }
+
+  if (isAnswered) {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+  }
+
   return "border-white/10 bg-white/5 text-slate-300"
 }
 
@@ -282,8 +300,6 @@ export default function ExamYearPage() {
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [reviewFlags, setReviewFlags] = useState<number[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [hasStarted, setHasStarted] = useState(false)
-  const [showAnswerSheet, setShowAnswerSheet] = useState(false)
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -291,9 +307,7 @@ export default function ExamYearPage() {
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<ExamResult | null>(null)
 
-  const resolverRef = useRef<HTMLDivElement | null>(null)
-  const hasTrackedExamStartRef = useRef(false)
-  const trackedAnsweredQuestionsRef = useRef<Set<number>>(new Set())
+  const resultRef = useRef<HTMLDivElement | null>(null)
 
   const resultStorageKey = `${OFFICIAL_EXAM_RESULT_PREFIX}enem_${examYear}`
   const progressStorageKey = `${OFFICIAL_EXAM_PROGRESS_PREFIX}enem_${examYear}`
@@ -329,7 +343,9 @@ export default function ExamYearPage() {
         }
 
         const rawPayload = (await rawResponse.json()) as ExamPayload
-        const rawQuestions = Array.isArray(rawPayload.questions) ? rawPayload.questions : []
+        const rawQuestions = Array.isArray(rawPayload.questions)
+          ? rawPayload.questions
+          : []
 
         if (rawQuestions.length === 0) {
           throw new Error("Nenhuma questão disponível para esta prova.")
@@ -343,7 +359,9 @@ export default function ExamYearPage() {
             rawPayload.description ||
             "Prova oficial disponível para resolução.",
           question_count:
-            loadedExam.question_count || rawPayload.question_count || rawQuestions.length,
+            loadedExam.question_count ||
+            rawPayload.question_count ||
+            rawQuestions.length,
           official_page_url:
             loadedExam.official_page_url || rawPayload.official_page_url || null,
         })
@@ -363,10 +381,6 @@ export default function ExamYearPage() {
               setCurrentIndex(saved.currentIndex)
             }
 
-            if (saved.hasStarted) {
-              setHasStarted(true)
-            }
-
             if (Array.isArray(saved.reviewFlags)) {
               setReviewFlags(saved.reviewFlags)
             }
@@ -384,7 +398,9 @@ export default function ExamYearPage() {
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Erro ao carregar a prova.")
+        setError(
+          err instanceof Error ? err.message : "Erro ao carregar a prova."
+        )
       } finally {
         setLoading(false)
       }
@@ -403,182 +419,35 @@ export default function ExamYearPage() {
       JSON.stringify({
         answers,
         currentIndex,
-        hasStarted,
         reviewFlags,
       } satisfies SavedProgress)
     )
-  }, [answers, currentIndex, hasStarted, progressStorageKey, questions.length, reviewFlags])
-
-  useEffect(() => {
-  if (!hasStarted || !questions.length || hasTrackedExamStartRef.current) return
-
-  hasTrackedExamStartRef.current = true
-
-  void trackStudyEvent({
-    eventType: "exam_started",
-    module: "provas",
-    metadata: {
-      exam_type: "enem",
-      year: examYear,
-      total_questions: questions.length,
-    },
-  })
-  }, [examYear, hasStarted, questions.length])
+  }, [answers, currentIndex, progressStorageKey, questions.length, reviewFlags])
 
   const currentQuestion = questions[currentIndex] ?? null
 
-  const answeredCount = useMemo(
-    () => Object.keys(answers).filter((key) => Boolean(answers[Number(key)])).length,
-    [answers]
-  )
+  const answeredCount = useMemo(() => {
+    return Object.keys(answers).filter((key) => Boolean(answers[Number(key)])).length
+  }, [answers])
 
   const progressPercent = useMemo(() => {
     if (!questions.length) return 0
     return Math.round((answeredCount / questions.length) * 100)
   }, [answeredCount, questions.length])
 
-  const visualStatus = useMemo<ExamVisualStatus>(() => {
-    if (!result) {
-      if (answeredCount === 0) return "not_started"
-      return "in_progress"
+  const resultStatusMap = useMemo(() => {
+    const map = new Map<number, ResultByQuestion["status"]>()
+    for (const item of result?.results_by_question ?? []) {
+      map.set(item.question_number, item.status)
     }
-
-    if (result.unanswered_count === 0) {
-      return "finished"
-    }
-
-    return "in_progress"
-  }, [answeredCount, result])
-
-  const weakestSubjects = useMemo(() => {
-    if (!result) return []
-    return [...result.subjects_summary]
-      .sort((a, b) => a.accuracy_percentage - b.accuracy_percentage)
-      .slice(0, 3)
+    return map
   }, [result])
 
-  const reviewSummaryText = useMemo(() => {
-    if (!result) return ""
-
-    if (visualStatus !== "finished") {
-      return "A prova ainda não foi concluída. Finalize todas as respostas para gerar um plano de revisão definitivo."
-    }
-
-    if (result.correct_answers === result.total_questions - result.annulled_count) {
-      return "Excelente desempenho. Seu próximo passo deve ser manutenção de desempenho com revisão leve e novo treino de consolidação."
-    }
-
-    if (weakestSubjects.length === 0) {
-      return "Priorize revisar as questões incorretas e em branco antes de avançar para um novo treino."
-    }
-
-    const subjectNames = weakestSubjects.map((item) => item.subject).join(", ")
-    return `Priorize revisão em ${subjectNames}. O melhor próximo passo é revisar erros, consolidar conceitos centrais e voltar para um novo treino com foco nessas disciplinas.`
-  }, [result, visualStatus, weakestSubjects])
-
-  const reviewCards = useMemo<ReviewCard[]>(() => {
-    if (!result) return []
-    if (visualStatus !== "finished") return []
-
-    return result.results_by_question
-      .filter((entry) => entry.status === "wrong" || entry.status === "blank")
-      .slice(0, 12)
-      .map((entry) => {
-        const question = questions.find((item) => item.number === entry.question_number)
-        const correctText =
-          entry.correct_answer && question?.options?.[entry.correct_answer]
-            ? question.options[entry.correct_answer]
-            : "Resposta correta indisponível"
-
-        return {
-          id: `enem-${examYear}-${entry.question_number}-${entry.status}`,
-          subject: entry.subject,
-          questionNumber: entry.question_number,
-          front: `Questão ${entry.question_number} • ${entry.subject}: qual alternativa correta e por que esta questão precisa ser revisada?`,
-          back: `Resposta correta: ${entry.correct_answer ?? "N/D"} — ${correctText}. ${
-            entry.user_answer
-              ? `Sua resposta foi ${entry.user_answer}.`
-              : "A questão ficou em branco."
-          } Revise o enunciado, as alternativas e o conteúdo-base desta disciplina.`,
-        }
-      })
-  }, [examYear, questions, result, visualStatus])
-
-  useEffect(() => {
-    if (!result || visualStatus !== "finished") return
-
-    const summaryPayload: ReviewSummaryPayload = {
-      title: `${result.title} — Resumo de revisão`,
-      subtitle: `Resumo gerado a partir da prova oficial ${result.exam_type.toUpperCase()} ${result.year}.`,
-      revisionSummary: reviewSummaryText,
-      weakestSubjects: weakestSubjects.map((subject) => ({
-        subject: subject.subject,
-        accuracy: subject.accuracy_percentage,
-        correct: subject.correct,
-        wrong: subject.wrong,
-        blank: subject.blank,
-      })),
-      generatedAt: new Date().toISOString(),
-    }
-
-    localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summaryPayload))
-    localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(reviewCards))
-  }, [result, reviewCards, reviewSummaryText, visualStatus, weakestSubjects])
-
-  function scrollToResolver() {
-    resolverRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-  }
-
-  function handleStartOrContinue() {
-  setHasStarted(true)
-
-  void trackStudyEvent({
-    eventType: "study_session_started",
-    module: "provas",
-    metadata: {
-      exam_type: "enem",
-      year: examYear,
-    },
-  })
-
-  setTimeout(scrollToResolver, 50)
-}
-
-  function handleReset() {
-    setAnswers({})
-    setReviewFlags([])
-    setCurrentIndex(0)
-    setResult(null)
-    setHasStarted(false)
-    setShowAnswerSheet(false)
-    localStorage.removeItem(progressStorageKey)
-    localStorage.removeItem(resultStorageKey)
-  }
-
   function handleSelectAnswer(questionNumber: number, option: string) {
-  const question = questions.find((item) => item.number === questionNumber)
-  const hadAnswerBefore = Boolean(answers[questionNumber])
-
-  setAnswers((current) => ({
-    ...current,
-    [questionNumber]: option,
-  }))
-
-  if (!hadAnswerBefore && !trackedAnsweredQuestionsRef.current.has(questionNumber)) {
-    trackedAnsweredQuestionsRef.current.add(questionNumber)
-
-    void trackStudyEvent({
-      eventType: "question_answered",
-      module: "provas",
-      subject: question?.subject ?? null,
-      metadata: {
-        exam_type: "enem",
-        year: examYear,
-        question_number: questionNumber,
-        selected_answer: option,
-      },
-    })
-  }
+    setAnswers((current) => ({
+      ...current,
+      [questionNumber]: option,
+    }))
   }
 
   function toggleReviewFlag(questionNumber: number) {
@@ -599,21 +468,38 @@ export default function ExamYearPage() {
 
   function goToQuestion(index: number) {
     setCurrentIndex(index)
-    setShowAnswerSheet(false)
-    setTimeout(scrollToResolver, 50)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  function handleReset() {
+    setAnswers({})
+    setReviewFlags([])
+    setCurrentIndex(0)
+    setResult(null)
+    localStorage.removeItem(progressStorageKey)
+    localStorage.removeItem(resultStorageKey)
   }
 
   function buildLocalResult(): ExamResult {
-    const resultsByQuestion: LocalResultByQuestion[] = questions.map((question) => {
+    const resultsByQuestion: ResultByQuestion[] = questions.map((question) => {
       const userAnswer = answers[question.number] ?? null
-      const correctAnswer = question.answer ?? null
+      const normalizedAnswer =
+        question.answer && /^[A-E]$/i.test(question.answer)
+          ? question.answer.toUpperCase()
+          : null
 
-      if (question.annulled) {
+      const isAnnulled =
+        question.annulled === true ||
+        String(question.answer ?? "")
+          .trim()
+          .toUpperCase() === "ANULADA"
+
+      if (isAnnulled) {
         return {
           question_number: question.number,
           subject: question.subject,
           user_answer: userAnswer,
-          correct_answer: correctAnswer,
+          correct_answer: normalizedAnswer,
           status: "annulled",
         }
       }
@@ -623,17 +509,17 @@ export default function ExamYearPage() {
           question_number: question.number,
           subject: question.subject,
           user_answer: null,
-          correct_answer: correctAnswer,
+          correct_answer: normalizedAnswer,
           status: "blank",
         }
       }
 
-      if (correctAnswer && userAnswer === correctAnswer) {
+      if (normalizedAnswer && userAnswer === normalizedAnswer) {
         return {
           question_number: question.number,
           subject: question.subject,
           user_answer: userAnswer,
-          correct_answer: correctAnswer,
+          correct_answer: normalizedAnswer,
           status: "correct",
         }
       }
@@ -642,19 +528,23 @@ export default function ExamYearPage() {
         question_number: question.number,
         subject: question.subject,
         user_answer: userAnswer,
-        correct_answer: correctAnswer,
+        correct_answer: normalizedAnswer,
         status: "wrong",
       }
     })
 
-    const validQuestions = resultsByQuestion.filter(
-      (item) => item.status !== "annulled"
-    )
-
-    const correctAnswers = resultsByQuestion.filter((item) => item.status === "correct").length
-    const wrongAnswers = resultsByQuestion.filter((item) => item.status === "wrong").length
-    const unansweredCount = resultsByQuestion.filter((item) => item.status === "blank").length
-    const annulledCount = resultsByQuestion.filter((item) => item.status === "annulled").length
+    const correctAnswers = resultsByQuestion.filter(
+      (item) => item.status === "correct"
+    ).length
+    const wrongAnswers = resultsByQuestion.filter(
+      (item) => item.status === "wrong"
+    ).length
+    const unansweredCount = resultsByQuestion.filter(
+      (item) => item.status === "blank"
+    ).length
+    const annulledCount = resultsByQuestion.filter(
+      (item) => item.status === "annulled"
+    ).length
 
     const grouped = new Map<
       string,
@@ -679,21 +569,8 @@ export default function ExamYearPage() {
       grouped.set(item.subject, current)
     }
 
-    return {
-      title: exam.title || `ENEM ${examYear} — Prova Oficial`,
-      exam_type: "enem",
-      year: examYear,
-      total_questions: questions.length,
-      correct_answers: correctAnswers,
-      wrong_answers: wrongAnswers,
-      unanswered_count: unansweredCount,
-      annulled_count: annulledCount,
-      score_percentage:
-        validQuestions.length > 0
-          ? Number(((correctAnswers / validQuestions.length) * 100).toFixed(1))
-          : 0,
-      results_by_question: resultsByQuestion,
-      subjects_summary: Array.from(grouped.entries()).map(([subject, item]) => {
+    const subjectsSummary: SubjectSummary[] = Array.from(grouped.entries()).map(
+      ([subject, item]) => {
         const validTotal = item.total - item.annulled
         return {
           subject,
@@ -703,129 +580,136 @@ export default function ExamYearPage() {
           blank: item.blank,
           annulled: item.annulled,
           accuracy_percentage:
-            validTotal > 0 ? Number(((item.correct / validTotal) * 100).toFixed(1)) : 0,
+            validTotal > 0
+              ? Number(((item.correct / validTotal) * 100).toFixed(1))
+              : 0,
         }
-      }),
+      }
+    )
+
+    const validQuestions = questions.length - annulledCount
+
+    return {
+      title: exam.title || `ENEM ${examYear}`,
+      exam_type: "enem",
+      year: examYear,
+      total_questions: questions.length,
+      correct_answers: correctAnswers,
+      wrong_answers: wrongAnswers,
+      unanswered_count: unansweredCount,
+      annulled_count: annulledCount,
+      score_percentage:
+        validQuestions > 0
+          ? Number(((correctAnswers / validQuestions) * 100).toFixed(1))
+          : 0,
+      results_by_question: resultsByQuestion,
+      subjects_summary: subjectsSummary,
     }
   }
 
   async function handleSubmit() {
-  if (questions.length === 0 || submitting) return
-
-  try {
-    setSubmitting(true)
-    setError(null)
-
-    const payload = questions.map((question) => ({
-      number: question.number,
-      question_number: question.number,
-      answer: answers[question.number] ?? null,
-    }))
+    if (questions.length === 0 || submitting) return
 
     try {
-      const remoteResult = await submitExamAnswers("enem", examYear, payload)
-      const localFallback = buildLocalResult()
+      setSubmitting(true)
+      setError(null)
 
-      const normalized: ExamResult = {
-        title: exam.title || `ENEM ${examYear} — Prova Oficial`,
-        exam_type: "enem",
-        year: examYear,
-        total_questions:
-          Number((remoteResult as any)?.total_questions) || questions.length,
-        correct_answers: Number((remoteResult as any)?.correct_answers) || 0,
-        wrong_answers: Number((remoteResult as any)?.wrong_answers) || 0,
-        unanswered_count: Number((remoteResult as any)?.unanswered_count) || 0,
-        annulled_count: Number((remoteResult as any)?.annulled_count) || 0,
-        score_percentage: Number((remoteResult as any)?.score_percentage) || 0,
-        results_by_question: Array.isArray((remoteResult as any)?.results_by_question)
-          ? (remoteResult as any).results_by_question
-          : localFallback.results_by_question,
-        subjects_summary: Array.isArray((remoteResult as any)?.subjects_summary)
-          ? (remoteResult as any).subjects_summary
-          : localFallback.subjects_summary,
-      }
+      const orderedAnswers = questions.map(
+        (question) => answers[question.number] ?? null
+      )
 
-      void trackStudyEvent({
-        eventType: "exam_corrected",
-        module: "provas",
-        scorePercentage: normalized.score_percentage,
-        metadata: {
+      try {
+        const remoteResult = await submitExamAnswers(
+          "enem",
+          examYear,
+          orderedAnswers
+        )
+        const localFallback = buildLocalResult()
+
+        const normalized: ExamResult = {
+          title: exam.title || `ENEM ${examYear}`,
           exam_type: "enem",
           year: examYear,
-          total_questions: normalized.total_questions,
-          correct_answers: normalized.correct_answers,
-          wrong_answers: normalized.wrong_answers,
-          unanswered_count: normalized.unanswered_count,
-          annulled_count: normalized.annulled_count,
-          is_partial: normalized.unanswered_count > 0,
-        },
-      })
+          total_questions:
+            Number((remoteResult as any)?.total_questions) || questions.length,
+          correct_answers:
+            Number((remoteResult as any)?.correct_answers) ??
+            localFallback.correct_answers,
+          wrong_answers:
+            Number((remoteResult as any)?.wrong_answers) ??
+            localFallback.wrong_answers,
+          unanswered_count:
+            Number((remoteResult as any)?.unanswered_count) ??
+            localFallback.unanswered_count,
+          annulled_count:
+            Number((remoteResult as any)?.annulled_count) ??
+            localFallback.annulled_count,
+          score_percentage:
+            Number((remoteResult as any)?.score_percentage) ||
+            localFallback.score_percentage,
+          results_by_question: Array.isArray(
+            (remoteResult as any)?.results_by_question
+          )
+            ? (remoteResult as any).results_by_question
+            : localFallback.results_by_question,
+          subjects_summary: Array.isArray(
+            (remoteResult as any)?.subjects_summary
+          )
+            ? (remoteResult as any).subjects_summary
+            : localFallback.subjects_summary,
+        }
 
-      if (normalized.unanswered_count === 0) {
-        saveRecentAttempt({
-          id: `prova-enem-${examYear}-${Date.now()}`,
-          module: "provas",
-          title: normalized.title,
-          scorePercentage: normalized.score_percentage,
-          correctAnswers: normalized.correct_answers,
-          totalQuestions: normalized.total_questions,
-          createdAt: new Date().toISOString(),
-          subjects: normalized.subjects_summary.map((item) => ({
-            subject: item.subject,
-            accuracyPercentage: item.accuracy_percentage,
-          })),
-        })
+        localStorage.setItem(resultStorageKey, JSON.stringify(normalized))
+        setResult(normalized)
+
+        if (normalized.unanswered_count === 0) {
+          saveRecentAttempt({
+            id: `prova-enem-${examYear}-${Date.now()}`,
+            module: "provas",
+            title: normalized.title,
+            scorePercentage: normalized.score_percentage,
+            correctAnswers: normalized.correct_answers,
+            totalQuestions: normalized.total_questions,
+            createdAt: new Date().toISOString(),
+            subjects: normalized.subjects_summary.map((item) => ({
+              subject: item.subject,
+              accuracyPercentage: item.accuracy_percentage,
+            })),
+          })
+        }
+      } catch {
+        const localResult = buildLocalResult()
+        localStorage.setItem(resultStorageKey, JSON.stringify(localResult))
+        setResult(localResult)
+
+        if (localResult.unanswered_count === 0) {
+          saveRecentAttempt({
+            id: `prova-enem-${examYear}-${Date.now()}`,
+            module: "provas",
+            title: localResult.title,
+            scorePercentage: localResult.score_percentage,
+            correctAnswers: localResult.correct_answers,
+            totalQuestions: localResult.total_questions,
+            createdAt: new Date().toISOString(),
+            subjects: localResult.subjects_summary.map((item) => ({
+              subject: item.subject,
+              accuracyPercentage: item.accuracy_percentage,
+            })),
+          })
+        }
       }
 
-      localStorage.setItem(resultStorageKey, JSON.stringify(normalized))
-      setResult(normalized)
-    } catch {
-      const localResult = buildLocalResult()
-
-      void trackStudyEvent({
-        eventType: "exam_corrected",
-        module: "provas",
-        scorePercentage: localResult.score_percentage,
-        metadata: {
-          exam_type: "enem",
-          year: examYear,
-          total_questions: localResult.total_questions,
-          correct_answers: localResult.correct_answers,
-          wrong_answers: localResult.wrong_answers,
-          unanswered_count: localResult.unanswered_count,
-          annulled_count: localResult.annulled_count,
-          is_partial: localResult.unanswered_count > 0,
-          source: "local_fallback",
-        },
-      })
-
-      if (localResult.unanswered_count === 0) {
-        saveRecentAttempt({
-          id: `prova-enem-${examYear}-${Date.now()}`,
-          module: "provas",
-          title: localResult.title,
-          scorePercentage: localResult.score_percentage,
-          correctAnswers: localResult.correct_answers,
-          totalQuestions: localResult.total_questions,
-          createdAt: new Date().toISOString(),
-          subjects: localResult.subjects_summary.map((item) => ({
-            subject: item.subject,
-            accuracyPercentage: item.accuracy_percentage,
-          })),
-        })
-      }
-
-      localStorage.setItem(resultStorageKey, JSON.stringify(localResult))
-      setResult(localResult)
+      setTimeout(() => {
+        resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 120)
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Não foi possível corrigir a prova."
+      )
+    } finally {
+      setSubmitting(false)
     }
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "Não foi possível corrigir a prova."
-    )
-  } finally {
-    setSubmitting(false)
   }
-}
 
   if (loading) {
     return (
@@ -846,652 +730,397 @@ export default function ExamYearPage() {
     )
   }
 
-  if (result && visualStatus === "finished") {
+  if (!currentQuestion) {
     return (
-      <div className="space-y-6">
-        {warning ? (
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            {warning}
-          </div>
-        ) : null}
-
-        <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
-            <CheckCircle2 className="size-4" />
-            Prova finalizada
-          </div>
-
-          <h1 className="mt-5 text-5xl font-bold tracking-tight text-white">
-            ENEM {examYear}
-          </h1>
-
-          <p className="mt-4 text-2xl text-[#7ea0d6]">
-            Desempenho:{" "}
-            <span className="font-semibold text-white">
-              {result.score_percentage.toFixed(1)}%
-            </span>{" "}
-            de acerto
-          </p>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-4">
-          <StatCard label="Acertos" value={String(result.correct_answers)} />
-          <StatCard label="Erros" value={String(result.wrong_answers)} />
-          <StatCard label="Em branco" value={String(result.unanswered_count)} />
-          <StatCard label="Aproveitamento" value={`${result.score_percentage.toFixed(1)}%`} />
-        </section>
-
-        <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-          <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-            <h2 className="text-3xl font-bold tracking-tight text-white">
-              Desempenho por disciplina
-            </h2>
-            <p className="mt-2 text-base text-[#7ea0d6]">
-              Acertos por área de conhecimento
-            </p>
-
-            <div className="mt-6 space-y-4">
-              {result.subjects_summary.map((subject) => (
-                <div key={subject.subject} className="space-y-2">
-                  <div className="flex items-center justify-between gap-4 text-base">
-                    <span className="font-semibold text-white">{subject.subject}</span>
-                    <span className="text-[#7ea0d6]">
-                      {subject.correct}/{subject.total} • {subject.accuracy_percentage.toFixed(1)}%
-                    </span>
-                  </div>
-                  <ProgressBar value={subject.accuracy_percentage} />
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-            <h2 className="text-3xl font-bold tracking-tight text-white">
-              Prioridades de revisão
-            </h2>
-            <p className="mt-2 text-base text-[#7ea0d6]">
-              Disciplinas com pior desempenho
-            </p>
-
-            <div className="mt-6 space-y-4">
-              {weakestSubjects.map((subject, index) => (
-                <div
-                  key={subject.subject}
-                  className="flex items-center justify-between rounded-[22px] border border-white/10 bg-[#0a1428] px-4 py-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="text-2xl font-bold text-yellow-300">
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className="text-xl font-semibold text-white">
-                        {subject.subject}
-                      </div>
-                      <div className="text-sm text-[#7ea0d6]">
-                        {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="text-xl font-bold text-rose-400">
-                    {subject.accuracy_percentage.toFixed(1)}%
-                  </div>
-                </div>
-              ))}
-
-              <Link
-                href="/dashboard/estudo"
-                className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
-              >
-                Iniciar revisão guiada
-              </Link>
-            </div>
-          </article>
-        </section>
-
-        <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-          <h2 className="text-3xl font-bold tracking-tight text-white">
-            Sua revisão já está pronta
-          </h2>
-          <p className="mt-2 text-base text-[#7ea0d6]">
-            Conecte o resultado à sua área de estudo
-          </p>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Link
-              href="/dashboard/flashcards"
-              className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
-            >
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-                <Layers3 className="size-6 text-[#79a6ff]" />
-              </div>
-              <div className="mt-4 text-2xl font-bold text-white">Gerar flashcards</div>
-              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                Cards com IA das questões que você errou
-              </div>
-            </Link>
-
-            <Link
-              href="/dashboard/resumos"
-              className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-emerald-500/30"
-            >
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-                <ScrollText className="size-6 text-emerald-300" />
-              </div>
-              <div className="mt-4 text-2xl font-bold text-white">Resumo personalizado</div>
-              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                Resumo focado nos seus pontos fracos
-              </div>
-            </Link>
-
-            <Link
-              href="/dashboard/estudo"
-              className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(168,85,247,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-purple-500/30"
-            >
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-                <Map className="size-6 text-purple-300" />
-              </div>
-              <div className="mt-4 text-2xl font-bold text-white">Mapa mental</div>
-              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                Visualize conceitos centrais das matérias revisadas
-              </div>
-            </Link>
-
-            <Link
-              href="/dashboard/chat-ia"
-              className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
-            >
-              <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-                <MessageSquare className="size-6 text-[#79a6ff]" />
-              </div>
-              <div className="mt-4 text-2xl font-bold text-white">Tirar dúvidas com IA</div>
-              <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                Converse sobre as questões da prova
-              </div>
-            </Link>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-3 md:flex-row">
-          <Link
-            href={`/dashboard/provas/enem/${examYear}`}
-            className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-          >
-            Voltar à prova
-          </Link>
-
-          <Link
-            href="/dashboard/estudo"
-            className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-          >
-            Ir para Área de Estudo
-          </Link>
-        </section>
+      <div className="rounded-[24px] border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+        Nenhuma questão disponível para esta prova.
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {warning ? (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           {warning}
         </div>
       ) : null}
 
-      {result && visualStatus === "in_progress" ? (
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          Correção parcial carregada. A prova não foi finalizada porque ainda existem questões em branco.
-        </div>
-      ) : null}
-
       <section className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(41,98,255,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8">
-        <div className="grid gap-8 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="flex flex-wrap items-start justify-between gap-6">
           <div>
-            <div
-              className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm ${
-                visualStatus === "finished"
-                  ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-                  : visualStatus === "in_progress"
-                  ? "border border-amber-500/20 bg-amber-500/10 text-amber-200"
-                  : "border border-[#2f7cff]/25 bg-[#2f7cff]/10 text-[#79a6ff]"
-              }`}
-            >
-              {visualStatus === "finished" ? (
-                <CheckCircle2 className="size-4" />
-              ) : visualStatus === "in_progress" ? (
-                <PauseCircle className="size-4" />
-              ) : (
-                <FileText className="size-4" />
-              )}
-              {visualStatus === "finished"
-                ? "Prova finalizada"
-                : visualStatus === "in_progress"
-                ? "Prova em andamento"
-                : "Prova oficial"}
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#2f7cff]/25 bg-[#2f7cff]/10 px-4 py-2 text-sm text-[#79a6ff]">
+              <GraduationCap className="size-4" />
+              Prova oficial
             </div>
 
-            <h1 className="mt-6 text-5xl font-bold tracking-tight text-white">
+            <h1 className="mt-5 text-5xl font-bold tracking-tight text-white">
               ENEM {examYear}
             </h1>
-            <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-              {exam.description || "Prova oficial disponível para resolução completa."}
+
+            <p className="mt-4 max-w-3xl text-xl leading-8 text-[#7ea0d6]">
+              {exam.description || `Prova oficial do ENEM ${examYear}.`}
             </p>
-
-            <div className="mt-8 grid gap-4 md:grid-cols-3">
-              <InfoCard label="Instituição" value={exam.institution || "ENEM"} />
-              <InfoCard label="Ano" value={String(exam.year || examYear)} />
-              <InfoCard label="Questões" value={String(exam.question_count || questions.length)} />
-            </div>
-
-            {result && visualStatus === "in_progress" ? (
-              <div className="mt-8 grid gap-4 md:grid-cols-4">
-                <StatCard label="Respondidas" value={String(answeredCount)} />
-                <StatCard label="Acertos parciais" value={String(result.correct_answers)} />
-                <StatCard label="Erros parciais" value={String(result.wrong_answers)} />
-                <StatCard label="Em branco" value={String(result.unanswered_count)} />
-              </div>
-            ) : null}
-
-            <div className="mt-8 flex flex-col gap-3 md:flex-row">
-              <button
-                type="button"
-                onClick={handleStartOrContinue}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-6 py-4 text-xl font-semibold text-white transition hover:opacity-90"
-              >
-                <Play className="size-5" />
-                {answeredCount > 0 || hasStarted ? "Continuar prova" : "Iniciar prova"}
-              </button>
-
-              {(answeredCount > 0 || hasStarted || result) && (
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#030b1d] px-6 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
-                >
-                  <RefreshCw className="size-5" />
-                  Reiniciar tentativa
-                </button>
-              )}
-            </div>
           </div>
 
-          <div className="grid gap-6">
-            <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-              <h2 className="text-3xl font-bold tracking-tight text-white">
-                Recursos disponíveis
-              </h2>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/dashboard/provas/enem"
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              <ArrowLeft className="size-4" />
+              Voltar
+            </Link>
 
-              <div className="mt-6 space-y-5">
-                <ResourceRow label="Gabarito oficial" available={Boolean(exam.has_answer_key)} />
-                <ResourceRow
-                  label="PDF da prova original"
-                  available={Boolean(exam.pdfs?.length || exam.official_page_url)}
-                />
-                <ResourceRow label="Comentários por IA" available />
-                <ResourceRow label="Análise por disciplina" available />
-                <ResourceRow label="Geração de flashcards" available={visualStatus === "finished"} />
-              </div>
-            </section>
-
-            <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-              <h2 className="text-3xl font-bold tracking-tight text-white">
-                Sua revisão
-              </h2>
-              <p className="mt-2 text-base text-[#7ea0d6]">
-                {visualStatus === "finished"
-                  ? "Conecte o resultado à sua área de estudo"
-                  : "Finalize a prova para liberar revisão completa e materiais automáticos"}
-              </p>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <Link
-                  href="/dashboard/flashcards"
-                  className={`rounded-[24px] border p-5 transition ${
-                    visualStatus === "finished"
-                      ? "border-white/10 bg-[#12244a] hover:border-[#2f7cff]/40"
-                      : "border-white/10 bg-white/5 opacity-70"
-                  }`}
-                >
-                  <div className="text-2xl font-bold text-white">Gerar flashcards</div>
-                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                    Cards com IA das questões que você errou
-                  </div>
-                </Link>
-
-                <Link
-                  href="/dashboard/resumos"
-                  className={`rounded-[24px] border p-5 transition ${
-                    visualStatus === "finished"
-                      ? "border-white/10 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(14,35,71,0.7))] hover:border-emerald-500/30"
-                      : "border-white/10 bg-white/5 opacity-70"
-                  }`}
-                >
-                  <div className="text-2xl font-bold text-white">Resumo personalizado</div>
-                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                    Resumo focado nos seus pontos fracos
-                  </div>
-                </Link>
-
-                <Link
-                  href="/dashboard/estudo"
-                  className={`rounded-[24px] border p-5 transition ${
-                    visualStatus === "finished"
-                      ? "border-white/10 bg-[linear-gradient(135deg,_rgba(168,85,247,0.14),_rgba(14,35,71,0.7))] hover:border-purple-500/30"
-                      : "border-white/10 bg-white/5 opacity-70"
-                  }`}
-                >
-                  <div className="text-2xl font-bold text-white">Mapa mental</div>
-                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                    Visualize conceitos centrais das matérias revisadas
-                  </div>
-                </Link>
-
-                <Link
-                  href="/dashboard/chat-ia"
-                  className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
-                >
-                  <div className="text-2xl font-bold text-white">Tirar dúvidas com IA</div>
-                  <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-                    Converse sobre as questões da prova
-                  </div>
-                </Link>
-              </div>
-            </section>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              <RotateCcw className="size-4" />
+              Reiniciar
+            </button>
           </div>
+        </div>
+
+        <div className="mt-8 grid gap-4 md:grid-cols-4">
+          <StatCard label="Questões" value={String(questions.length)} />
+          <StatCard label="Respondidas" value={String(answeredCount)} />
+          <StatCard label="Em branco" value={String(questions.length - answeredCount)} />
+          <StatCard label="Progresso" value={`${progressPercent}%`} />
+        </div>
+
+        <div className="mt-6">
+          <ProgressBar value={progressPercent} />
         </div>
       </section>
 
-      {hasStarted && currentQuestion ? (
-        <section ref={resolverRef} className="grid gap-6 xl:grid-cols-[1fr_320px]">
-          <div className="space-y-6">
-            <div className="rounded-[28px] border border-white/10 bg-[#071225] p-5">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex flex-wrap items-center gap-4">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-2 text-lg text-white"
-                  >
-                    <ArrowLeft className="size-5" />
-                    Sair
-                  </button>
-
-                  <div className="hidden h-8 w-px bg-white/10 xl:block" />
-
-                  <div className="text-sm text-slate-400">
-                    Salvamento automático
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowAnswerSheet(true)}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-[#030b1d] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#0a1730]"
-                  >
-                    <Menu className="size-5" />
-                    Folha de respostas
-                    <span className="rounded-full bg-[#132544] px-2 py-0.5 text-sm text-[#79a6ff]">
-                      {answeredCount}/{questions.length}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => void handleSubmit()}
-                    disabled={submitting}
-                    className="rounded-2xl bg-emerald-400 px-5 py-3 text-lg font-semibold text-[#071225] transition hover:opacity-90 disabled:opacity-60"
-                  >
-                    {submitting ? "Corrigindo..." : visualStatus === "finished" ? "Recalcular" : "Corrigir agora"}
-                  </button>
-                </div>
+      {result ? (
+        <section
+          ref={resultRef}
+          className="rounded-[28px] border border-white/10 bg-[#071225] p-6"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+                <CheckCircle2 className="size-4" />
+                {result.unanswered_count === 0
+                  ? "Correção final"
+                  : "Correção parcial"}
               </div>
+
+              <h2 className="mt-4 text-3xl font-bold text-white">
+                Resultado da prova
+              </h2>
+              <p className="mt-2 text-base text-[#7ea0d6]">
+                Agora você consegue ver o que acertou, errou, deixou em branco e
+                quais questões foram anuladas.
+              </p>
             </div>
 
-            <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
-              <div className="flex flex-wrap gap-3 text-sm text-slate-300">
-                {currentQuestion.day ? <Badge>{`${currentQuestion.day}º dia`}</Badge> : null}
-                <Badge>{currentQuestion.area || "Área"}</Badge>
-                <Badge>{currentQuestion.subject}</Badge>
+            <div className="text-right">
+              <div className="text-sm text-slate-400">Aproveitamento</div>
+              <div className="mt-2 text-4xl font-bold text-white">
+                {result.score_percentage.toFixed(1)}%
               </div>
-
-              <div className="mt-6 grid gap-6 xl:grid-cols-[56px_1fr]">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#0f2a51] text-2xl font-bold text-[#79a6ff]">
-                  {currentQuestion.number}
-                </div>
-
-                <div className="space-y-6">
-                  <RichContent text={currentQuestion.statement} className="text-[19px] leading-10 text-white" />
-
-                  <div className="grid gap-4">
-                    {Object.entries(currentQuestion.options).map(([key, value]) => {
-                      const selected = answers[currentQuestion.number] === key
-
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => handleSelectAnswer(currentQuestion.number, key)}
-                          className={`rounded-[24px] border px-5 py-5 text-left text-xl transition ${
-                            selected
-                              ? "border-[#2f7cff]/40 bg-[#2f7cff]/10 text-white"
-                              : "border-white/10 bg-[#081224] text-white hover:bg-[#0a1730]"
-                          }`}
-                        >
-                          <div className="flex gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#132544] font-bold text-[#79a6ff]">
-                              {key}
-                            </div>
-                            <div className="flex-1 leading-9">{value}</div>
-                          </div>
-                        </button>
-                      )
-                    })}
-                  </div>
-
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <button
-                      type="button"
-                      onClick={handlePrev}
-                      disabled={currentIndex === 0}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730] disabled:opacity-50"
-                    >
-                      <ChevronLeft className="size-5" />
-                      Anterior
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleReviewFlag(currentQuestion.number)}
-                      className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-5 py-4 text-xl font-semibold transition ${
-                        reviewFlags.includes(currentQuestion.number)
-                          ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
-                          : "border-white/10 bg-transparent text-white hover:bg-white/5"
-                      }`}
-                    >
-                      <Flag className="size-5" />
-                      Marcar para revisão
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleNext}
-                      disabled={currentIndex >= questions.length - 1}
-                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-5 py-4 text-xl font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-                    >
-                      Próxima
-                      <ChevronRight className="size-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
+            </div>
           </div>
 
-          <aside className="hidden xl:block">
-            <AnswerSheetPanel
-              questions={questions}
-              answers={answers}
-              reviewFlags={reviewFlags}
-              currentIndex={currentIndex}
-              onSelectIndex={goToQuestion}
-            />
-          </aside>
+          <div className="mt-6 grid gap-4 md:grid-cols-4">
+            <StatCard label="Acertos" value={String(result.correct_answers)} />
+            <StatCard label="Erros" value={String(result.wrong_answers)} />
+            <StatCard label="Em branco" value={String(result.unanswered_count)} />
+            <StatCard label="Anuladas" value={String(result.annulled_count)} />
+          </div>
+
+          <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_1fr]">
+            <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <h3 className="text-2xl font-bold text-white">
+                Desempenho por disciplina
+              </h3>
+
+              <div className="mt-5 space-y-4">
+                {result.subjects_summary.map((subject) => (
+                  <div key={subject.subject} className="space-y-2">
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="font-semibold text-white">
+                        {subject.subject}
+                      </span>
+                      <span className="text-[#7ea0d6]">
+                        {subject.correct}/{subject.total} •{" "}
+                        {subject.accuracy_percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                    <ProgressBar value={subject.accuracy_percentage} />
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <h3 className="text-2xl font-bold text-white">
+                Correção questão por questão
+              </h3>
+
+              <div className="mt-5 space-y-3">
+                {result.results_by_question.map((item) => (
+                  <div
+                    key={item.question_number}
+                    className={`rounded-2xl border px-4 py-3 text-sm ${
+                      item.status === "correct"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                        : item.status === "wrong"
+                        ? "border-rose-500/30 bg-rose-500/10 text-rose-200"
+                        : item.status === "blank"
+                        ? "border-slate-500/30 bg-slate-500/10 text-slate-300"
+                        : "border-yellow-500/30 bg-yellow-500/10 text-yellow-200"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="font-semibold text-white">
+                        Questão {item.question_number} • {item.subject}
+                      </div>
+                      <div>
+                        {item.status === "correct"
+                          ? "Acertou"
+                          : item.status === "wrong"
+                          ? "Errou"
+                          : item.status === "blank"
+                          ? "Em branco"
+                          : "Anulada"}
+                      </div>
+                    </div>
+
+                    <div className="mt-2">
+                      Sua resposta: {item.user_answer ?? "—"} | Gabarito:{" "}
+                      {item.correct_answer ?? "—"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </div>
         </section>
       ) : null}
 
-      {showAnswerSheet ? (
-        <div className="fixed inset-0 z-50 bg-black/60 p-4 backdrop-blur-sm xl:hidden">
-          <div className="mx-auto h-full max-w-md overflow-y-auto rounded-[28px] border border-white/10 bg-[#071225] p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <div className="text-xl font-bold text-white">Folha de respostas</div>
-                <div className="text-sm text-[#7ea0d6]">
-                  {answeredCount}/{questions.length} respondidas
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowAnswerSheet(false)}
-                className="rounded-2xl border border-white/10 bg-white/5 p-3 text-white"
-              >
-                <X className="size-5" />
-              </button>
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-400">
+                Questão {currentIndex + 1} de {questions.length}
+              </p>
+              <h2 className="mt-2 text-3xl font-bold text-white">
+                Nº {currentQuestion.number}
+              </h2>
+              <p className="mt-2 text-sm text-[#7ea0d6]">
+                Disciplina: {currentQuestion.subject}
+              </p>
+              {currentQuestion.source_pdf_label ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Referência: {currentQuestion.source_pdf_label}
+                </p>
+              ) : null}
             </div>
 
-            <AnswerSheetPanel
-              questions={questions}
-              answers={answers}
-              reviewFlags={reviewFlags}
-              currentIndex={currentIndex}
-              onSelectIndex={goToQuestion}
+            <button
+              type="button"
+              onClick={() => toggleReviewFlag(currentQuestion.number)}
+              className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
+                reviewFlags.includes(currentQuestion.number)
+                  ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-200"
+                  : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+              }`}
+            >
+              <Flag className="size-4" />
+              {reviewFlags.includes(currentQuestion.number)
+                ? "Marcada para revisão"
+                : "Marcar para revisão"}
+            </button>
+          </div>
+
+          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+            <RichContent text={currentQuestion.statement} />
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {OPTION_KEYS.filter((key) => currentQuestion.options[key]).map((key) => {
+              const isSelected = answers[currentQuestion.number] === key
+              const resultItem = result?.results_by_question.find(
+                (item) => item.question_number === currentQuestion.number
+              )
+              const isCorrectOption =
+                resultItem?.correct_answer === key &&
+                resultItem.status !== "annulled"
+              const isWrongSelected =
+                resultItem?.user_answer === key && resultItem.status === "wrong"
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleSelectAnswer(currentQuestion.number, key)}
+                  className={`w-full rounded-[24px] border p-5 text-left transition ${
+                    isSelected
+                      ? "border-[#2f7cff]/40 bg-[#2f7cff]/10"
+                      : "border-white/10 bg-[#071225] hover:border-white/20 hover:bg-white/[0.03]"
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`mt-1 flex size-10 shrink-0 items-center justify-center rounded-2xl text-lg font-bold ${
+                        isCorrectOption
+                          ? "bg-emerald-500/20 text-emerald-300"
+                          : isWrongSelected
+                          ? "bg-rose-500/20 text-rose-300"
+                          : "bg-[#11306a] text-[#8fb5ff]"
+                      }`}
+                    >
+                      {key}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <RichContent
+                        text={currentQuestion.options[key]}
+                        className="text-lg leading-9 text-slate-100"
+                      />
+
+                      {result ? (
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                          {isCorrectOption ? (
+                            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-semibold text-emerald-300">
+                              Gabarito
+                            </span>
+                          ) : null}
+
+                          {isWrongSelected ? (
+                            <span className="rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 font-semibold text-rose-300">
+                              Sua resposta incorreta
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handlePrev}
+              disabled={currentIndex === 0}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ChevronLeft className="size-4" />
+              Anterior
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#4b8df7] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="size-4" />
+              )}
+              {submitting ? "Corrigindo..." : "Corrigir agora"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={currentIndex === questions.length - 1}
+              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Próxima
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+              {error}
+            </div>
+          ) : null}
+        </article>
+
+        <aside className="rounded-[28px] border border-white/10 bg-[#071225] p-5 xl:sticky xl:top-6 xl:h-fit">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-xl font-bold text-white">Mapa de questões</h3>
+            <span className="text-sm text-slate-400">{answeredCount}/{questions.length}</span>
+          </div>
+
+          <div className="mt-4">
+            <ProgressBar value={progressPercent} />
+          </div>
+
+          <div className="mt-6 grid grid-cols-4 gap-3">
+            {questions.map((question, index) => {
+              const isAnswered = Boolean(answers[question.number])
+              const isFlagged = reviewFlags.includes(question.number)
+              const resultStatus = resultStatusMap.get(question.number)
+
+              return (
+                <button
+                  key={question.number}
+                  type="button"
+                  onClick={() => goToQuestion(index)}
+                  className={`rounded-2xl border px-3 py-3 text-sm font-semibold transition ${questionButtonClass(
+                    {
+                      isCurrent: index === currentIndex,
+                      isAnswered,
+                      isFlagged,
+                      resultStatus,
+                    }
+                  )}`}
+                >
+                  {question.number}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="mt-6 space-y-3 text-xs">
+            <LegendItem
+              icon={<CheckCircle2 className="size-4 text-emerald-300" />}
+              label="Acertou"
+            />
+            <LegendItem
+              icon={<XCircle className="size-4 text-rose-300" />}
+              label="Errou"
+            />
+            <LegendItem
+              icon={<Flag className="size-4 text-yellow-300" />}
+              label="Marcada para revisão"
+            />
+            <LegendItem
+              icon={<FileText className="size-4 text-slate-300" />}
+              label="Ainda não respondida"
             />
           </div>
-        </div>
-      ) : null}
+        </aside>
+      </section>
     </div>
   )
 }
 
-function AnswerSheetPanel({
-  questions,
-  answers,
-  reviewFlags,
-  currentIndex,
-  onSelectIndex,
-}: {
-  questions: ExamQuestion[]
-  answers: Record<number, string>
-  reviewFlags: number[]
-  currentIndex: number
-  onSelectIndex: (index: number) => void
-}) {
-  const answeredCount = Object.keys(answers).filter((key) => Boolean(answers[Number(key)])).length
-
-  return (
-    <section className="rounded-[28px] border border-white/10 bg-[#071225] p-5">
-      <div className="mb-5">
-        <div className="text-2xl font-bold text-white">Folha de respostas</div>
-        <div className="mt-1 text-sm text-[#7ea0d6]">
-          {answeredCount}/{questions.length} respondidas
-        </div>
-      </div>
-
-      <div className="grid grid-cols-5 gap-3">
-        {questions.map((question, index) => {
-          const isCurrent = index === currentIndex
-          const isAnswered = Boolean(answers[question.number])
-          const isReview = reviewFlags.includes(question.number)
-
-          const style = isCurrent
-            ? badgeClass("current")
-            : isReview
-            ? badgeClass("review")
-            : isAnswered
-            ? badgeClass("answered")
-            : badgeClass("blank")
-
-          return (
-            <button
-              key={question.number}
-              type="button"
-              onClick={() => onSelectIndex(index)}
-              className={`flex h-12 items-center justify-center rounded-2xl border text-sm font-semibold transition hover:opacity-90 ${style}`}
-            >
-              {question.number}
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="mt-5 flex flex-wrap gap-4 text-xs text-[#7ea0d6]">
-        <span className="inline-flex items-center gap-2">
-          <span className="size-3 rounded-full bg-emerald-400" />
-          Respondida
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="size-3 rounded-full bg-yellow-300" />
-          Revisão
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="size-3 rounded-full bg-[#4b8df7]" />
-          Atual
-        </span>
-        <span className="inline-flex items-center gap-2">
-          <span className="size-3 rounded-full bg-slate-400" />
-          Pendente
-        </span>
-      </div>
-    </section>
-  )
-}
-
-function InfoCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
-      <div className="text-sm text-slate-400">{label}</div>
-      <div className="mt-3 text-4xl font-bold tracking-tight text-white">{value}</div>
-    </div>
-  )
-}
-
-function ResourceRow({
+function LegendItem({
+  icon,
   label,
-  available,
 }: {
+  icon: React.ReactNode
   label: string
-  available: boolean
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="text-2xl text-white">{label}</div>
-      <div
-        className={`rounded-full px-3 py-1 text-sm font-medium ${
-          available
-            ? "bg-emerald-500/15 text-emerald-300"
-            : "bg-white/5 text-slate-400"
-        }`}
-      >
-        {available ? "Disponível" : "Indisponível"}
-      </div>
+    <div className="flex items-center gap-2 text-slate-300">
+      {icon}
+      <span>{label}</span>
     </div>
-  )
-}
-
-function Badge({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-200">
-      {children}
-    </div>
-  )
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-  return (
-    <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
-      <p className="text-sm text-slate-400">{label}</p>
-      <h3 className="mt-3 text-3xl font-bold text-white">{value}</h3>
-    </article>
   )
 }
