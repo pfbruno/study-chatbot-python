@@ -66,7 +66,10 @@ function stripMediaAndLinks(value: string) {
   return normalizeWhitespace(
     value
       .replace(/!\[[^\]]*]\((https?:\/\/[^\s)]+)\)/gi, " ")
-      .replace(/\[(?:imagem|Imagem)[^\]]*?(https?:\/\/[^\]\s]+\.(?:png|jpg|jpeg|webp|gif|svg))\s*\]/gi, " ")
+      .replace(
+        /\[(?:imagem|Imagem)[^\]]*?(https?:\/\/[^\]\s]+\.(?:png|jpg|jpeg|webp|gif|svg))\s*\]/gi,
+        " "
+      )
       .replace(/https?:\/\/[^\s]+/gi, " ")
   )
 }
@@ -79,7 +82,7 @@ function shorten(value: string, max = 180) {
 
 function firstSentence(value: string) {
   const normalized = stripMediaAndLinks(value)
-  const match = normalized.match(/(.+?[.!?])(\\s|$)/)
+  const match = normalized.match(/(.+?[.!?])(\s|$)/)
   if (match?.[1]) return shorten(match[1], 180)
   return shorten(normalized, 180)
 }
@@ -92,10 +95,14 @@ function extractFormula(value: string) {
     .filter(Boolean)
 
   const formulaLike = lines.find((line) => {
+    const lower = line.toLowerCase()
+
     return (
       /[=Δ∆]/.test(line) ||
-      /\\bvm\\b|\\bvelocidade média\\b|\\bdensidade\\b|\\bforça\\b|\\benergia\\b/i.test(line) ||
-      /[a-zA-Z0-9)]\\s*\\/\\s*[a-zA-Z0-9(]/.test(line)
+      /\bvm\b|\bvelocidade média\b|\bdensidade\b|\bforça\b|\benergia\b/i.test(
+        line
+      ) ||
+      (line.includes("/") && /[a-zA-Z0-9)]/.test(line))
     )
   })
 
@@ -142,7 +149,7 @@ function buildDirectExplanation(
       `Conceito cobrado: ${cue}`,
       `Gabarito: alternativa ${correctLetter}.`,
       `Ponto central da resolução: ${formula}.`,
-      `Memorização objetiva: quando a alternativa correta traz uma relação matemática ou física explícita, o foco do seu cartão deve ser a fórmula e o significado dos termos.`,
+      `Memorização objetiva: quando a alternativa correta traz uma relação matemática ou física explícita, o foco do cartão deve ser a fórmula e o significado dos termos.`,
     ].join("\n")
   }
 
@@ -151,8 +158,11 @@ function buildDirectExplanation(
   return [
     `Conceito cobrado: ${cue}`,
     `Gabarito: alternativa ${correctLetter}.`,
-    `Explicação direta: ${optionSentence || "A resposta correta depende do conceito central apresentado no enunciado."}`,
-    `Memorização objetiva: o seu resumo deve guardar a ideia correta em linguagem curta, sem orientação genérica de estudo.`,
+    `Explicação direta: ${
+      optionSentence ||
+      "A resposta correta depende do conceito central apresentado no enunciado."
+    }`,
+    `Memorização objetiva: o resumo deve guardar a ideia correta em linguagem curta, sem orientação genérica de estudo.`,
   ].join("\n")
 }
 
@@ -223,8 +233,7 @@ export function buildReviewFlashcards(data: ReviewSourceData): ReviewCard[] {
 
     const back = formula
       ? formula
-      : firstSentence(correctText) ||
-        `Alternativa correta: ${item.correct_answer}.`
+      : firstSentence(correctText) || `Alternativa correta: ${item.correct_answer}.`
 
     return {
       id: `${item.subject}-${item.question_number}`,
