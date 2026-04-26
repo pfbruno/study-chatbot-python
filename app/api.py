@@ -12,6 +12,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from app.chat_router import router as chat_router
+from app.mercado_pago_router import router as mercado_pago_router
 
 from app.analytics import (
     most_frequent_category,
@@ -109,6 +110,7 @@ app.add_middleware(
 app.include_router(exams_v2_router, prefix="/v2")
 app.include_router(recommendations_v2_router)
 app.include_router(chat_router)
+app.include_router(mercado_pago_router)
 app.middleware("http")(timing_middleware)
 
 
