@@ -275,6 +275,35 @@ def get_billing_public_config() -> dict:
         "config_map": get_provider_config_map(),
     }
 
+@router.get("/billing/mercadopago/webhook/config")
+def get_mercado_pago_webhook_config(
+    authorization: str | None = Header(default=None),
+    x_bootstrap_secret: str | None = Header(default=None),
+) -> dict:
+    ensure_billing_tables()
+
+    user = _get_current_user_or_401(authorization)
+    _enforce_bootstrap_permission(user, x_bootstrap_secret)
+
+    backend_base_url = os.getenv(
+        "BACKEND_BASE_URL",
+        "https://study-chatbot-python.onrender.com",
+    ).rstrip("/")
+
+    return {
+        "provider": "mercadopago",
+        "webhook_url": f"{backend_base_url}/billing/mercadopago/webhook",
+        "recommended_events": [
+            "payment",
+            "subscription_authorized_payment",
+            "subscription_preapproval",
+        ],
+        "secret_configured": bool(os.getenv("MERCADOPAGO_WEBHOOK_SECRET", "").strip()),
+        "message": (
+            "Cadastre esta URL no painel do Mercado Pago e depois substitua "
+            "MERCADOPAGO_WEBHOOK_SECRET pelo segredo real do webhook."
+        ),
+    }
 
 @router.post("/billing/mercadopago/plan/bootstrap")
 def bootstrap_mercado_pago_plan(

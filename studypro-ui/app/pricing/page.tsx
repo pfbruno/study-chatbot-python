@@ -25,6 +25,7 @@ import {
   type BillingPublicConfigResponse,
   type BillingUsage,
 } from "@/lib/api"
+import { normalizeBillingErrorMessage } from "@/lib/billing-errors"
 
 declare global {
   interface Window {
@@ -50,7 +51,8 @@ function PricingPageContent() {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [usage, setUsage] = useState<BillingUsage | null>(null)
   const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(null)
-  const [publicConfig, setPublicConfig] = useState<BillingPublicConfigResponse | null>(null)
+  const [publicConfig, setPublicConfig] =
+    useState<BillingPublicConfigResponse | null>(null)
 
   const [isLoadingUser, setIsLoadingUser] = useState(true)
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
@@ -149,7 +151,9 @@ function PricingPageContent() {
     script.async = true
     script.onload = () => setMercadoPagoLoaded(true)
     script.onerror = () =>
-      setErrorMessage("Não foi possível carregar o SDK do Mercado Pago.")
+      setErrorMessage(
+        "Não foi possível carregar o SDK do Mercado Pago. Verifique a chave pública e tente novamente."
+      )
     document.body.appendChild(script)
 
     return () => {
@@ -220,7 +224,9 @@ function PricingPageContent() {
         onFormMounted: (error: unknown) => {
           if (error) {
             console.error("Erro ao montar CardForm:", error)
-            setErrorMessage("Não foi possível montar o formulário do cartão.")
+            setErrorMessage(
+              "Não foi possível montar o formulário do cartão. Revise a configuração do Mercado Pago e tente novamente."
+            )
             return
           }
           formReadyRef.current = true
@@ -274,11 +280,7 @@ function PricingPageContent() {
 
             window.location.href = "/success?provider=mercadopago"
           } catch (error) {
-            setErrorMessage(
-              error instanceof Error
-                ? error.message
-                : "Erro inesperado ao criar a assinatura."
-            )
+            setErrorMessage(normalizeBillingErrorMessage(error))
           } finally {
             setIsSubmitting(false)
           }
@@ -599,12 +601,23 @@ function PricingPageContent() {
                   </div>
                 </div>
 
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs leading-6 text-amber-100">
+                  Durante os testes, o Mercado Pago pode recusar a tokenização de assinaturas com a mensagem
+                  <span className="mx-1 font-semibold text-white">
+                    Card token service not found
+                  </span>
+                  . Quando isso ocorrer, a interface está funcionando, mas a validação final precisa ser feita
+                  em produção controlada.
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
                 >
-                  {isSubmitting ? "Processando assinatura..." : "Assinar com Mercado Pago"}
+                  {isSubmitting
+                    ? "Processando assinatura..."
+                    : "Assinar com Mercado Pago"}
                 </button>
 
                 <p className="text-xs leading-6 text-slate-400">
