@@ -63,6 +63,57 @@ export type CheckoutSessionResponse = {
   checkout_url: string;
 };
 
+export type BillingPublicConfigResponse = {
+  provider: "mercadopago"
+  public_key: string
+  is_configured: boolean
+  plan_defaults: {
+    reason: string
+    transaction_amount: number
+    frequency: number
+    frequency_type: string
+    currency_id: string
+    back_url: string
+  }
+  stored_plan: {
+    plan_id: string | null
+    reason: string | null
+    transaction_amount: number | null
+    frequency: number | null
+    frequency_type: string | null
+    currency_id: string | null
+    back_url: string | null
+  }
+  config_map: Record<string, string>
+}
+
+export type MercadoPagoSubscriptionResponse = {
+  message: string
+  provider: "mercadopago"
+  subscription: {
+    id: number
+    user_id: number
+    provider: string
+    provider_plan_id: string | null
+    provider_subscription_id: string | null
+    external_reference: string | null
+    payer_email: string | null
+    status: string
+    reason: string | null
+    currency_id: string
+    transaction_amount: number
+    frequency: number
+    frequency_type: string
+    next_payment_date: string | null
+    last_webhook_at: string | null
+    raw_payload_json: string | null
+    created_at: string
+    updated_at: string
+  }
+  remote_subscription: Record<string, unknown>
+  user: AuthUser
+}
+
 export type DashboardRecentAttempt = {
   exam_id?: number;
   title?: string;
@@ -348,8 +399,35 @@ export async function getSimulationEntitlement(token?: string | null) {
   });
 }
 
-export async function createCheckoutSession(token?: string | null) {
-  return request<CheckoutSessionResponse>("/billing/checkout", {
+export async function getBillingPublicConfig() {
+  return request<BillingPublicConfigResponse>("/billing/public-config");
+}
+
+export async function createMercadoPagoSubscription(
+  payload: {
+    card_token_id: string;
+    payer_email: string;
+    identification_type?: string | null;
+    identification_number?: string | null;
+  },
+  token?: string | null
+) {
+  return request<MercadoPagoSubscriptionResponse>(
+    "/billing/mercadopago/subscriptions",
+    {
+      method: "POST",
+      token,
+      body: payload,
+    }
+  );
+}
+
+export async function cancelMercadoPagoSubscription(token?: string | null) {
+  return request<{
+    message: string;
+    subscription: Record<string, unknown>;
+    user: AuthUser;
+  }>("/billing/cancel", {
     method: "POST",
     token,
     body: {},

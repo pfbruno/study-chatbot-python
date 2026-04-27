@@ -1,13 +1,14 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import {
   Check,
   Clock3,
   Crown,
   CreditCard,
+  Loader2,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -16,12 +17,22 @@ import {
 import {
   AUTH_TOKEN_KEY,
   AUTH_USER_KEY,
-  createCheckoutSession,
+  createMercadoPagoSubscription,
+  getBillingPublicConfig,
   getBillingStatus,
   type AuthUser,
   type BillingEntitlements,
+  type BillingPublicConfigResponse,
   type BillingUsage,
 } from "@/lib/api"
+
+declare global {
+  interface Window {
+    MercadoPago?: new (publicKey: string, options?: Record<string, unknown>) => {
+      cardForm: (config: Record<string, unknown>) => unknown
+    }
+  }
+}
 
 export default function PricingPage() {
   return (
@@ -33,22 +44,27 @@ export default function PricingPage() {
 
 function PricingPageContent() {
   const router = useRouter()
-  const searchParams = useSearchParams()
+  const formReadyRef = useRef(false)
 
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [usage, setUsage] = useState<BillingUsage | null>(null)
-  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(
-    null
-  )
-  const [isLoadingUser, setIsLoadingUser] = useState(true)
-  const [isCreatingCheckout, setIsCreatingCheckout] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
+  const [entitlements, setEntitlements] = useState<BillingEntitlements | null>(null)
+  const [publicConfig, setPublicConfig] = useState<BillingPublicConfigResponse | null>(null)
 
-  const canceled = useMemo(
-    () => searchParams.get("canceled") === "1",
-    [searchParams]
-  )
+  const [isLoadingUser, setIsLoadingUser] = useState(true)
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
+
+  const [payerEmail, setPayerEmail] = useState("")
+  const [cardholderName, setCardholderName] = useState("")
+  const [identificationNumber, setIdentificationNumber] = useState("")
+  const [identificationType, setIdentificationType] = useState("CPF")
+  const [mercadoPagoLoaded, setMercadoPagoLoaded] = useState(false)
+
+  const cardFormRef = useRef<any>(null)
 
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
@@ -58,7 +74,9 @@ function PricingPageContent() {
 
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser) as AuthUser)
+        const parsed = JSON.parse(storedUser) as AuthUser
+        setUser(parsed)
+        setPayerEmail(parsed.email || "")
       } catch {
         localStorage.removeItem(AUTH_USER_KEY)
       }
@@ -80,6 +98,7 @@ function PricingPageContent() {
         setUser(data.user)
         setUsage(data.usage)
         setEntitlements(data.entitlements)
+        setPayerEmail((current) => current || data.user.email || "")
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user))
       } catch (error) {
         setErrorMessage(
@@ -95,49 +114,205 @@ function PricingPageContent() {
     void loadCurrentUser()
   }, [authToken])
 
-  async function handleCheckout() {
-    if (!authToken) {
-      router.push("/login?redirect=/pricing")
-      return
-    }
-
-    if (user?.plan === "pro") {
-      router.push("/dashboard/simulados")
-      return
-    }
-
-    setIsCreatingCheckout(true)
-    setErrorMessage("")
-
-    try {
-      const data = await createCheckoutSession(authToken)
-
-      if (!data.checkout_url) {
-        throw new Error("O backend não retornou a URL de checkout.")
+  useEffect(() => {
+    async function loadPublicConfig() {
+      setIsLoadingConfig(true)
+      try {
+        const data = await getBillingPublicConfig()
+        setPublicConfig(data)
+      } catch (error) {
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar a configuração de pagamento."
+        )
+      } finally {
+        setIsLoadingConfig(false)
       }
-
-      window.location.href = data.checkout_url
-    } catch (error) {
-      const rawMessage =
-        error instanceof Error
-          ? error.message
-          : "Erro inesperado ao iniciar o checkout."
-
-      const normalizedMessage = /Failed to fetch/i.test(rawMessage)
-        ? "Não foi possível conectar ao checkout. Verifique se o backend no Render está online e se as variáveis STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET e FRONTEND_BASE_URL estão configuradas corretamente."
-        : rawMessage
-
-      setErrorMessage(normalizedMessage)
-    } finally {
-      setIsCreatingCheckout(false)
     }
-  }
+
+    void loadPublicConfig()
+  }, [])
+
+  useEffect(() => {
+    if (!publicConfig?.public_key) {
+      return
+    }
+
+    if (window.MercadoPago) {
+      setMercadoPagoLoaded(true)
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = "https://sdk.mercadopago.com/js/v2"
+    script.async = true
+    script.onload = () => setMercadoPagoLoaded(true)
+    script.onerror = () =>
+      setErrorMessage("Não foi possível carregar o SDK do Mercado Pago.")
+    document.body.appendChild(script)
+
+    return () => {
+      script.remove()
+    }
+  }, [publicConfig?.public_key])
+
+  useEffect(() => {
+    if (
+      !mercadoPagoLoaded ||
+      !publicConfig?.public_key ||
+      !publicConfig?.plan_defaults ||
+      formReadyRef.current
+    ) {
+      return
+    }
+
+    if (!window.MercadoPago) {
+      return
+    }
+
+    const mp = new window.MercadoPago(publicConfig.public_key)
+    const amount = String(publicConfig.plan_defaults.transaction_amount)
+
+    cardFormRef.current = mp.cardForm({
+      amount,
+      iframe: true,
+      form: {
+        id: "form-checkout",
+        cardNumber: {
+          id: "form-checkout__cardNumber",
+          placeholder: "Número do cartão",
+        },
+        expirationDate: {
+          id: "form-checkout__expirationDate",
+          placeholder: "MM/AA",
+        },
+        securityCode: {
+          id: "form-checkout__securityCode",
+          placeholder: "CVV",
+        },
+        cardholderName: {
+          id: "form-checkout__cardholderName",
+          placeholder: "Titular do cartão",
+        },
+        issuer: {
+          id: "form-checkout__issuer",
+          placeholder: "Banco emissor",
+        },
+        installments: {
+          id: "form-checkout__installments",
+          placeholder: "Parcelas",
+        },
+        identificationType: {
+          id: "form-checkout__identificationType",
+          placeholder: "Tipo de documento",
+        },
+        identificationNumber: {
+          id: "form-checkout__identificationNumber",
+          placeholder: "Número do documento",
+        },
+        cardholderEmail: {
+          id: "form-checkout__cardholderEmail",
+          placeholder: "E-mail",
+        },
+      },
+      callbacks: {
+        onFormMounted: (error: unknown) => {
+          if (error) {
+            console.error("Erro ao montar CardForm:", error)
+            setErrorMessage("Não foi possível montar o formulário do cartão.")
+            return
+          }
+          formReadyRef.current = true
+        },
+        onSubmit: async (event: Event) => {
+          event.preventDefault()
+
+          if (!authToken) {
+            router.push("/login?redirect=/pricing")
+            return
+          }
+
+          if (user?.plan === "pro") {
+            router.push("/dashboard/simulados")
+            return
+          }
+
+          setIsSubmitting(true)
+          setErrorMessage("")
+          setSuccessMessage("")
+
+          try {
+            const {
+              token,
+              cardholderEmail,
+              identificationNumber: formIdentificationNumber,
+              identificationType: formIdentificationType,
+            } = cardFormRef.current.getCardFormData()
+
+            if (!token) {
+              throw new Error("O token do cartão não foi gerado.")
+            }
+
+            const response = await createMercadoPagoSubscription(
+              {
+                card_token_id: token,
+                payer_email: cardholderEmail || payerEmail,
+                identification_type:
+                  formIdentificationType || identificationType || null,
+                identification_number:
+                  formIdentificationNumber || identificationNumber || null,
+              },
+              authToken
+            )
+
+            localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user))
+            setUser(response.user)
+            setSuccessMessage(
+              "Assinatura criada com sucesso. Seu plano já foi atualizado."
+            )
+
+            window.location.href = "/success?provider=mercadopago"
+          } catch (error) {
+            setErrorMessage(
+              error instanceof Error
+                ? error.message
+                : "Erro inesperado ao criar a assinatura."
+            )
+          } finally {
+            setIsSubmitting(false)
+          }
+        },
+        onFetching: () => {
+          return () => undefined
+        },
+      },
+    })
+  }, [
+    authToken,
+    identificationNumber,
+    identificationType,
+    mercadoPagoLoaded,
+    payerEmail,
+    publicConfig,
+    router,
+    user?.plan,
+  ])
 
   const isPro = user?.plan === "pro"
   const freeUsageText =
     usage?.daily_limit && usage?.remaining_today !== null
       ? `${usage.remaining_today} de ${usage.daily_limit} geração(ões) restantes hoje`
       : "Uso liberado"
+
+  const canRenderPaymentForm = useMemo(() => {
+    return (
+      !!authToken &&
+      !isPro &&
+      !!publicConfig?.is_configured &&
+      !!publicConfig?.stored_plan?.plan_id
+    )
+  }, [authToken, isPro, publicConfig])
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -172,8 +347,8 @@ function PricingPageContent() {
                 />
                 <MetricCard
                   icon={<ShieldCheck className="size-4 text-primary" />}
-                  label="Checkout"
-                  value="seguro"
+                  label="Assinatura"
+                  value="recorrente"
                 />
               </div>
 
@@ -233,15 +408,15 @@ function PricingPageContent() {
           </div>
         </section>
 
-        {canceled ? (
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            O checkout foi cancelado. Nenhuma cobrança foi concluída.
-          </div>
-        ) : null}
-
         {errorMessage ? (
           <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             {errorMessage}
+          </div>
+        ) : null}
+
+        {successMessage ? (
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {successMessage}
           </div>
         ) : null}
 
@@ -276,70 +451,167 @@ function PricingPageContent() {
               <FeatureItem text="Mais prática por dia" />
               <FeatureItem text="Análise de desempenho completa" />
               <FeatureItem text="Insights inteligentes" />
-              <FeatureItem text="Checkout seguro com gateway configurado" />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleCheckout}
-              disabled={isCreatingCheckout || isLoadingUser}
-              className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_16px_50px_-18px_rgba(59,130,246,0.85)] transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isLoadingUser
-                ? "Carregando conta..."
-                : isPro
-                ? "Seu plano PRO já está ativo"
-                : isCreatingCheckout
-                ? "Abrindo checkout..."
-                : authToken
-                ? "Desbloquear Pro agora"
-                : "Entrar para assinar"}
-            </button>
-
-            <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
-              <ShieldCheck className="size-4" />
-              O pagamento só funciona quando o backend, o price ID e o webhook
-              estiverem configurados corretamente.
+              <FeatureItem text="Pagamento recorrente via Mercado Pago" />
             </div>
           </article>
 
           <article className="glass-panel rounded-[32px] p-6 md:p-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CreditCard className="size-4" />
-              Free vs Pro
+              Assinatura StudyPro Pro
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-[24px] border border-white/10">
-              <div className="grid grid-cols-3 border-b border-white/10 bg-slate-950/70 text-sm font-medium text-white">
-                <div className="px-4 py-4">Recurso</div>
-                <div className="px-4 py-4">Free</div>
-                <div className="px-4 py-4">Pro</div>
+            {!authToken ? (
+              <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="text-sm text-slate-300">
+                  Faça login para assinar o plano Pro.
+                </p>
+                <Link
+                  href="/login?redirect=/pricing"
+                  className="mt-4 inline-flex rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+                >
+                  Entrar para assinar
+                </Link>
               </div>
+            ) : isLoadingConfig ? (
+              <div className="mt-6 flex items-center gap-3 text-slate-300">
+                <Loader2 className="size-4 animate-spin" />
+                Carregando configuração do Mercado Pago...
+              </div>
+            ) : !publicConfig?.is_configured ? (
+              <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200">
+                O backend ainda não recebeu as credenciais do Mercado Pago.
+              </div>
+            ) : !publicConfig?.stored_plan?.plan_id ? (
+              <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-100">
+                O plano do Mercado Pago ainda não foi criado no backend. Execute
+                primeiro o bootstrap do plano.
+              </div>
+            ) : isPro ? (
+              <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-200">
+                Seu plano PRO já está ativo.
+              </div>
+            ) : canRenderPaymentForm ? (
+              <form id="form-checkout" className="mt-6 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm text-slate-300">
+                      E-mail do pagador
+                    </label>
+                    <input
+                      id="form-checkout__cardholderEmail"
+                      type="email"
+                      value={payerEmail}
+                      onChange={(e) => setPayerEmail(e.target.value)}
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-[#081224] px-4 text-white outline-none"
+                      placeholder="voce@email.com"
+                    />
+                  </div>
 
-              <PlanRow feature="Simulados" free="Limitado" pro="Ilimitado" />
-              <PlanRow feature="Desempenho" free="Básico" pro="Completo" />
-              <PlanRow feature="Insights" free="Não" pro="Sim" />
-              <PlanRow
-                feature="Ritmo de estudo"
-                free="Interrompido"
-                pro="Contínuo"
-              />
-            </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Titular do cartão
+                    </label>
+                    <input
+                      id="form-checkout__cardholderName"
+                      type="text"
+                      value={cardholderName}
+                      onChange={(e) => setCardholderName(e.target.value)}
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-[#081224] px-4 text-white outline-none"
+                      placeholder="Nome impresso no cartão"
+                    />
+                  </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="text-sm font-semibold text-white">
-                Posicionamento real da oferta
-              </p>
-              <p className="mt-2 text-sm leading-7 text-slate-300">
-                O usuário não compra só “mais recursos”. Ele compra continuidade,
-                menos fricção e mais volume de estudo quando está motivado.
-              </p>
-            </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Número do cartão
+                    </label>
+                    <div
+                      id="form-checkout__cardNumber"
+                      className="h-12 rounded-2xl border border-white/10 bg-[#081224] px-4"
+                    />
+                  </div>
 
-            <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
-              Quanto mais vezes você trava no gratuito, maior a chance de perder
-              ritmo. O Pro resolve exatamente esse problema.
-            </div>
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Validade
+                    </label>
+                    <div
+                      id="form-checkout__expirationDate"
+                      className="h-12 rounded-2xl border border-white/10 bg-[#081224] px-4"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Código de segurança
+                    </label>
+                    <div
+                      id="form-checkout__securityCode"
+                      className="h-12 rounded-2xl border border-white/10 bg-[#081224] px-4"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Banco emissor
+                    </label>
+                    <select
+                      id="form-checkout__issuer"
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-[#081224] px-4 text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Parcelas
+                    </label>
+                    <select
+                      id="form-checkout__installments"
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-[#081224] px-4 text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Tipo de documento
+                    </label>
+                    <select
+                      id="form-checkout__identificationType"
+                      value={identificationType}
+                      onChange={(e) => setIdentificationType(e.target.value)}
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-[#081224] px-4 text-white outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm text-slate-300">
+                      Número do documento
+                    </label>
+                    <input
+                      id="form-checkout__identificationNumber"
+                      type="text"
+                      value={identificationNumber}
+                      onChange={(e) => setIdentificationNumber(e.target.value)}
+                      className="h-12 w-full rounded-2xl border border-white/10 bg-[#081224] px-4 text-white outline-none"
+                      placeholder="CPF"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSubmitting ? "Processando assinatura..." : "Assinar com Mercado Pago"}
+                </button>
+
+                <p className="text-xs leading-6 text-slate-400">
+                  Os dados do cartão são tokenizados no navegador via MercadoPago.js.
+                </p>
+              </form>
+            ) : null}
           </article>
         </section>
 
@@ -380,32 +652,6 @@ function PricingPageContent() {
             </ul>
           </article>
         </section>
-
-        <section className="glass-panel rounded-[28px] p-6">
-          <div className="grid gap-6 lg:grid-cols-2">
-            <article className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-              <h3 className="text-lg font-semibold text-white">
-                Transparência comercial
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                Ainda não estamos exibindo depoimentos reais porque o produto
-                segue em fase de ajustes e você ainda não tem base pagante
-                consolidada.
-              </p>
-            </article>
-
-            <article className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-              <h3 className="text-lg font-semibold text-white">
-                O que entra depois
-              </h3>
-              <p className="mt-3 text-sm leading-7 text-slate-300">
-                Quando houver alunos pagantes reais, aqui entram depoimentos
-                verificados, estudos de caso e sinais de confiança baseados em
-                uso real.
-              </p>
-            </article>
-          </div>
-        </section>
       </div>
     </main>
   )
@@ -438,24 +684,6 @@ function FeatureItem({ text }: { text: string }) {
         <Check className="size-3.5" />
       </div>
       <span>{text}</span>
-    </div>
-  )
-}
-
-function PlanRow({
-  feature,
-  free,
-  pro,
-}: {
-  feature: string
-  free: string
-  pro: string
-}) {
-  return (
-    <div className="grid grid-cols-3 border-t border-white/10 bg-white/5 text-sm text-slate-300">
-      <div className="px-4 py-4 text-white">{feature}</div>
-      <div className="px-4 py-4">{free}</div>
-      <div className="px-4 py-4">{pro}</div>
     </div>
   )
 }

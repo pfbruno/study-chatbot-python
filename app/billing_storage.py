@@ -204,6 +204,28 @@ def get_billing_subscription_by_provider_subscription_id(
     return dict(row) if row else None
 
 
+def get_billing_subscription_by_external_reference(
+    external_reference: str,
+    provider: str = DEFAULT_PROVIDER,
+) -> dict | None:
+    ensure_billing_tables()
+
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT *
+                FROM billing_subscriptions
+                WHERE external_reference = %s AND provider = %s
+                LIMIT 1
+                """,
+                (external_reference, provider),
+            )
+            row = cursor.fetchone()
+
+    return dict(row) if row else None
+
+
 def upsert_billing_subscription(
     *,
     user_id: int,
@@ -295,3 +317,27 @@ def upsert_billing_subscription(
         conn.commit()
 
     return dict(row)
+
+
+def sync_user_subscription_state(
+    *,
+    user_id: int,
+    plan: str,
+    subscription_status: str,
+    current_period_end: str | None,
+) -> None:
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE users
+                SET
+                    plan = %s,
+                    subscription_status = %s,
+                    current_period_end = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                """,
+                (plan, subscription_status, current_period_end, user_id),
+            )
+        conn.commit()

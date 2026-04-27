@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from urllib.error import HTTPError, URLError
+from urllib.parse import parse_qs
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 
 MERCADOPAGO_API_BASE = os.getenv("MERCADOPAGO_API_BASE", "https://api.mercadopago.com").rstrip("/")
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "").strip()
@@ -90,16 +93,16 @@ def _request(
     except HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="ignore")
         try:
-            payload = json.loads(raw) if raw else {}
+            parsed = json.loads(raw) if raw else {}
         except json.JSONDecodeError:
-            payload = {"raw": raw}
+            parsed = {"raw": raw}
 
         raise MercadoPagoError(
-            payload.get("message")
-            or payload.get("error")
+            parsed.get("message")
+            or parsed.get("error")
             or "Erro ao comunicar com Mercado Pago.",
             status_code=exc.code,
-            payload=payload,
+            payload=parsed,
         ) from exc
     except URLError as exc:
         raise MercadoPagoError(f"Falha de conexão com Mercado Pago: {exc}") from exc
@@ -177,3 +180,110 @@ def build_default_subscription_dates() -> dict[str, str]:
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
     }
+
+
+def create_preapproval(
+    *,
+    preapproval_plan_id: str,
+    reason: str,
+    external_reference: str,
+    payer_email: str,
+    card_token_id: str,
+    transaction_amount: float,
+    currency_id: str,
+    frequency: int,
+    frequency_type: str,
+    back_url: str,
+    start_date: str,
+    end_date: str,
+) -> dict[str, Any]:
+    payload = {
+        "preapproval_plan_id": preapproval_plan_id,
+        "reason": reason,
+        "external_reference": external_reference,
+        "payer_email": payer_email,
+        "card_token_id": card_token_id,
+        "auto_recurring": {
+            "frequency": frequency,
+            "frequency_type": frequency_type,
+            "transaction_amount": transaction_amount,
+            "currency_id": currency_id,
+            "start_date": start_date,
+            "end_date": end_date,
+        },
+        "back_url": back_url,
+        "status": "authorized",
+    }
+    return _request("POST", "/preapproval", payload)
+
+
+def get_preapproval(subscription_id: str) -> dict[str, Any]:
+    if not subscription_id:
+        raise MercadoPagoError("subscription_id ausente.")
+    return _request("GET", f"/preapproval/{subscription_id}")
+
+
+def update_preapproval(subscription_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    if not subscription_id:
+        raise MercadoPagoError("subscription_id ausente.")
+    return _request("PUT", f"/preapproval/{subscription_id}", payload)
+
+
+def get_payment(payment_id: str) -> dict[str, Any]:
+    if not payment_id:
+        raise MercadoPagoError("payment_id ausente.")
+    return _request("GET", f"/v1/payments/{payment_id}")
+
+
+def extract_webhook_signature_parts(x_signature: str | None) -> tuple[str | None, str | None]:
+    if not x_signature:
+        return None, None
+
+    ts = None
+    v1 = None
+
+    for part in x_signature.split(","):
+        key_value = part.split("=", 1)
+        if len(key_value) != 2:
+            continue
+
+        key = key_value[0].strip()
+        value = key_value[1].strip()
+
+        if key == "ts":
+            ts = value
+        elif key == "v1":
+            v1 = value
+
+    return ts, v1
+
+
+def validate_webhook_signature(
+    *,
+    x_signature: str | None,
+    x_request_id: str | None,
+    raw_query_string: str,
+    secret: str | None = None,
+) -> bool:
+    secret = (secret or MERCADOPAGO_WEBHOOK_SECRET or "").strip()
+
+    if not secret:
+        return True
+
+    ts, received_hash = extract_webhook_signature_parts(x_signature)
+    if not ts or not received_hash or not x_request_id:
+        return False
+
+    query_params = parse_qs(raw_query_string, keep_blank_values=True)
+    data_id = query_params.get("data.id", [""])[0]
+    if data_id and data_id.isalnum():
+        data_id = data_id.lower()
+
+    manifest = f"id:{data_id};request-id:{x_request_id};ts:{ts};"
+    digest = hmac.new(
+        secret.encode(),
+        msg=manifest.encode(),
+        digestmod=hashlib.sha256,
+    ).hexdigest()
+
+    return hmac.compare_digest(digest, received_hash)
