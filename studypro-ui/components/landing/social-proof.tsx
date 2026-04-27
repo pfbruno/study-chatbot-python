@@ -1,10 +1,10 @@
-import { Award, BookOpen, TrendingUp, Users } from "lucide-react"
+import { Award, BookOpen, ShieldCheck, Target } from "lucide-react"
 
 const highlights = [
-  { icon: Users, value: "50.000+", label: "alunos ativos" },
-  { icon: BookOpen, value: "100.000+", label: "questões resolvidas" },
-  { icon: TrendingUp, value: "87%", label: "taxa de aprovação" },
-  { icon: Award, value: "200+", label: "professores parceiros" },
+  { icon: BookOpen, value: "Provas oficiais", label: "organizadas por exame e ano" },
+  { icon: Target, value: "Simulados", label: "com correção automática" },
+  { icon: ShieldCheck, value: "Plano Free", label: "para começar sem cartão" },
+  { icon: Award, value: "Evolução", label: "com leitura por disciplina" },
 ]
 
 export function SocialProof() {
