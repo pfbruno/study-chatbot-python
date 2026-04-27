@@ -1,16 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { FormEvent, Suspense, useMemo, useState } from "react"
 import { BookOpen, Eye, EyeOff, Lock, Mail, User } from "lucide-react"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
-
-const AUTH_TOKEN_KEY = "studypro_auth_token"
-const AUTH_USER_KEY = "studypro_auth_user"
 
 const inputClassName =
   "h-12 w-full rounded-2xl border border-white/10 bg-white/5 pl-11 pr-4 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-primary/60 focus:bg-white/[0.07]"
@@ -44,11 +41,10 @@ export default function RegisterPage() {
 }
 
 function RegisterPageContent() {
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const redirectTo = useMemo(
-    () => searchParams.get("redirect") || "/dashboard",
+    () => searchParams.get("redirect") || "/login",
     [searchParams]
   )
 
@@ -60,10 +56,13 @@ function RegisterPageContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
+  const [successMessage, setSuccessMessage] = useState("")
+  const [createdEmail, setCreatedEmail] = useState("")
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage("")
+    setSuccessMessage("")
 
     if (password !== confirmPassword) {
       setErrorMessage("As senhas não coincidem.")
@@ -91,30 +90,18 @@ function RegisterPageContent() {
         )
       }
 
-      const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      })
+      const data = await registerResponse.json()
 
-      if (!loginResponse.ok) {
-        throw new Error(
-          (await safeReadError(loginResponse)) ||
-            "Conta criada, mas o login automático falhou."
-        )
-      }
+      setCreatedEmail(email)
+      setSuccessMessage(
+        data?.message ||
+          "Conta criada com sucesso. Verifique seu e-mail para confirmar o cadastro antes de entrar."
+      )
 
-      const loginData = await loginResponse.json()
-
-      localStorage.setItem(AUTH_TOKEN_KEY, loginData.access_token)
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(loginData.user))
-
-      router.push(redirectTo)
+      setName("")
+      setEmail("")
+      setPassword("")
+      setConfirmPassword("")
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -188,6 +175,25 @@ function RegisterPageContent() {
               </Link>
             </p>
           </div>
+
+          {successMessage ? (
+            <div className="mb-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4 text-sm text-emerald-100">
+              <p>{successMessage}</p>
+              {createdEmail ? (
+                <p className="mt-2 text-emerald-200">
+                  E-mail cadastrado: <span className="font-semibold">{createdEmail}</span>
+                </p>
+              ) : null}
+              <div className="mt-4">
+                <Link
+                  href={redirectTo}
+                  className="inline-flex rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black"
+                >
+                  Ir para login
+                </Link>
+              </div>
+            </div>
+          ) : null}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
