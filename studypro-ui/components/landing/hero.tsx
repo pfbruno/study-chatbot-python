@@ -1,14 +1,14 @@
 import Link from "next/link"
-import { ArrowRight, BookOpen, Brain, Target, Zap } from "lucide-react"
+import { ArrowRight, BookOpen, Brain, ShieldCheck, Zap } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
 const stats = [
-  { icon: BookOpen, value: "50+", label: "provas oficiais" },
-  { icon: Target, value: "10.000+", label: "questões" },
-  { icon: Brain, value: "12", label: "áreas de estudo" },
-  { icon: Zap, value: "24h", label: "acesso imediato" },
+  { icon: BookOpen, value: "Provas oficiais", label: "por exame e ano" },
+  { icon: Brain, value: "Questões", label: "para prática e revisão" },
+  { icon: ShieldCheck, value: "Plano Free", label: "para começar agora" },
+  { icon: Zap, value: "Fluxo rápido", label: "do treino à correção" },
 ]
 
 export function Hero() {
@@ -33,8 +33,8 @@ export function Hero() {
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
               Resolva provas e simulados, acompanhe seu desempenho, identifique
-              pontos fracos e transforme prática em aprovação com uma plataforma
-              feita para decisão rápida e estudo consistente.
+              pontos fracos e transforme prática em evolução com uma plataforma
+              feita para estudo consistente e tomada de decisão rápida.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -113,17 +113,17 @@ export function Hero() {
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <p className="text-sm text-muted-foreground">Aproveitamento</p>
-                    <p className="mt-3 text-3xl font-bold text-white">72%</p>
+                    <p className="mt-3 text-3xl font-bold text-white">Seu histórico</p>
                     <p className="mt-2 text-sm text-emerald-300">
-                      +18% nas últimas 4 semanas
+                      leitura clara por prova e disciplina
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-sm text-muted-foreground">Simulados concluídos</p>
-                    <p className="mt-3 text-3xl font-bold text-white">05</p>
+                    <p className="text-sm text-muted-foreground">Simulados</p>
+                    <p className="mt-3 text-3xl font-bold text-white">Seu ritmo</p>
                     <p className="mt-2 text-sm text-sky-300">
-                      histórico consolidado por prova
+                      treino contínuo com correção automática
                     </p>
                   </div>
                 </div>
@@ -134,8 +134,8 @@ export function Hero() {
                     <span className="text-sm font-medium text-primary">Hoje</span>
                   </div>
                   <p className="mt-3 text-base text-white">
-                    Priorize trigonometria, interpretação de texto e revisão de
-                    erros recorrentes para elevar a média global.
+                    Priorize os pontos em que você mais erra e use o StudyPro
+                    para transformar erros recentes em revisão prática.
                   </p>
 
                   <div className="mt-5 grid grid-cols-3 gap-3">
