@@ -137,7 +137,7 @@ function RegisterPageContent() {
 
           <h1 className="mt-8 max-w-xl text-4xl font-bold leading-tight tracking-tight text-white xl:text-5xl">
             Comece sua jornada para a{" "}
-            <span className="text-gradient">aprovação</span>
+            <span className="text-gradient">evolução</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
@@ -149,7 +149,7 @@ function RegisterPageContent() {
             {[
               "Simulados com banco oficial de questões",
               "Dashboard com evolução por disciplina",
-              "Upgrade fácil para plano PRO com Stripe",
+              "Upgrade fácil para plano Pro com Mercado Pago",
               "Recomendações inteligentes para revisão",
             ].map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
@@ -165,7 +165,7 @@ function RegisterPageContent() {
         <div className="mt-10 rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
           <p className="text-sm text-muted-foreground">Experiência orientada a dados</p>
           <p className="mt-3 text-lg font-semibold text-white">
-            Crie sua conta e transforme estudo em rotina orientada por métricas.
+            Crie sua conta e transforme estudo em rotina orientada por desempenho.
           </p>
         </div>
       </section>
