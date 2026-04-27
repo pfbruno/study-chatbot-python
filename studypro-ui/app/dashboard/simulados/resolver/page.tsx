@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
+import { RichQuestionContent } from "@/components/study/rich-question-content"
+
 type SimulationMode = "balanced" | "random"
 
 type SimulationQuestion = {
@@ -294,8 +296,8 @@ export default function ResolverSimuladoPage() {
           </button>
         </div>
 
-        <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-200">
-          {currentQuestion.statement}
+        <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+          <RichQuestionContent content={currentQuestion.statement} />
         </div>
 
         <div className="mt-6 space-y-3">
@@ -313,9 +315,11 @@ export default function ResolverSimuladoPage() {
                     : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5"
                 }`}
               >
-                <div className="flex gap-3">
-                  <span className="font-semibold text-white">{key}</span>
-                  <span className="text-slate-200">{currentQuestion.options[key]}</span>
+                <div className="flex items-start gap-3">
+                  <span className="mt-1 font-semibold text-white">{key}</span>
+                  <div className="min-w-0 flex-1">
+                    <RichQuestionContent content={currentQuestion.options[key]} />
+                  </div>
                 </div>
               </button>
             )
