@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
+import { RichQuestionContent } from "@/components/study/rich-question-content"
 import { saveRecentAttempt } from "@/lib/activity"
 import {
   appendSimulationHistory,
@@ -19,6 +20,13 @@ const RESULT_KEY = "studypro_last_simulation_result"
 const REVIEW_SUMMARY_KEY = "studypro_review_summary"
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
+type ResultQuestion = {
+  number: number
+  subject: string
+  statement: string
+  options: Record<string, string>
+}
+
 type ResultData = {
   attempt_id?: string
   simulation: {
@@ -28,12 +36,7 @@ type ResultData = {
     year: number
     mode: "balanced" | "random"
     generated_question_count: number
-    questions?: Array<{
-      number: number
-      subject: string
-      statement: string
-      options: Record<string, string>
-    }>
+    questions?: ResultQuestion[]
   }
   answers: Record<number, string>
   result: {
@@ -132,6 +135,11 @@ export default function ResultadoSimuladoPage() {
   const answeredQuestions = useMemo(() => {
     if (!data) return 0
     return Math.max(0, data.result.total_questions - data.result.unanswered_count)
+  }, [data])
+
+  const questionsByNumber = useMemo(() => {
+    const questions = data?.simulation.questions ?? []
+    return new Map(questions.map((question) => [question.number, question]))
   }, [data])
 
   function handleGenerateSummary() {
@@ -254,44 +262,85 @@ export default function ResultadoSimuladoPage() {
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
         <h2 className="text-2xl font-bold text-white">Correção detalhada</h2>
 
-        <div className="mt-6 space-y-3">
-          {result.results_by_question.map((question) => (
-            <article
-              key={question.question_number}
-              className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-lg font-semibold text-white">
-                  Questão {question.question_number}
-                </h3>
+        <div className="mt-6 space-y-4">
+          {result.results_by_question.map((questionResult) => {
+            const sourceQuestion = questionsByNumber.get(questionResult.question_number)
+            const selectedOptionContent =
+              questionResult.user_answer && sourceQuestion
+                ? sourceQuestion.options[questionResult.user_answer] ?? null
+                : null
+            const correctOptionContent = sourceQuestion
+              ? sourceQuestion.options[questionResult.correct_answer] ?? null
+              : null
 
-                <span
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    question.status === "correct"
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                      : question.status === "wrong"
-                      ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
-                      : "border-white/10 bg-white/5 text-slate-300"
-                  }`}
-                >
-                  {question.status === "correct"
-                    ? "Correta"
-                    : question.status === "wrong"
-                    ? "Incorreta"
-                    : "Em branco"}
-                </span>
-              </div>
+            return (
+              <article
+                key={questionResult.question_number}
+                className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold text-white">
+                    Questão {questionResult.question_number}
+                  </h3>
 
-              <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-                  Sua resposta: {question.user_answer || "—"}
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                      questionResult.status === "correct"
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                        : questionResult.status === "wrong"
+                        ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                        : "border-white/10 bg-white/5 text-slate-300"
+                    }`}
+                  >
+                    {questionResult.status === "correct"
+                      ? "Correta"
+                      : questionResult.status === "wrong"
+                      ? "Incorreta"
+                      : "Em branco"}
+                  </span>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
-                  Gabarito: {question.correct_answer}
+
+                {sourceQuestion ? (
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Enunciado
+                    </p>
+                    <RichQuestionContent content={sourceQuestion.statement} />
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Sua resposta
+                    </p>
+                    <p className="mt-2 text-sm text-white">
+                      {questionResult.user_answer || "—"}
+                    </p>
+                    {selectedOptionContent ? (
+                      <div className="mt-3">
+                        <RichQuestionContent content={selectedOptionContent} />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Gabarito
+                    </p>
+                    <p className="mt-2 text-sm text-white">
+                      {questionResult.correct_answer}
+                    </p>
+                    {correctOptionContent ? (
+                      <div className="mt-3">
+                        <RichQuestionContent content={correctOptionContent} />
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            )
+          })}
         </div>
       </section>
 
