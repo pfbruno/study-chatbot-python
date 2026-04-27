@@ -26,7 +26,7 @@ const plans = [
     price: "R$ 29",
     period: "/mês",
     description:
-      "Para quem quer estudar com constância, praticar mais e transformar dados de desempenho em evolução real.",
+      "Para quem quer estudar com mais constância, praticar mais e transformar desempenho em evolução real.",
     features: [
       "Simulados ilimitados",
       "Mais volume de treino",
@@ -54,9 +54,9 @@ export function Pricing() {
           </h2>
 
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            O Free permite entrar rápido na plataforma. O Pro existe para quem
-            quer mais prática, mais leitura de desempenho e um caminho mais
-            forte até a aprovação.
+            O plano Free permite entrar rápido na plataforma e testar o fluxo.
+            O Pro existe para quem quer mais prática, mais leitura de desempenho
+            e menos interrupções durante o estudo.
           </p>
         </div>
 
