@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import secrets
+from contextlib import closing
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
@@ -11,17 +12,17 @@ import stripe
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from app.chat_router import router as chat_router
-from app.mercado_pago_router import router as mercado_pago_router
 
 from app.analytics import (
     most_frequent_category,
     questions_by_category,
     total_questions,
 )
+from app.chat_router import router as chat_router
 from app.chatbot import process_question
 from app.database import (
     clear_user_subscription,
+    connect,
     create_auth_token,
     create_simulation_attempt_v2,
     cleanup_expired_auth_tokens,
@@ -52,6 +53,7 @@ from app.database import (
     store_checkout_session_for_user,
     update_user_plan,
 )
+from app.email_service import send_verification_email, send_welcome_email
 from app.exams import (
     get_exam_by_type_and_year,
     list_exam_types,
@@ -63,6 +65,7 @@ from app.exams.service import (
     get_recent_exam_attempts,
     get_user_exam_analytics,
 )
+from app.mercado_pago_router import router as mercado_pago_router
 from app.observability import timing_middleware
 from app.question_bank import get_question_bank_metadata
 from app.recommendations.routers import router as recommendations_v2_router
@@ -71,6 +74,7 @@ from app.simulations import generate_random_simulation, submit_random_simulation
 FREE_DAILY_SIMULATION_LIMIT = 3
 GUEST_DAILY_SIMULATION_LIMIT = 1
 AUTH_TOKEN_TTL_DAYS = 30
+EMAIL_VERIFICATION_TOKEN_TTL_HOURS = 48
 ALLOWED_PLANS = {"free", "pro"}
 
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "").strip()
@@ -312,6 +316,7 @@ def _serialize_user(user: dict) -> dict:
         "id": user["id"],
         "name": user["name"],
         "email": user["email"],
+        "email_verified": bool(user.get("email_verified", 0)),
         "plan": user.get("plan", "free"),
         "subscription_status": user.get("subscription_status", "inactive"),
         "current_period_end": user.get("current_period_end"),
@@ -681,11 +686,165 @@ def _build_dashboard_payload(user: dict) -> dict:
     }
 
 
+def _ensure_email_verification_tables() -> None:
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER NOT NULL DEFAULT 0"
+            )
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS email_verification_tokens (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    token TEXT NOT NULL UNIQUE,
+                    created_at TEXT NOT NULL,
+                    expires_at TEXT NOT NULL,
+                    sent_at TEXT NOT NULL,
+                    verified_at TEXT
+                )
+                """
+            )
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_email_verification_user_id
+                ON email_verification_tokens(user_id)
+                """
+            )
+
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_email_verification_token
+                ON email_verification_tokens(token)
+                """
+            )
+
+        conn.commit()
+
+
+def _create_email_verification_token(user_id: int) -> str:
+    token = secrets.token_urlsafe(48)
+    now = _now_utc().isoformat()
+    expires_at = (_now_utc() + timedelta(hours=EMAIL_VERIFICATION_TOKEN_TTL_HOURS)).isoformat()
+
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM email_verification_tokens
+                WHERE user_id = %s AND verified_at IS NULL
+                """,
+                (user_id,),
+            )
+            cursor.execute(
+                """
+                INSERT INTO email_verification_tokens (
+                    user_id,
+                    token,
+                    created_at,
+                    expires_at,
+                    sent_at,
+                    verified_at
+                )
+                VALUES (%s, %s, %s, %s, %s, NULL)
+                """,
+                (user_id, token, now, expires_at, now),
+            )
+        conn.commit()
+
+    return token
+
+
+def _get_email_verification_record(token: str) -> dict | None:
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    email_verification_tokens.id,
+                    email_verification_tokens.user_id,
+                    email_verification_tokens.token,
+                    email_verification_tokens.created_at,
+                    email_verification_tokens.expires_at,
+                    email_verification_tokens.sent_at,
+                    email_verification_tokens.verified_at,
+                    users.id AS user_id_ref,
+                    users.name,
+                    users.email,
+                    users.email_verified,
+                    users.is_active,
+                    users.plan,
+                    users.subscription_status,
+                    users.current_period_end,
+                    users.created_at AS user_created_at,
+                    users.updated_at AS user_updated_at
+                FROM email_verification_tokens
+                INNER JOIN users ON users.id = email_verification_tokens.user_id
+                WHERE email_verification_tokens.token = %s
+                LIMIT 1
+                """,
+                (token,),
+            )
+            row = cursor.fetchone()
+    return dict(row) if row else None
+
+
+def _mark_user_email_as_verified(user_id: int) -> dict | None:
+    now = _now_utc().isoformat()
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE users
+                SET email_verified = 1,
+                    updated_at = %s
+                WHERE id = %s
+                RETURNING
+                    id,
+                    name,
+                    email,
+                    email_verified,
+                    plan,
+                    subscription_status,
+                    current_period_end,
+                    is_active,
+                    created_at,
+                    updated_at
+                """,
+                (now, user_id),
+            )
+            row = cursor.fetchone()
+
+            cursor.execute(
+                """
+                UPDATE email_verification_tokens
+                SET verified_at = %s
+                WHERE user_id = %s AND verified_at IS NULL
+                """,
+                (now, user_id),
+            )
+        conn.commit()
+    return dict(row) if row else None
+
+
+def _send_account_verification_email(user: dict) -> bool:
+    token = _create_email_verification_token(user["id"])
+    verification_url = f"{FRONTEND_BASE_URL}/verify-email?token={token}"
+    return send_verification_email(
+        to_email=user["email"],
+        user_name=user["name"],
+        verification_url=verification_url,
+    )
+
+
 @app.on_event("startup")
 def startup_event() -> None:
     try:
         LOGGER.info("startup.begin", extra={"db_path": get_db_path()})
         create_table()
+        _ensure_email_verification_tables()
         cleaned_tokens = cleanup_expired_auth_tokens()
         create_exam_tables()
         LOGGER.info(
@@ -722,8 +881,16 @@ def register(payload: RegisterRequest) -> dict:
         plan="free",
     )
 
+    email_sent = _send_account_verification_email(user)
+
     return {
-        "message": "Usuário criado com sucesso.",
+        "message": (
+            "Conta criada com sucesso. Verifique seu e-mail para confirmar o cadastro."
+            if email_sent
+            else "Conta criada com sucesso, mas o e-mail de confirmação não pôde ser enviado agora."
+        ),
+        "email_verification_required": True,
+        "verification_email_sent": email_sent,
         "user": _serialize_user(user),
     }
 
@@ -743,6 +910,12 @@ def login(payload: LoginRequest) -> dict:
     ):
         raise HTTPException(status_code=401, detail="Credenciais inválidas.")
 
+    if not bool(user.get("email_verified", 0)):
+        raise HTTPException(
+            status_code=403,
+            detail="Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada antes de entrar.",
+        )
+
     token = secrets.token_urlsafe(48)
     expires_at = (_now_utc() + timedelta(days=AUTH_TOKEN_TTL_DAYS)).isoformat()
     create_auth_token(user["id"], token, expires_at)
@@ -759,6 +932,78 @@ def login(payload: LoginRequest) -> dict:
         "user": _serialize_user(safe_user),
         "usage": _build_plan_status_for_user(safe_user),
         "entitlements": _build_entitlements_for_user(safe_user),
+    }
+
+
+@app.get("/auth/verify-email", tags=["auth"])
+def verify_email(token: str) -> dict:
+    token = token.strip()
+    if not token:
+        raise HTTPException(status_code=400, detail="Token de verificação ausente.")
+
+    record = _get_email_verification_record(token)
+    if not record:
+        raise HTTPException(status_code=404, detail="Token de verificação inválido.")
+
+    if record.get("verified_at"):
+        return {
+            "message": "Este e-mail já foi confirmado anteriormente.",
+            "user": {
+                "id": record["user_id_ref"],
+                "name": record["name"],
+                "email": record["email"],
+                "email_verified": bool(record.get("email_verified", 0)),
+            },
+        }
+
+    expires_at = _parse_iso_datetime(record.get("expires_at"))
+    if not expires_at or expires_at <= _now_utc():
+        raise HTTPException(status_code=400, detail="O link de verificação expirou.")
+
+    user = _mark_user_email_as_verified(record["user_id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    send_welcome_email(
+        to_email=user["email"],
+        user_name=user["name"],
+    )
+
+    return {
+        "message": "E-mail confirmado com sucesso. Sua conta já está pronta para uso.",
+        "user": _serialize_user(user),
+    }
+
+
+@app.post("/auth/resend-verification", tags=["auth"])
+def resend_verification_email(payload: LoginRequest) -> dict:
+    user = get_user_auth_by_email(payload.email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    if not _verify_password(
+        payload.password,
+        user["password_hash"],
+        user["password_salt"],
+    ):
+        raise HTTPException(status_code=401, detail="Credenciais inválidas.")
+
+    if bool(user.get("email_verified", 0)):
+        return {
+            "message": "Este e-mail já está confirmado.",
+            "user": _serialize_user(user),
+        }
+
+    email_sent = _send_account_verification_email(user)
+
+    return {
+        "message": (
+            "E-mail de verificação reenviado com sucesso."
+            if email_sent
+            else "Não foi possível reenviar o e-mail de verificação agora."
+        ),
+        "verification_email_sent": email_sent,
+        "user": _serialize_user(user),
     }
 
 
