@@ -399,6 +399,14 @@ export async function getSimulationEntitlement(token?: string | null) {
   });
 }
 
+export async function createCheckoutSession(token?: string | null) {
+  return {
+    message: "Redirecionando para a página de assinatura do Mercado Pago.",
+    checkout_session_id: "mercadopago-pricing-redirect",
+    checkout_url: "/pricing",
+  }
+}
+
 export async function getBillingPublicConfig() {
   return request<BillingPublicConfigResponse>("/billing/public-config");
 }
