@@ -70,13 +70,18 @@ function LoginPageContent() {
               <BookOpen className="h-6 w-6" />
               <span className="text-xl font-semibold">StudyPro</span>
             </Link>
-            <h1 className="text-4xl font-semibold leading-tight">Volte para a plataforma e acompanhe seu progresso em tempo real.</h1>
-            <p className="text-neutral-300">Simulados, histórico e plano de estudos sincronizados em uma experiência SaaS moderna.</p>
+            <h1 className="text-4xl font-semibold leading-tight">
+              Volte para a plataforma e acompanhe seu progresso com mais clareza.
+            </h1>
+            <p className="text-neutral-300">
+              Simulados, histórico e evolução reunidos em uma experiência SaaS moderna,
+              sem métricas infladas e com foco real no estudo.
+            </p>
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
-                { label: "Alunos", value: "50k+" },
-                { label: "Aprovação", value: "87%" },
-                { label: "Questões", value: "100k+" },
+                { label: "Provas", value: "Oficiais" },
+                { label: "Plano", value: "Free + Pro" },
+                { label: "Foco", value: "Desempenho" },
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                   <p className="text-lg font-semibold text-emerald-300">{item.value}</p>
