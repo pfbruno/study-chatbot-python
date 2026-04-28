@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react"
 
+import { getLatestGeneratedContent } from "@/lib/generated-content-client"
 import type { ReviewCard } from "@/lib/review-content"
 
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
@@ -20,27 +21,39 @@ export default function FlashcardsPage() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showBack, setShowBack] = useState(false)
   const [loadError, setLoadError] = useState("")
+  const [sourceLabel, setSourceLabel] = useState("")
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(REVIEW_FLASHCARDS_KEY)
+    async function loadCards() {
+      try {
+        const raw = localStorage.getItem(REVIEW_FLASHCARDS_KEY)
 
-      if (!raw) {
+        if (raw) {
+          const parsed = JSON.parse(raw) as ReviewCard[]
+
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setCards(parsed)
+            setSourceLabel("Carregado do conteúdo gerado nesta sessão.")
+            return
+          }
+        }
+
+        const persisted = await getLatestGeneratedContent<ReviewCard[]>("flashcards")
+        const payload = persisted?.item?.payload
+
+        if (!Array.isArray(payload) || payload.length === 0) {
+          setLoadError("Nenhum flashcard de revisão foi encontrado.")
+          return
+        }
+
+        setCards(payload)
+        setSourceLabel("Carregado do conteúdo salvo na sua conta.")
+      } catch {
         setLoadError("Nenhum flashcard de revisão foi encontrado.")
-        return
       }
-
-      const parsed = JSON.parse(raw) as ReviewCard[]
-
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        setLoadError("Nenhum flashcard de revisão foi encontrado.")
-        return
-      }
-
-      setCards(parsed)
-    } catch {
-      setLoadError("Não foi possível carregar os flashcards de revisão.")
     }
+
+    void loadCards()
   }, [])
 
   const currentCard = cards[currentIndex] ?? null
@@ -122,6 +135,10 @@ export default function FlashcardsPage() {
               Cartões curtos para memorização direta: frente com a pergunta ou
               conceito, verso com a resposta objetiva.
             </p>
+
+            {sourceLabel ? (
+              <p className="mt-4 text-sm text-slate-400">{sourceLabel}</p>
+            ) : null}
           </div>
 
           <div className="w-full xl:max-w-[320px]">
