@@ -11,6 +11,7 @@ from typing import Any, Literal
 import stripe
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from app.simulation_library_router import router as simulation_library_router
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.analytics import (
@@ -113,6 +114,7 @@ app.add_middleware(
 
 app.include_router(exams_v2_router, prefix="/v2")
 app.include_router(recommendations_v2_router)
+app.include_router(simulation_library_router)
 app.include_router(chat_router)
 app.include_router(mercado_pago_router)
 app.middleware("http")(timing_middleware)
