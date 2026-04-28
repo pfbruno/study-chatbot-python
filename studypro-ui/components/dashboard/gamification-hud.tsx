@@ -17,15 +17,14 @@ function buildWeeklySquares(
   weeklyEvolution: GamificationWeeklyEvolutionPoint[],
   fallbackStreakDays: number
 ) {
-  const orderedWeek = weeklyEvolution.slice(0, 7)
+  const orderedWeek = weeklyEvolution.slice(0, 7).reverse()
 
   return Array.from({ length: 7 }, (_, index) => {
     const point = orderedWeek[index]
-    const fallbackActiveIndex = index
 
     return {
       label: point?.label ?? `Dia ${index + 1}`,
-      active: point ? point.xp > 0 : fallbackActiveIndex < Math.min(fallbackStreakDays, 7),
+      active: point ? point.xp > 0 : index < Math.min(fallbackStreakDays, 7),
       xp: point?.xp ?? 0,
     }
   })
