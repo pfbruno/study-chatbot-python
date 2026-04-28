@@ -1,12 +1,10 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import type { DashboardUser as AuthLikeUser } from "@/lib/api"
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from "@/lib/api"
 import {
-  dispatchGamificationRefresh,
   fetchGamificationSummary,
   GAMIFICATION_REFRESH_EVENT,
   type PersistedGamificationSummaryResponse,
@@ -55,6 +53,8 @@ export default function DashboardLayout({
     useState<PersistedGamificationSummaryResponse>(EMPTY_GAMIFICATION)
   const [gamificationLoading, setGamificationLoading] = useState(true)
 
+  const hasLoadedGamificationRef = useRef(false)
+
   const isChatRoute = pathname === "/dashboard/chat"
 
   useEffect(() => {
@@ -83,39 +83,49 @@ export default function DashboardLayout({
   useEffect(() => {
     let mounted = true
 
-    async function loadGamification() {
+    async function loadGamification(options?: { showLoading?: boolean }) {
       const token = localStorage.getItem(AUTH_TOKEN_KEY)
+      const shouldShowLoading =
+        options?.showLoading ?? !hasLoadedGamificationRef.current
 
       if (!token) {
         if (mounted) {
           setGamification(EMPTY_GAMIFICATION)
           setGamificationLoading(false)
+          hasLoadedGamificationRef.current = true
         }
         return
       }
 
       try {
-        setGamificationLoading(true)
+        if (shouldShowLoading) {
+          setGamificationLoading(true)
+        }
+
         const data = await fetchGamificationSummary(token)
 
         if (!mounted) return
+
         setGamification(data)
+        hasLoadedGamificationRef.current = true
       } catch {
         if (!mounted) return
+
         setGamification(EMPTY_GAMIFICATION)
+        hasLoadedGamificationRef.current = true
       } finally {
-        if (mounted) {
+        if (mounted && shouldShowLoading) {
           setGamificationLoading(false)
         }
       }
     }
 
     const handleRefresh = () => {
-      void loadGamification()
+      void loadGamification({ showLoading: false })
     }
 
     if (isReady) {
-      void loadGamification()
+      void loadGamification({ showLoading: true })
     }
 
     window.addEventListener(
@@ -123,19 +133,12 @@ export default function DashboardLayout({
       handleRefresh as EventListener
     )
 
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible" && isReady) {
-        void loadGamification()
-      }
-    }, 12000)
-
     return () => {
       mounted = false
       window.removeEventListener(
         GAMIFICATION_REFRESH_EVENT,
         handleRefresh as EventListener
       )
-      window.clearInterval(intervalId)
     }
   }, [isReady])
 
@@ -171,7 +174,6 @@ export default function DashboardLayout({
           mobileSidebar={<AppSidebar />}
           gamificationProfile={gamification.profile}
           weeklyEvolution={gamification.weeklyEvolution}
-          challenges={gamification.challenges}
           gamificationLoading={gamificationLoading}
         />
 

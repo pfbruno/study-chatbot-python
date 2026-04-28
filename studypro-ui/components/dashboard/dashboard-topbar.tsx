@@ -1,13 +1,11 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { Bell } from "lucide-react"
 
 import type {
   GamificationProfile,
   GamificationWeeklyEvolutionPoint,
 } from "@/lib/api"
-import type { PersistedGamificationChallenge } from "@/lib/gamification-client"
 import { GamificationHud } from "@/components/dashboard/gamification-hud"
 
 type DashboardUser = {
@@ -24,7 +22,6 @@ type DashboardTopbarProps = {
   mobileSidebar?: ReactNode
   gamificationProfile?: GamificationProfile | null
   weeklyEvolution?: GamificationWeeklyEvolutionPoint[]
-  challenges?: PersistedGamificationChallenge[]
   gamificationLoading?: boolean
 }
 
@@ -34,7 +31,6 @@ export function DashboardTopbar({
   mobileSidebar,
   gamificationProfile,
   weeklyEvolution = [],
-  challenges = [],
   gamificationLoading = false,
 }: DashboardTopbarProps) {
   return (
@@ -46,20 +42,11 @@ export function DashboardTopbar({
           <GamificationHud
             profile={gamificationProfile}
             weeklyEvolution={weeklyEvolution}
-            challenges={challenges}
             loading={gamificationLoading}
           />
         ) : null}
 
         <div className="ml-auto flex items-center gap-3">
-          <button
-            type="button"
-            className="inline-flex size-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white"
-            aria-label="Notificações"
-          >
-            <Bell className="size-4" />
-          </button>
-
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-white">

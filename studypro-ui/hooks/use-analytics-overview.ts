@@ -1,10 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { AUTH_TOKEN_KEY } from "@/lib/api"
-import {
-  ANALYTICS_REFRESH_EVENT,
-} from "@/lib/activity-events"
+import { ANALYTICS_REFRESH_EVENT } from "@/lib/activity-events"
 import {
   fetchGamificationSummary,
   GAMIFICATION_REFRESH_EVENT,
@@ -33,7 +31,6 @@ export type AnalyticsOverviewResponse = {
     totalCorrect?: number
     totalWrong?: number
     avgAccuracy: number
-    platformAvg: number
     avgTimePerQuestion: string
     avgTimePerSession: string
     streak: number
@@ -45,12 +42,10 @@ export type AnalyticsOverviewResponse = {
   evolutionData: Array<{
     month: string
     acerto: number
-    media: number
   }>
   subjectAccuracy: Array<{
     subject: string
     acerto: number
-    media: number
     questions: number
     correct: number
     wrong: number
@@ -73,7 +68,6 @@ export type AnalyticsOverviewResponse = {
     type: "prova" | "simulado"
     name: string
     score: number
-    avg: number
     date: string
     questions: number
     created_at?: string
@@ -128,23 +122,30 @@ export function useAnalyticsOverview() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const hasLoadedRef = useRef(false)
+
   useEffect(() => {
     let mounted = true
 
-    async function fetchAnalytics() {
+    async function fetchAnalytics(options?: { showLoading?: boolean }) {
       const token = getStoredToken()
+      const shouldShowLoading = options?.showLoading ?? !hasLoadedRef.current
 
       if (!token) {
         if (mounted) {
           setData(null)
           setLoading(false)
           setError("Você precisa estar logado para acessar o analytics.")
+          hasLoadedRef.current = true
         }
         return
       }
 
       try {
-        setLoading(true)
+        if (shouldShowLoading) {
+          setLoading(true)
+        }
+
         setError(null)
 
         const analyticsResponse = await fetch(`${API_URL}/analytics/overview`, {
@@ -174,6 +175,8 @@ export function useAnalyticsOverview() {
             ...analyticsResult,
             gamification,
           } as AnalyticsOverviewResponse)
+
+          hasLoadedRef.current = true
         }
       } catch (err) {
         if (mounted) {
@@ -182,20 +185,25 @@ export function useAnalyticsOverview() {
               ? err.message
               : "Erro inesperado ao carregar analytics."
           )
-          setData(null)
+
+          if (!hasLoadedRef.current) {
+            setData(null)
+          }
+
+          hasLoadedRef.current = true
         }
       } finally {
-        if (mounted) {
+        if (mounted && shouldShowLoading) {
           setLoading(false)
         }
       }
     }
 
     const handleRefresh = () => {
-      void fetchAnalytics()
+      void fetchAnalytics({ showLoading: false })
     }
 
-    void fetchAnalytics()
+    void fetchAnalytics({ showLoading: true })
 
     window.addEventListener(
       ANALYTICS_REFRESH_EVENT,
@@ -205,12 +213,6 @@ export function useAnalyticsOverview() {
       GAMIFICATION_REFRESH_EVENT,
       handleRefresh as EventListener
     )
-
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void fetchAnalytics()
-      }
-    }, 12000)
 
     return () => {
       mounted = false
@@ -222,7 +224,6 @@ export function useAnalyticsOverview() {
         GAMIFICATION_REFRESH_EVENT,
         handleRefresh as EventListener
       )
-      window.clearInterval(intervalId)
     }
   }, [])
 

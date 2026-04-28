@@ -1,17 +1,15 @@
 "use client"
 
-import { Flame, Sparkles, Trophy } from "lucide-react"
+import { Flame, Trophy } from "lucide-react"
 
 import type {
   GamificationProfile,
   GamificationWeeklyEvolutionPoint,
 } from "@/lib/api"
-import type { PersistedGamificationChallenge } from "@/lib/gamification-client"
 
 type GamificationHudProps = {
   profile: GamificationProfile
   weeklyEvolution: GamificationWeeklyEvolutionPoint[]
-  challenges: PersistedGamificationChallenge[]
   loading?: boolean
 }
 
@@ -21,6 +19,7 @@ function buildWeeklySquares(
 ) {
   return Array.from({ length: 7 }, (_, index) => {
     const point = weeklyEvolution[index]
+
     return {
       label: point?.label ?? `Dia ${index + 1}`,
       active: point ? point.xp > 0 : index < Math.min(fallbackStreakDays, 7),
@@ -29,20 +28,9 @@ function buildWeeklySquares(
   })
 }
 
-function getFocusChallenge(challenges: PersistedGamificationChallenge[]) {
-  return (
-    challenges.find((challenge) => challenge.isTracked) ??
-    challenges.find((challenge) => challenge.status === "ready_to_claim") ??
-    challenges.find((challenge) => challenge.status === "active") ??
-    challenges.find((challenge) => challenge.status === "completed") ??
-    null
-  )
-}
-
 export function GamificationHud({
   profile,
   weeklyEvolution,
-  challenges,
   loading = false,
 }: GamificationHudProps) {
   const nextLevelXP = Math.max(profile.nextLevelXP || 1, 1)
@@ -56,8 +44,6 @@ export function GamificationHud({
     weeklyEvolution,
     profile.streakDays || 0
   )
-
-  const focusChallenge = getFocusChallenge(challenges)
 
   return (
     <div className="hidden min-w-0 items-center gap-3 xl:flex">
@@ -108,34 +94,6 @@ export function GamificationHud({
               />
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="flex min-w-[260px] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
-          <Sparkles className="size-4" />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium uppercase tracking-[0.12em] text-slate-400">
-            Desafio em foco
-          </p>
-          <p className="truncate text-sm font-semibold text-white">
-            {loading
-              ? "Carregando..."
-              : focusChallenge?.title || "Nenhum desafio em andamento"}
-          </p>
-          <p className="text-xs text-slate-400">
-            {loading
-              ? "..."
-              : focusChallenge
-              ? focusChallenge.status === "ready_to_claim"
-                ? "Pronto para pegar"
-                : focusChallenge.status === "claimed"
-                ? "Recompensa já resgatada"
-                : `${focusChallenge.progress}/${focusChallenge.target}`
-              : "Acompanhe sua evolução diária"}
-          </p>
         </div>
       </div>
     </div>
