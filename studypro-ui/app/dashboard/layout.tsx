@@ -3,11 +3,29 @@
 import { useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
+import type { GamificationSummaryResponse } from "@/lib/api"
+import { AUTH_TOKEN_KEY, AUTH_USER_KEY, getGamificationSummary } from "@/lib/api"
 import { AppSidebar } from "@/components/dashboard/sidebar"
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar"
+import { GamificationProgressToast } from "@/components/dashboard/gamification-progress-toast"
 
-const AUTH_TOKEN_KEY = "studypro_auth_token"
-const AUTH_USER_KEY = "studypro_auth_user"
+const EMPTY_GAMIFICATION: GamificationSummaryResponse = {
+  profile: {
+    userName: "Usuário",
+    level: 1,
+    currentXP: 0,
+    nextLevelXP: 800,
+    totalXP: 0,
+    streakDays: 0,
+    completedChallenges: 0,
+    unlockedAchievements: 0,
+    totalAchievements: 0,
+  },
+  achievements: [],
+  recentUnlocks: [],
+  weeklyEvolution: [],
+  challenges: [],
+}
 
 type DashboardUser = {
   id?: number | string
@@ -26,6 +44,10 @@ export default function DashboardLayout({
   const [isReady, setIsReady] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [user, setUser] = useState<DashboardUser | null>(null)
+
+  const [gamification, setGamification] =
+    useState<GamificationSummaryResponse>(EMPTY_GAMIFICATION)
+  const [gamificationLoading, setGamificationLoading] = useState(true)
 
   const isChatRoute = pathname === "/dashboard/chat"
 
@@ -51,6 +73,52 @@ export default function DashboardLayout({
 
     setIsReady(true)
   }, [pathname, router])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadGamification() {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY)
+
+      if (!token) {
+        if (mounted) {
+          setGamification(EMPTY_GAMIFICATION)
+          setGamificationLoading(false)
+        }
+        return
+      }
+
+      try {
+        setGamificationLoading(true)
+        const data = await getGamificationSummary(token)
+
+        if (!mounted) return
+        setGamification(data)
+      } catch {
+        if (!mounted) return
+        setGamification(EMPTY_GAMIFICATION)
+      } finally {
+        if (mounted) {
+          setGamificationLoading(false)
+        }
+      }
+    }
+
+    if (isReady) {
+      void loadGamification()
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible" && isReady) {
+        void loadGamification()
+      }
+    }, 12000)
+
+    return () => {
+      mounted = false
+      window.clearInterval(intervalId)
+    }
+  }, [isReady])
 
   const avatarLabel = useMemo(() => {
     if (!user?.name) return "SP"
@@ -82,6 +150,15 @@ export default function DashboardLayout({
           user={user}
           avatarLabel={avatarLabel}
           mobileSidebar={<AppSidebar />}
+          gamificationProfile={gamification.profile}
+          weeklyEvolution={gamification.weeklyEvolution}
+          challenges={gamification.challenges}
+          gamificationLoading={gamificationLoading}
+        />
+
+        <GamificationProgressToast
+          profile={gamification.profile}
+          challenges={gamification.challenges}
         />
 
         <main
