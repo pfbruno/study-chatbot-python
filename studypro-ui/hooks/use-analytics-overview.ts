@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { AUTH_TOKEN_KEY } from "@/lib/api"
+import {
+  ANALYTICS_REFRESH_EVENT,
+} from "@/lib/activity-events"
+import {
+  fetchGamificationSummary,
+  GAMIFICATION_REFRESH_EVENT,
+  type PersistedGamificationSummaryResponse,
+} from "@/lib/gamification-client"
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -22,6 +30,8 @@ export type AnalyticsOverviewResponse = {
   overallStats: {
     totalQuestions: number
     totalSessions: number
+    totalCorrect?: number
+    totalWrong?: number
     avgAccuracy: number
     platformAvg: number
     avgTimePerQuestion: string
@@ -68,6 +78,25 @@ export type AnalyticsOverviewResponse = {
     questions: number
     created_at?: string
   }>
+  gamification: PersistedGamificationSummaryResponse
+}
+
+const EMPTY_GAMIFICATION: PersistedGamificationSummaryResponse = {
+  profile: {
+    userName: "Usuário",
+    level: 1,
+    currentXP: 0,
+    nextLevelXP: 800,
+    totalXP: 0,
+    streakDays: 0,
+    completedChallenges: 0,
+    unlockedAchievements: 0,
+    totalAchievements: 0,
+  },
+  achievements: [],
+  recentUnlocks: [],
+  weeklyEvolution: [],
+  challenges: [],
 }
 
 function getStoredToken() {
@@ -118,7 +147,7 @@ export function useAnalyticsOverview() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch(`${API_URL}/analytics/overview`, {
+        const analyticsResponse = await fetch(`${API_URL}/analytics/overview`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -127,14 +156,24 @@ export function useAnalyticsOverview() {
           cache: "no-store",
         })
 
-        if (!response.ok) {
-          throw new Error(await parseApiError(response))
+        if (!analyticsResponse.ok) {
+          throw new Error(await parseApiError(analyticsResponse))
         }
 
-        const result = (await response.json()) as AnalyticsOverviewResponse
+        const analyticsResult = await analyticsResponse.json()
+
+        let gamification = EMPTY_GAMIFICATION
+        try {
+          gamification = await fetchGamificationSummary(token)
+        } catch {
+          gamification = EMPTY_GAMIFICATION
+        }
 
         if (mounted) {
-          setData(result)
+          setData({
+            ...analyticsResult,
+            gamification,
+          } as AnalyticsOverviewResponse)
         }
       } catch (err) {
         if (mounted) {
@@ -152,10 +191,38 @@ export function useAnalyticsOverview() {
       }
     }
 
-    fetchAnalytics()
+    const handleRefresh = () => {
+      void fetchAnalytics()
+    }
+
+    void fetchAnalytics()
+
+    window.addEventListener(
+      ANALYTICS_REFRESH_EVENT,
+      handleRefresh as EventListener
+    )
+    window.addEventListener(
+      GAMIFICATION_REFRESH_EVENT,
+      handleRefresh as EventListener
+    )
+
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void fetchAnalytics()
+      }
+    }, 12000)
 
     return () => {
       mounted = false
+      window.removeEventListener(
+        ANALYTICS_REFRESH_EVENT,
+        handleRefresh as EventListener
+      )
+      window.removeEventListener(
+        GAMIFICATION_REFRESH_EVENT,
+        handleRefresh as EventListener
+      )
+      window.clearInterval(intervalId)
     }
   }, [])
 
