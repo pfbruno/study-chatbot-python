@@ -8,28 +8,24 @@ import {
   Layers3,
   Loader2,
   Medal,
+  Moon,
   Sparkles,
   Star,
   Target,
   Trophy,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { AUTH_TOKEN_KEY } from "@/lib/api";
-import { useGamificationSummary } from "@/hooks/use-gamification";
+
 import {
-  achievements as fallbackAchievements,
-  gamificationProfile as fallbackProfile,
-  recentUnlocks as fallbackRecentUnlocks,
-  weeklyEvolution as fallbackWeeklyEvolution,
-  type AchievementItem,
-  type AchievementRarity,
-  type AchievementStatus,
-} from "@/lib/mock-gamification";
+  AUTH_TOKEN_KEY,
+  type GamificationAchievement,
+} from "@/lib/api";
+import { useGamificationSummary } from "@/hooks/use-gamification";
 
-type FilterValue = "all" | AchievementStatus;
-type CategoryFilter = "all" | AchievementItem["category"];
+type FilterValue = "all" | GamificationAchievement["status"];
+type CategoryFilter = "all" | GamificationAchievement["category"];
 
-function rarityStyles(rarity: AchievementRarity) {
+function rarityStyles(rarity: GamificationAchievement["rarity"]) {
   if (rarity === "legendary") {
     return {
       badge: "border-yellow-400/30 bg-yellow-400/10 text-yellow-300",
@@ -70,7 +66,7 @@ function iconForAchievement(icon: string) {
     case "brain":
       return Brain;
     case "moon":
-      return Sparkles;
+      return Moon;
     case "crown":
       return Crown;
     case "medal":
@@ -79,6 +75,10 @@ function iconForAchievement(icon: string) {
       return Layers3;
     case "calendar":
       return Star;
+    case "sparkles":
+      return Sparkles;
+    case "trophy":
+      return Trophy;
     default:
       return Award;
   }
@@ -86,9 +86,13 @@ function iconForAchievement(icon: string) {
 
 function formatDate(value?: string | null) {
   if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function ProgressLine({ value }: { value: number }) {
@@ -111,7 +115,7 @@ function XPProgressBar({
 }) {
   const percent = Math.max(
     0,
-    Math.min(100, Math.round((currentXP / nextLevelXP) * 100))
+    Math.min(100, Math.round((currentXP / Math.max(1, nextLevelXP)) * 100))
   );
 
   return (
@@ -127,7 +131,25 @@ function XPProgressBar({
   );
 }
 
-function AchievementCard({ item }: { item: AchievementItem }) {
+function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-6">
+      <div className="flex size-11 items-center justify-center rounded-2xl bg-white/5 text-blue-300">
+        <Award className="size-5" />
+      </div>
+      <h3 className="mt-4 text-lg font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-7 text-slate-400">{description}</p>
+    </div>
+  );
+}
+
+function AchievementCard({ item }: { item: GamificationAchievement }) {
   const rarity = rarityStyles(item.rarity);
   const Icon = iconForAchievement(item.icon);
   const progress =
@@ -143,7 +165,9 @@ function AchievementCard({ item }: { item: AchievementItem }) {
             <Icon className="size-6" />
           </div>
 
-          <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarity.badge}`}>
+          <div
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarity.badge}`}
+          >
             {rarity.label}
           </div>
         </div>
@@ -163,8 +187,8 @@ function AchievementCard({ item }: { item: AchievementItem }) {
               {item.status === "unlocked"
                 ? "Desbloqueada"
                 : item.status === "in_progress"
-                ? "Em progresso"
-                : "Bloqueada"}
+                  ? "Em progresso"
+                  : "Bloqueada"}
             </span>
           </div>
 
@@ -189,6 +213,15 @@ function AchievementCard({ item }: { item: AchievementItem }) {
   );
 }
 
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
+      <p className="text-sm text-slate-400">{label}</p>
+      <h3 className="mt-3 text-3xl font-bold text-white">{value}</h3>
+    </article>
+  );
+}
+
 export default function ConquistasPage() {
   const [token, setToken] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<FilterValue>("all");
@@ -200,10 +233,20 @@ export default function ConquistasPage() {
 
   const { data, loading, error } = useGamificationSummary(token);
 
-  const profile = token ? data.profile : fallbackProfile;
-  const achievements = token && data.achievements.length > 0 ? (data.achievements as AchievementItem[]) : fallbackAchievements;
-  const recentUnlocks = token && data.recentUnlocks.length > 0 ? data.recentUnlocks : fallbackRecentUnlocks;
-  const weeklyEvolution = token && data.weeklyEvolution.length > 0 ? data.weeklyEvolution : fallbackWeeklyEvolution;
+  const achievements = data.achievements;
+  const recentUnlocks = data.recentUnlocks;
+  const weeklyEvolution = data.weeklyEvolution;
+  const profile = data.profile;
+
+  const hasAnyGamificationData =
+    !!token &&
+    !loading &&
+    !error &&
+    (profile.totalXP > 0 ||
+      profile.streakDays > 0 ||
+      achievements.length > 0 ||
+      recentUnlocks.length > 0 ||
+      weeklyEvolution.length > 0);
 
   const filteredAchievements = useMemo(() => {
     return achievements.filter((item) => {
@@ -213,21 +256,84 @@ export default function ConquistasPage() {
     });
   }, [achievements, categoryFilter, statusFilter]);
 
-  const unlockedPercent = Math.round(
-    (profile.unlockedAchievements / Math.max(1, profile.totalAchievements)) * 100
-  );
+  const unlockedPercent =
+    profile.totalAchievements > 0
+      ? Math.round(
+          (profile.unlockedAchievements / Math.max(1, profile.totalAchievements)) *
+            100
+        )
+      : 0;
 
   const totalWeekXP = weeklyEvolution.reduce((acc, item) => acc + item.xp, 0);
   const bestDay = [...weeklyEvolution].sort((a, b) => b.xp - a.xp)[0];
 
+  if (!token) {
+    return (
+      <div className="space-y-6">
+        <section className="rounded-[32px] border border-white/10 bg-[#071225] p-8">
+          <h1 className="text-4xl font-bold tracking-tight text-white">
+            Conquistas
+          </h1>
+          <p className="mt-4 text-lg leading-8 text-slate-300">
+            Faça login para acompanhar conquistas, XP e streaks reais.
+          </p>
+        </section>
+
+        <EmptyState
+          title="Sessão não encontrada"
+          description="A área de conquistas não exibe dados de exemplo. Entre na sua conta para visualizar apenas informações reais."
+        />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="rounded-[32px] border border-white/10 bg-[#071225] p-6 text-sm text-slate-300">
+        <div className="flex items-center gap-3">
+          <Loader2 className="size-4 animate-spin" />
+          Carregando conquistas reais...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+        {error}
+      </div>
+    );
+  }
+
+  if (!hasAnyGamificationData) {
+    return (
+      <div className="space-y-6">
+        <section className="rounded-[32px] border border-white/10 bg-[#071225] p-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#7c8cff]/25 bg-[#7c8cff]/10 px-4 py-2 text-sm text-[#b7c0ff]">
+            <Trophy className="size-4" />
+            Gamificação StudyPro
+          </div>
+
+          <h1 className="mt-6 text-5xl font-bold tracking-tight text-white">
+            Conquistas
+          </h1>
+
+          <p className="mt-4 max-w-3xl text-xl leading-9 text-[#7ea0d6]">
+            Esta área exibirá somente dados reais registrados pela sua conta.
+          </p>
+        </section>
+
+        <EmptyState
+          title="Nenhuma conquista registrada ainda"
+          description="Resolva simulados, revise conteúdos e conclua atividades para gerar XP e desbloquear conquistas reais."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
-      {error ? (
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          {error}
-        </div>
-      ) : null}
-
       <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,_rgba(99,102,241,0.18),_rgba(3,11,29,1)_48%,_rgba(8,20,46,1)_100%)] p-8 shadow-[0_10px_50px_-28px_rgba(99,102,241,0.55)]">
         <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
           <div>
@@ -241,7 +347,7 @@ export default function ConquistasPage() {
             </h1>
 
             <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-              Acompanhe sua evolução, desbloqueie marcos de estudo e transforme constância em progresso visível.
+              Acompanhe somente conquistas, XP e streaks registrados pelo backend.
             </p>
 
             <div className="mt-8 grid gap-4 md:grid-cols-4">
@@ -256,39 +362,31 @@ export default function ConquistasPage() {
           </div>
 
           <div className="rounded-[28px] border border-white/10 bg-[#030b1d] p-6">
-            {loading ? (
-              <div className="flex items-center gap-3 text-slate-300">
-                <Loader2 className="size-4 animate-spin" />
-                Carregando progresso real...
+            <p className="text-sm text-slate-400">Perfil de evolução</p>
+            <div className="mt-3 text-4xl font-bold text-white">
+              {profile.userName}
+            </div>
+
+            <p className="mt-4 text-lg leading-8 text-slate-300">
+              Os dados abaixo vêm da atividade real registrada na sua conta.
+            </p>
+
+            <div className="mt-6">
+              <XPProgressBar
+                currentXP={profile.currentXP}
+                nextLevelXP={profile.nextLevelXP}
+              />
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-slate-400">Coleção desbloqueada</span>
+                <span className="font-semibold text-white">{unlockedPercent}%</span>
               </div>
-            ) : (
-              <>
-                <p className="text-sm text-slate-400">Perfil de evolução</p>
-                <div className="mt-3 text-4xl font-bold text-white">
-                  {profile.userName}
-                </div>
-                <p className="mt-4 text-lg leading-8 text-slate-300">
-                  Seu progresso gamificado mostra consistência, qualidade de treino e proximidade dos próximos desbloqueios.
-                </p>
-
-                <div className="mt-6">
-                  <XPProgressBar
-                    currentXP={profile.currentXP}
-                    nextLevelXP={profile.nextLevelXP}
-                  />
-                </div>
-
-                <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Coleção desbloqueada</span>
-                    <span className="font-semibold text-white">{unlockedPercent}%</span>
-                  </div>
-                  <div className="mt-3">
-                    <ProgressLine value={unlockedPercent} />
-                  </div>
-                </div>
-              </>
-            )}
+              <div className="mt-3">
+                <ProgressLine value={unlockedPercent} />
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -304,7 +402,7 @@ export default function ConquistasPage() {
                 Streak atual
               </h2>
               <p className="mt-1 text-sm text-[#7ea0d6]">
-                Sequência contínua de estudo
+                Sequência registrada
               </p>
             </div>
           </div>
@@ -314,7 +412,7 @@ export default function ConquistasPage() {
           </div>
 
           <p className="mt-3 text-base leading-7 text-[#7ea0d6]">
-            Sua constância está acima da média recente e favorece evolução de longo prazo.
+            Este valor é calculado a partir das atividades registradas.
           </p>
         </article>
 
@@ -328,7 +426,7 @@ export default function ConquistasPage() {
                 XP semanal
               </h2>
               <p className="mt-1 text-sm text-[#7ea0d6]">
-                Soma da evolução dos últimos 7 dias
+                Soma dos registros recentes
               </p>
             </div>
           </div>
@@ -336,7 +434,11 @@ export default function ConquistasPage() {
           <div className="mt-6 text-5xl font-bold text-white">{totalWeekXP}</div>
 
           <p className="mt-3 text-base leading-7 text-[#7ea0d6]">
-            Melhor dia da semana: <span className="font-semibold text-white">{bestDay?.label ?? "—"}</span> com {bestDay?.xp ?? 0} XP.
+            Melhor dia:{" "}
+            <span className="font-semibold text-white">
+              {bestDay?.label ?? "—"}
+            </span>{" "}
+            com {bestDay?.xp ?? 0} XP.
           </p>
         </article>
 
@@ -350,39 +452,47 @@ export default function ConquistasPage() {
                 Próximas vitórias
               </h2>
               <p className="mt-1 text-sm text-[#7ea0d6]">
-                Conquistas mais próximas de desbloquear
+                Conquistas em progresso
               </p>
             </div>
           </div>
 
           <div className="mt-6 space-y-3">
-            {achievements
-              .filter((item) => item.status === "in_progress")
-              .slice(0, 3)
-              .map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl border border-white/10 bg-[#081224] p-4"
-                >
-                  <div className="text-sm font-semibold text-white">{item.title}</div>
-                  <div className="mt-2 text-sm text-[#7ea0d6]">
-                    {item.progress}/{item.target} • +{item.xpReward} XP
+            {achievements.filter((item) => item.status === "in_progress").length > 0 ? (
+              achievements
+                .filter((item) => item.status === "in_progress")
+                .slice(0, 3)
+                .map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-white/10 bg-[#081224] p-4"
+                  >
+                    <div className="text-sm font-semibold text-white">
+                      {item.title}
+                    </div>
+                    <div className="mt-2 text-sm text-[#7ea0d6]">
+                      {item.progress}/{item.target} • +{item.xpReward} XP
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+            ) : (
+              <p className="rounded-2xl border border-white/10 bg-[#081224] p-4 text-sm text-slate-400">
+                Nenhuma conquista em progresso no momento.
+              </p>
+            )}
           </div>
         </article>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold tracking-tight text-white">
                 Catálogo de conquistas
               </h2>
               <p className="mt-2 text-base text-[#7ea0d6]">
-                Filtre e acompanhe seus desbloqueios
+                Filtre e acompanhe desbloqueios reais
               </p>
             </div>
 
@@ -415,9 +525,18 @@ export default function ConquistasPage() {
           </div>
 
           <div className="mt-6 grid gap-5 xl:grid-cols-2">
-            {filteredAchievements.map((item) => (
-              <AchievementCard key={item.id} item={item} />
-            ))}
+            {filteredAchievements.length > 0 ? (
+              filteredAchievements.map((item) => (
+                <AchievementCard key={item.id} item={item} />
+              ))
+            ) : (
+              <div className="xl:col-span-2">
+                <EmptyState
+                  title="Nenhuma conquista neste filtro"
+                  description="Altere os filtros ou conclua novas atividades para desbloquear conquistas."
+                />
+              </div>
+            )}
           </div>
         </article>
 
@@ -427,35 +546,44 @@ export default function ConquistasPage() {
               Desbloqueios recentes
             </h2>
             <p className="mt-2 text-base text-[#7ea0d6]">
-              Suas últimas conquistas confirmadas
+              Últimas conquistas confirmadas
             </p>
 
             <div className="mt-6 space-y-4">
-              {recentUnlocks.map((item) => {
-                const rarity = rarityStyles(item.rarity as AchievementRarity);
+              {recentUnlocks.length > 0 ? (
+                recentUnlocks.map((item) => {
+                  const rarity = rarityStyles(item.rarity);
 
-                return (
-                  <div
-                    key={item.id}
-                    className="rounded-[22px] border border-white/10 bg-[#081224] p-4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-lg font-semibold text-white">
-                          {item.title}
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-[22px] border border-white/10 bg-[#081224] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="text-lg font-semibold text-white">
+                            {item.title}
+                          </div>
+                          <div className="mt-2 text-sm text-[#7ea0d6]">
+                            Desbloqueada em {formatDate(item.unlockedAt)}
+                          </div>
                         </div>
-                        <div className="mt-2 text-sm text-[#7ea0d6]">
-                          Desbloqueada em {formatDate(item.unlockedAt)}
-                        </div>
-                      </div>
 
-                      <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarity.badge}`}>
-                        +{item.xpReward} XP
+                        <div
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${rarity.badge}`}
+                        >
+                          +{item.xpReward} XP
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <EmptyState
+                  title="Nenhum desbloqueio recente"
+                  description="As conquistas desbloqueadas aparecerão aqui."
+                />
+              )}
             </div>
           </article>
 
@@ -464,37 +592,43 @@ export default function ConquistasPage() {
               Evolução semanal
             </h2>
             <p className="mt-2 text-base text-[#7ea0d6]">
-              Distribuição visual do XP acumulado
+              Distribuição do XP acumulado
             </p>
 
             <div className="mt-6 space-y-4">
-              {weeklyEvolution.map((point) => {
-                const max = Math.max(...weeklyEvolution.map((item) => item.xp), 1);
-                const percent = Math.max(8, Math.round((point.xp / max) * 100));
+              {weeklyEvolution.length > 0 ? (
+                weeklyEvolution.map((point) => {
+                  const max = Math.max(
+                    ...weeklyEvolution.map((item) => item.xp),
+                    1
+                  );
+                  const percent = Math.max(
+                    8,
+                    Math.round((point.xp / max) * 100)
+                  );
 
-                return (
-                  <div key={point.label} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-white">{point.label}</span>
-                      <span className="text-[#7ea0d6]">{point.xp} XP</span>
+                  return (
+                    <div key={point.label} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-white">
+                          {point.label}
+                        </span>
+                        <span className="text-[#7ea0d6]">{point.xp} XP</span>
+                      </div>
+                      <ProgressLine value={percent} />
                     </div>
-                    <ProgressLine value={percent} />
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <EmptyState
+                  title="Sem evolução semanal"
+                  description="O gráfico será exibido quando houver eventos de XP registrados."
+                />
+              )}
             </div>
           </article>
         </div>
       </section>
     </div>
-  );
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <article className="rounded-[24px] border border-white/10 bg-[#071225] p-5">
-      <p className="text-sm text-slate-400">{label}</p>
-      <h3 className="mt-3 text-3xl font-bold text-white">{value}</h3>
-    </article>
   );
 }

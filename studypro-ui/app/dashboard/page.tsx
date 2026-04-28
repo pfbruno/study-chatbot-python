@@ -30,11 +30,6 @@ import {
   Legend,
   Line,
   LineChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -45,12 +40,6 @@ import { AUTH_TOKEN_KEY } from "@/lib/api";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { useBillingStatus } from "@/hooks/use-billing-status";
 import { useGamificationSummary } from "@/hooks/use-gamification";
-import {
-  achievements as fallbackAchievements,
-  gamificationProfile as fallbackProfile,
-  recentUnlocks as fallbackRecentUnlocks,
-  weeklyEvolution as fallbackWeeklyEvolution,
-} from "@/lib/mock-gamification";
 
 type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes";
 type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade";
@@ -104,10 +93,6 @@ const STUDY_GOAL_KEY = "studypro_goal";
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history";
 const REVIEW_SUMMARY_KEY = "studypro_review_summary";
 const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards";
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
 
 function formatDate(value?: string) {
   if (!value) return "Sem data";
@@ -164,12 +149,6 @@ function getNextAction(goal: StudyGoal | null) {
     default:
       return "Começar agora";
   }
-}
-
-function getDailyGoal(dataQuestions: number) {
-  if (dataQuestions >= 300) return 30;
-  if (dataQuestions >= 100) return 20;
-  return 10;
 }
 
 function rarityLabel(value: string) {
@@ -266,19 +245,6 @@ export default function DashboardPage() {
     [accuracyRate]
   );
 
-  const baselinePercent = useMemo(() => {
-    if (!data.questions) return 58;
-    return clamp(Math.round(accuracyPercent - 14), 35, 90);
-  }, [accuracyPercent, data.questions]);
-
-  const estimatedTimePerQuestion = useMemo(() => {
-    if (!data.questions) return "N/D";
-    const seconds = clamp(Math.round(210 - accuracyPercent), 75, 240);
-    const min = Math.floor(seconds / 60);
-    const sec = String(seconds % 60).padStart(2, "0");
-    return `${min}:${sec}`;
-  }, [accuracyPercent, data.questions]);
-
   const currentPlan = billing?.user.plan ?? data.user?.plan ?? "free";
   const isPro = currentPlan === "pro";
 
@@ -298,25 +264,21 @@ export default function DashboardPage() {
       ? Math.max(...simulationHistory.map((item) => item.score_percentage))
       : null;
 
-  const gameProfile =
-    token && gamification.profile.userName !== "Usuário"
-      ? gamification.profile
-      : fallbackProfile;
+  const gameProfile = gamification.profile;
+  const gameAchievements = gamification.achievements;
+  const gameRecentUnlocks = gamification.recentUnlocks;
+  const gameWeeklyEvolution = gamification.weeklyEvolution;
 
-  const gameAchievements =
-    token && gamification.achievements.length > 0
-      ? gamification.achievements
-      : fallbackAchievements;
-
-  const gameRecentUnlocks =
-    token && gamification.recentUnlocks.length > 0
-      ? gamification.recentUnlocks
-      : fallbackRecentUnlocks;
-
-  const gameWeeklyEvolution =
-    token && gamification.weeklyEvolution.length > 0
-      ? gamification.weeklyEvolution
-      : fallbackWeeklyEvolution;
+  const hasGamificationData =
+    !!token &&
+    !gamificationLoading &&
+    !gamificationError &&
+    (gameProfile.totalXP > 0 ||
+      gameProfile.streakDays > 0 ||
+      gameAchievements.length > 0 ||
+      gameRecentUnlocks.length > 0 ||
+      gameWeeklyEvolution.length > 0 ||
+      gamification.challenges.length > 0);
 
   const nextWins = gameAchievements
     .filter((item) => item.status === "in_progress")
@@ -326,12 +288,27 @@ export default function DashboardPage() {
     (item) => item.status === "unlocked"
   ).length;
 
+  const todayQuestions = useMemo(() => {
+    const today = new Date().toDateString();
+
+    return simulationHistory.reduce((total, item) => {
+      const itemDate = new Date(item.saved_at);
+      if (Number.isNaN(itemDate.getTime())) return total;
+      return itemDate.toDateString() === today
+        ? total + item.total_questions
+        : total;
+    }, 0);
+  }, [simulationHistory]);
+
   const topCards = useMemo(
     () => [
       {
         title: "Taxa de acerto",
         value: `${accuracyPercent.toFixed(0)}%`,
-        subtitle: "Base atual de desempenho",
+        subtitle:
+          data.questions > 0
+            ? "Calculada com questões registradas"
+            : "Sem questões registradas",
         icon: <Target className="size-5 text-blue-400" />,
         iconBg: "bg-blue-500/15",
       },
@@ -343,9 +320,9 @@ export default function DashboardPage() {
         iconBg: "bg-emerald-500/15",
       },
       {
-        title: "Tempo/questão",
-        value: estimatedTimePerQuestion,
-        subtitle: "Estimativa local",
+        title: "Erros registrados",
+        value: data.wrong.toLocaleString("pt-BR"),
+        subtitle: `${data.correct.toLocaleString("pt-BR")} acerto(s) registrados`,
         icon: <Clock3 className="size-5 text-blue-400" />,
         iconBg: "bg-blue-500/15",
       },
@@ -366,102 +343,91 @@ export default function DashboardPage() {
       accuracyPercent,
       data.questions,
       data.attempts_count,
-      estimatedTimePerQuestion,
+      data.correct,
+      data.wrong,
       bestSimulationScore,
       latestSimulation,
     ]
   );
 
   const evolutionData = useMemo(() => {
-    const months = [
-      "Jan",
-      "Fev",
-      "Mar",
-      "Abr",
-      "Mai",
-      "Jun",
-      "Jul",
-      "Ago",
-      "Set",
-      "Out",
-      "Nov",
-      "Dez",
-    ];
-    const target = clamp(accuracyPercent || 52, 40, 95);
-    const average = clamp(baselinePercent, 35, 90);
+    return [...simulationHistory]
+      .reverse()
+      .slice(-12)
+      .map((item, index) => ({
+        label: `${index + 1}`,
+        acerto: Number(item.score_percentage.toFixed(1)),
+      }));
+  }, [simulationHistory]);
 
-    return months.map((month, index) => {
-      const progress = index / 11;
-      const wave = Math.sin(index * 1.2) * 3;
-      const userValue = clamp(
-        Math.round(48 + progress * (target - 48) + wave),
-        40,
-        95
-      );
-      const avgValue = clamp(
-        Math.round(average + Math.sin(index * 0.7) * 1.2),
-        35,
-        90
-      );
+  const subjectData = useMemo(() => {
+    const buckets = new Map<
+      string,
+      {
+        subject: string;
+        total: number;
+        correct: number;
+        wrong: number;
+        blank: number;
+      }
+    >();
 
-      return {
-        month,
-        voce: userValue,
-        media: avgValue,
-      };
-    });
-  }, [accuracyPercent, baselinePercent]);
+    for (const attempt of simulationHistory) {
+      for (const subject of attempt.subjects_summary ?? []) {
+        const current = buckets.get(subject.subject) ?? {
+          subject: subject.subject,
+          total: 0,
+          correct: 0,
+          wrong: 0,
+          blank: 0,
+        };
 
-  const radarData = useMemo(() => {
-    const base = clamp(accuracyPercent || 52, 35, 95);
+        current.total += subject.total;
+        current.correct += subject.correct;
+        current.wrong += subject.wrong;
+        current.blank += subject.blank;
+        buckets.set(subject.subject, current);
+      }
+    }
 
-    return [
-      { subject: "Mate", voce: clamp(base + 4, 25, 100), media: clamp(base - 6, 20, 100) },
-      { subject: "Biol", voce: clamp(base + 2, 25, 100), media: clamp(base - 7, 20, 100) },
-      { subject: "Quím", voce: clamp(base + 1, 25, 100), media: clamp(base - 5, 20, 100) },
-      { subject: "Físi", voce: clamp(base - 3, 25, 100), media: clamp(base - 9, 20, 100) },
-      { subject: "Port", voce: clamp(base + 6, 25, 100), media: clamp(base - 4, 20, 100) },
-      { subject: "Hist", voce: clamp(base - 1, 25, 100), media: clamp(base - 8, 20, 100) },
-      { subject: "Geog", voce: clamp(base + 1, 25, 100), media: clamp(base - 6, 20, 100) },
-      { subject: "Reda", voce: clamp(base + 5, 25, 100), media: clamp(base - 7, 20, 100) },
-    ];
-  }, [accuracyPercent]);
+    return Array.from(buckets.values())
+      .map((item) => ({
+        ...item,
+        acerto:
+          item.total > 0
+            ? Number(((item.correct / item.total) * 100).toFixed(1))
+            : 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [simulationHistory]);
 
   const weeklyData = useMemo(() => {
-    const labels = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
-    const total = Math.max(data.questions, 0);
-    const accuracy = clamp(accuracyPercent || 50, 20, 95);
-
-    return labels.map((day, index) => {
-      const multiplier = [0.6, 0.45, 0.75, 0.3, 0.9, 1, 0.55][index];
-      const questoes =
-        total > 0
-          ? Math.max(8, Math.round((total / 10) * multiplier))
-          : [120, 90, 150, 60, 180, 200, 110][index];
-      const minutos = Math.max(
-        15,
-        Math.round((questoes * (140 - accuracy)) / 60)
-      );
-
+    const labels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const today = new Date();
+    const days = Array.from({ length: 7 }, (_, offset) => {
+      const date = new Date(today);
+      date.setDate(today.getDate() - (6 - offset));
       return {
-        day,
-        questoes,
-        minutos,
+        key: date.toDateString(),
+        day: labels[date.getDay()],
+        questoes: 0,
       };
     });
-  }, [accuracyPercent, data.questions]);
 
-  const dailyGoal = useMemo(() => getDailyGoal(data.questions), [data.questions]);
+    const byKey = new Map(days.map((item) => [item.key, item]));
 
-  const completedToday = useMemo(() => {
-    if (!data.questions) return 0;
-    return clamp(Math.round(data.questions * 0.08), 0, dailyGoal);
-  }, [data.questions, dailyGoal]);
+    for (const attempt of simulationHistory) {
+      const date = new Date(attempt.saved_at);
+      if (Number.isNaN(date.getTime())) continue;
 
-  const dailyGoalPercent = useMemo(() => {
-    if (!dailyGoal) return 0;
-    return clamp(Math.round((completedToday / dailyGoal) * 100), 0, 100);
-  }, [completedToday, dailyGoal]);
+      const bucket = byKey.get(date.toDateString());
+      if (bucket) {
+        bucket.questoes += attempt.total_questions;
+      }
+    }
+
+    return days;
+  }, [simulationHistory]);
 
   const bestGameDay = [...gameWeeklyEvolution].sort((a, b) => b.xp - a.xp)[0];
   const totalWeekXP = gameWeeklyEvolution.reduce((acc, item) => acc + item.xp, 0);
@@ -622,23 +588,16 @@ export default function DashboardPage() {
 
           <div className="grid w-full gap-4 xl:max-w-[420px]">
             <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-              <p className="text-sm text-slate-400">Meta do dia</p>
+              <p className="text-sm text-slate-400">Atividade de hoje</p>
               <div className="mt-2 text-3xl font-bold text-white">
-                {completedToday}/{dailyGoal}
+                {todayQuestions}
               </div>
               <p className="mt-2 text-sm text-slate-300">
-                Questões concluídas hoje
+                Questões registradas hoje em simulados locais
               </p>
 
-              <div className="mt-5 h-3 overflow-hidden rounded-full bg-[#071225]">
-                <div
-                  className="h-full rounded-full bg-[#2f7cff]"
-                  style={{ width: `${dailyGoalPercent}%` }}
-                />
-              </div>
-
-              <p className="mt-3 text-sm text-slate-400">
-                {dailyGoalPercent}% da meta diária
+              <p className="mt-5 text-sm leading-6 text-slate-400">
+                Este número usa apenas histórico real salvo após correções de simulados.
               </p>
             </div>
 
@@ -688,29 +647,29 @@ export default function DashboardPage() {
           icon={<Flame className="size-5 text-orange-300" />}
           iconBg="bg-orange-500/15"
           title="Streak atual"
-          value={`${gameProfile.streakDays} dias`}
-          helper="Sequência real registrada"
+          value={hasGamificationData ? `${gameProfile.streakDays} dias` : "N/D"}
+          helper={hasGamificationData ? "Sequência real registrada" : "Sem registros de streak"}
         />
         <GameStatCard
           icon={<Sparkles className="size-5 text-blue-300" />}
           iconBg="bg-blue-500/15"
           title="XP total"
-          value={`${gameProfile.totalXP}`}
-          helper={`Nível ${gameProfile.level}`}
+          value={hasGamificationData ? `${gameProfile.totalXP}` : "N/D"}
+          helper={hasGamificationData ? `Nível ${gameProfile.level}` : "Sem XP registrado"}
         />
         <GameStatCard
           icon={<Award className="size-5 text-purple-300" />}
           iconBg="bg-purple-500/15"
           title="Conquistas"
-          value={`${unlockedAchievementsCount}/${gameAchievements.length}`}
-          helper="Coleção desbloqueada"
+          value={hasGamificationData ? `${unlockedAchievementsCount}/${gameAchievements.length}` : "N/D"}
+          helper={hasGamificationData ? "Coleção desbloqueada" : "Sem conquistas registradas"}
         />
         <GameStatCard
           icon={<Swords className="size-5 text-emerald-300" />}
           iconBg="bg-emerald-500/15"
           title="Desafios"
-          value={`${gameProfile.completedChallenges}`}
-          helper="Concluídos recentemente"
+          value={hasGamificationData ? `${gameProfile.completedChallenges}` : "N/D"}
+          helper={hasGamificationData ? "Concluídos recentemente" : "Sem desafios concluídos"}
         />
       </section>
 
@@ -760,6 +719,10 @@ export default function DashboardPage() {
                   <Loader2 className="size-4 animate-spin" />
                   Sincronizando XP...
                 </div>
+              ) : !hasGamificationData ? (
+                <div className="text-sm leading-7 text-slate-400">
+                  Nenhum XP real registrado ainda. Conclua atividades para iniciar a progressão.
+                </div>
               ) : (
                 <>
                   <div className="flex items-center justify-between">
@@ -794,15 +757,23 @@ export default function DashboardPage() {
 
             <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <p className="text-sm text-slate-400">Melhor dia recente</p>
-              <p className="mt-2 text-3xl font-bold text-white">
-                {bestGameDay?.label ?? "N/D"}
-              </p>
-              <p className="mt-3 text-sm text-slate-300">
-                {bestGameDay?.xp ?? 0} XP acumulados
-              </p>
-              <p className="mt-2 text-sm text-slate-400">
-                Total da semana: {totalWeekXP} XP
-              </p>
+              {gameWeeklyEvolution.length > 0 ? (
+                <>
+                  <p className="mt-2 text-3xl font-bold text-white">
+                    {bestGameDay?.label ?? "N/D"}
+                  </p>
+                  <p className="mt-3 text-sm text-slate-300">
+                    {bestGameDay?.xp ?? 0} XP acumulados
+                  </p>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Total da semana: {totalWeekXP} XP
+                  </p>
+                </>
+              ) : (
+                <p className="mt-3 text-sm leading-7 text-slate-400">
+                  Sem evolução semanal registrada.
+                </p>
+              )}
             </div>
           </div>
         </article>
@@ -955,25 +926,31 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-6 space-y-4">
-            {gameWeeklyEvolution.map((point) => {
-              const max = Math.max(...gameWeeklyEvolution.map((item) => item.xp), 1);
-              const percent = Math.max(8, Math.round((point.xp / max) * 100));
+            {gameWeeklyEvolution.length > 0 ? (
+              gameWeeklyEvolution.map((point) => {
+                const max = Math.max(...gameWeeklyEvolution.map((item) => item.xp), 1);
+                const percent = Math.max(8, Math.round((point.xp / max) * 100));
 
-              return (
-                <div key={point.label} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-white">{point.label}</span>
-                    <span className="text-[#7ea0d6]">{point.xp} XP</span>
+                return (
+                  <div key={point.label} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-white">{point.label}</span>
+                      <span className="text-[#7ea0d6]">{point.xp} XP</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-[#020b18]">
+                      <div
+                        className="h-full rounded-full bg-[#2f7cff]"
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-[#020b18]">
-                    <div
-                      className="h-full rounded-full bg-[#2f7cff]"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            ) : (
+              <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4 text-sm text-slate-300">
+                Nenhum XP semanal registrado ainda.
+              </div>
+            )}
           </div>
         </article>
       </section>
@@ -1219,72 +1196,40 @@ export default function DashboardPage() {
 
         <div className="p-5">
           {activeTab === "evolucao" ? (
-            <div className="grid gap-6 xl:grid-cols-2">
-              <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-                <h2 className="text-xl font-semibold text-white">
-                  Evolução de acertos vs média da plataforma
-                </h2>
+            <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+              <h2 className="text-xl font-semibold text-white">
+                Evolução de acertos
+              </h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Gráfico gerado somente a partir do histórico real de simulados corrigidos.
+              </p>
 
-                <div className="mt-6 h-[320px]">
+              <div className="mt-6 h-[320px]">
+                {evolutionData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={evolutionData}>
                       <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                      <XAxis dataKey="month" stroke="#94a3b8" />
-                      <YAxis stroke="#94a3b8" />
+                      <XAxis dataKey="label" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" domain={[0, 100]} />
                       <Tooltip />
                       <Legend />
                       <Line
                         type="monotone"
-                        dataKey="voce"
+                        dataKey="acerto"
                         stroke="#2f7cff"
                         strokeWidth={3}
                         dot={false}
-                        name="Você"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="media"
-                        stroke="#22c55e"
-                        strokeWidth={2}
-                        dot={false}
-                        name="Média"
+                        name="Taxa de acerto"
                       />
                     </LineChart>
                   </ResponsiveContainer>
-                </div>
-              </article>
-
-              <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
-                <h2 className="text-xl font-semibold text-white">
-                  Radar de habilidades
-                </h2>
-
-                <div className="mt-6 h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="subject" stroke="#94a3b8" />
-                      <PolarRadiusAxis stroke="#64748b" />
-                      <Radar
-                        name="Você"
-                        dataKey="voce"
-                        stroke="#2f7cff"
-                        fill="#2f7cff"
-                        fillOpacity={0.35}
-                      />
-                      <Radar
-                        name="Média"
-                        dataKey="media"
-                        stroke="#22c55e"
-                        fill="#22c55e"
-                        fillOpacity={0.18}
-                      />
-                      <Legend />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
-              </article>
-            </div>
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-[#071225] p-6 text-center text-sm leading-7 text-slate-400">
+                    Sem histórico suficiente. Resolva e corrija simulados para exibir evolução real.
+                  </div>
+                )}
+              </div>
+            </article>
           ) : null}
 
           {activeTab === "materias" ? (
@@ -1292,19 +1237,27 @@ export default function DashboardPage() {
               <h2 className="text-xl font-semibold text-white">
                 Desempenho por matéria
               </h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Dados agregados a partir dos simulados corrigidos no histórico local.
+              </p>
 
               <div className="mt-6 h-[360px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={radarData}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                    <XAxis dataKey="subject" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="voce" fill="#2f7cff" name="Você" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="media" fill="#22c55e" name="Média" radius={[8, 8, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {subjectData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={subjectData}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                      <XAxis dataKey="subject" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" domain={[0, 100]} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="acerto" fill="#2f7cff" name="Taxa de acerto" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-[#071225] p-6 text-center text-sm leading-7 text-slate-400">
+                    Sem dados por matéria. Corrija simulados com disciplinas identificadas para preencher esta seção.
+                  </div>
+                )}
               </div>
             </article>
           ) : null}
@@ -1312,31 +1265,34 @@ export default function DashboardPage() {
           {activeTab === "simulados" ? (
             <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <h2 className="text-xl font-semibold text-white">
-                Estudo da semana
+                Questões registradas na semana
               </h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Contabiliza somente questões de simulados salvos no histórico local.
+              </p>
 
               <div className="mt-6 h-[360px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyData}>
-                    <CartesianGrid stroke="rgba(255,255,255,0.06)" />
-                    <XAxis dataKey="day" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar
-                      dataKey="questoes"
-                      fill="#2f7cff"
-                      name="Questões"
-                      radius={[8, 8, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="minutos"
-                      fill="#22c55e"
-                      name="Minutos"
-                      radius={[8, 8, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                {weeklyData.some((item) => item.questoes > 0) ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={weeklyData}>
+                      <CartesianGrid stroke="rgba(255,255,255,0.06)" />
+                      <XAxis dataKey="day" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="questoes"
+                        fill="#2f7cff"
+                        name="Questões"
+                        radius={[8, 8, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-[#071225] p-6 text-center text-sm leading-7 text-slate-400">
+                    Sem questões registradas nesta semana no histórico local.
+                  </div>
+                )}
               </div>
             </article>
           ) : null}
@@ -1405,9 +1361,8 @@ export default function DashboardPage() {
       </section>
 
       <section className="rounded-[24px] border border-white/10 bg-[#071225] px-5 py-4 text-sm text-slate-400">
-        Dashboard principal agora consome gamificação real do backend para XP,
-        streak, conquistas recentes, desafios concluídos e próximas wins, com
-        fallback visual local caso a API falhe.
+        Dashboard principal sem dados mockados: as métricas exibidas vêm do backend
+        ou do histórico local real de simulados corrigidos.
       </section>
     </div>
   );

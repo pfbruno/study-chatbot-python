@@ -1,45 +1,35 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import Link from "next/link"
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   Legend,
   Line,
   LineChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-} from "recharts"
+} from "recharts";
 import {
-  ArrowDown,
-  ArrowUp,
   Award,
   BarChart3,
   BookOpen,
   Clock,
   Crown,
   Flame,
-  Minus,
   Sparkles,
   Target,
-  TrendingUp,
   Trophy,
-} from "lucide-react"
+  TrendingUp,
+} from "lucide-react";
 
-import { useAnalyticsOverview } from "@/hooks/use-analytics-overview"
+import { useAnalyticsOverview } from "@/hooks/use-analytics-overview";
 
-type AnalyticsTab = "evolution" | "subjects" | "simulados" | "details"
+type AnalyticsTab = "evolution" | "subjects" | "history" | "gamification";
 
 function StatCard({
   icon,
@@ -47,10 +37,10 @@ function StatCard({
   label,
   helper,
 }: {
-  icon: React.ReactNode
-  value: string
-  label: string
-  helper: string
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+  helper: string;
 }) {
   return (
     <article className="rounded-[24px] border border-white/10 bg-[#071225] p-4">
@@ -65,40 +55,7 @@ function StatCard({
       </div>
       <div className="mt-3 text-xs text-slate-400">{helper}</div>
     </article>
-  )
-}
-
-function TrendBadge({
-  value,
-  suffix = "%",
-}: {
-  value: number
-  suffix?: string
-}) {
-  if (value > 0) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-300">
-        <ArrowUp className="size-3" /> +{value}
-        {suffix}
-      </span>
-    )
-  }
-
-  if (value < 0) {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs font-medium text-rose-300">
-        <ArrowDown className="size-3" /> {value}
-        {suffix}
-      </span>
-    )
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-400">
-      <Minus className="size-3" /> 0
-      {suffix}
-    </span>
-  )
+  );
 }
 
 function TabButton({
@@ -106,9 +63,9 @@ function TabButton({
   onClick,
   label,
 }: {
-  active: boolean
-  onClick: () => void
-  label: string
+  active: boolean;
+  onClick: () => void;
+  label: string;
 }) {
   return (
     <button
@@ -123,29 +80,46 @@ function TabButton({
     >
       {label}
     </button>
-  )
+  );
+}
+
+function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-5">
+      <h3 className="text-base font-semibold text-white">{title}</h3>
+      <p className="mt-2 text-sm leading-7 text-slate-400">{description}</p>
+    </div>
+  );
 }
 
 export default function AnalyticsPage() {
-  const { data, loading, error } = useAnalyticsOverview()
-  const [activeTab, setActiveTab] = useState<AnalyticsTab>("evolution")
+  const { data, loading, error } = useAnalyticsOverview();
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>("evolution");
 
-  const radarData = useMemo(() => {
-    if (!data?.subjectAccuracy?.length) return []
+  const subjectData = useMemo(() => {
+    return data?.subjectAccuracy?.filter((item) => item.questions > 0) ?? [];
+  }, [data]);
 
-    return data.subjectAccuracy.slice(0, 8).map((item) => ({
-      subject: item.subject.slice(0, 4),
-      voce: item.acerto,
-      media: item.media,
-    }))
-  }, [data])
+  const evolutionData = useMemo(() => {
+    return data?.evolutionData?.filter((item) => item.acerto > 0) ?? [];
+  }, [data]);
+
+  const weeklyQuestionData = useMemo(() => {
+    return data?.weeklyStudyData?.filter((item) => item.questoes > 0) ?? [];
+  }, [data]);
 
   if (loading) {
     return (
       <div className="rounded-[28px] border border-white/10 bg-[#071225] p-6 text-slate-300">
         Carregando analytics...
       </div>
-    )
+    );
   }
 
   if (error || !data) {
@@ -176,15 +150,17 @@ export default function AnalyticsPage() {
           </div>
         </section>
       </div>
-    )
+    );
   }
 
-  const { overallStats, gamification } = data
-  const readyToClaim = gamification.challenges.filter(
-    (item) => item.status === "ready_to_claim"
-  )
+  const { overallStats, gamification } = data;
+
+  const readyToClaim = gamification.challenges.filter((item) =>
+    String(item.status) === "ready_to_claim"
+  );
+
   const trackedChallenge =
-    gamification.challenges.find((item) => item.isTracked) ?? null
+    gamification.challenges.find((item) => Boolean(item.isTracked)) ?? null;
 
   return (
     <div className="max-w-7xl space-y-6">
@@ -195,7 +171,8 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="mt-2 text-slate-400">
-            Acompanhe desempenho acadêmico, evolução gamificada e seus pontos de melhoria.
+            Dados baseados nas tentativas, simulados, provas e eventos registrados.
+            Esta página não exibe médias artificiais ou comparações inventadas.
           </p>
         </div>
       </section>
@@ -205,7 +182,7 @@ export default function AnalyticsPage() {
           icon={<Target className="size-5" />}
           value={`${overallStats.avgAccuracy}%`}
           label="Taxa de acerto"
-          helper={`Média base: ${overallStats.platformAvg}%`}
+          helper="Calculada com base nas tentativas registradas"
         />
         <StatCard
           icon={<BookOpen className="size-5 text-emerald-300" />}
@@ -222,8 +199,8 @@ export default function AnalyticsPage() {
         <StatCard
           icon={<TrendingUp className="size-5 text-emerald-300" />}
           value={`${overallStats.improvement > 0 ? "+" : ""}${overallStats.improvement}%`}
-          label="Evolução total"
-          helper="Baseada nas tentativas registradas"
+          label="Evolução"
+          helper="Baseada no histórico disponível"
         />
       </section>
 
@@ -238,13 +215,13 @@ export default function AnalyticsPage() {
           icon={<Sparkles className="size-5 text-sky-300" />}
           value={gamification.profile.totalXP.toLocaleString("pt-BR")}
           label="XP total"
-          helper="XP persistido da jornada do aluno"
+          helper="XP registrado na jornada do aluno"
         />
         <StatCard
           icon={<Trophy className="size-5 text-emerald-300" />}
           value={String(gamification.profile.completedChallenges)}
           label="Desafios concluídos"
-          helper={`${readyToClaim.length} pronto(s) para pegar`}
+          helper={`${readyToClaim.length} pronto(s) para resgate`}
         />
         <StatCard
           icon={<Award className="size-5 text-fuchsia-300" />}
@@ -267,13 +244,13 @@ export default function AnalyticsPage() {
             label="Matérias"
           />
           <TabButton
-            active={activeTab === "simulados"}
-            onClick={() => setActiveTab("simulados")}
+            active={activeTab === "history"}
+            onClick={() => setActiveTab("history")}
             label="Histórico"
           />
           <TabButton
-            active={activeTab === "details"}
-            onClick={() => setActiveTab("details")}
+            active={activeTab === "gamification"}
+            onClick={() => setActiveTab("gamification")}
             label="Gamificação"
           />
         </div>
@@ -281,15 +258,19 @@ export default function AnalyticsPage() {
 
       {activeTab === "evolution" ? (
         <div className="space-y-6">
-          <section className="grid gap-6 lg:grid-cols-3">
-            <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6 lg:col-span-2">
-              <h2 className="text-lg font-semibold text-white">
-                Evolução de acertos vs média base
-              </h2>
+          <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+            <h2 className="text-lg font-semibold text-white">
+              Evolução de acertos
+            </h2>
+            <p className="mt-2 text-sm text-slate-400">
+              Exibe somente a evolução registrada do usuário. Nenhuma média de
+              plataforma é exibida.
+            </p>
 
-              <div className="mt-6 h-[320px]">
+            <div className="mt-6 h-[320px]">
+              {evolutionData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.evolutionData}>
+                  <LineChart data={evolutionData}>
                     <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
                     <XAxis
                       dataKey="month"
@@ -315,111 +296,66 @@ export default function AnalyticsPage() {
                     <Line
                       type="monotone"
                       dataKey="acerto"
-                      name="Você"
+                      name="Taxa de acerto"
                       stroke="#4b8df7"
                       strokeWidth={3}
                       dot={{ fill: "#4b8df7", r: 4 }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="media"
-                      name="Base"
-                      stroke="#34d399"
-                      strokeWidth={2}
-                      strokeDasharray="6 6"
-                      dot={false}
-                    />
                   </LineChart>
                 </ResponsiveContainer>
-              </div>
-            </article>
-
-            <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-              <h2 className="text-lg font-semibold text-white">Resumo rápido</h2>
-
-              <div className="mt-6 space-y-4">
-                <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Streak</p>
-                  <p className="mt-2 text-3xl font-bold text-white">
-                    {overallStats.streak} dias
-                  </p>
-                </div>
-
-                <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Melhor matéria</p>
-                  <p className="mt-2 text-xl font-semibold text-white">
-                    {overallStats.bestSubject}
-                  </p>
-                </div>
-
-                <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Ponto de atenção</p>
-                  <p className="mt-2 text-xl font-semibold text-white">
-                    {overallStats.worstSubject}
-                  </p>
-                </div>
-
-                <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Diferença para a base</p>
-                  <div className="mt-2">
-                    <TrendBadge
-                      value={Number(
-                        (overallStats.avgAccuracy - overallStats.platformAvg).toFixed(1)
-                      )}
-                    />
-                  </div>
-                </div>
-              </div>
-            </article>
+              ) : (
+                <EmptyState
+                  title="Sem evolução suficiente"
+                  description="Resolva provas ou simulados para gerar histórico de evolução."
+                />
+              )}
+            </div>
           </section>
 
           <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
             <h2 className="text-lg font-semibold text-white">
-              Ritmo semanal de estudo
+              Questões registradas por dia
             </h2>
 
             <div className="mt-6 h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.weeklyStudyData}>
-                  <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
-                  <XAxis
-                    dataKey="day"
-                    stroke="rgba(255,255,255,0.55)"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="rgba(255,255,255,0.55)"
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#020b18",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 16,
-                      color: "#fff",
-                    }}
-                  />
-                  <Legend />
-                  <Area
-                    type="monotone"
-                    dataKey="tempo"
-                    name="Minutos"
-                    stroke="#4b8df7"
-                    fill="#4b8df7"
-                    fillOpacity={0.18}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="questoes"
-                    name="Questões"
-                    stroke="#34d399"
-                    fill="#34d399"
-                    fillOpacity={0.12}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {weeklyQuestionData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.weeklyStudyData}>
+                    <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
+                    <XAxis
+                      dataKey="day"
+                      stroke="rgba(255,255,255,0.55)"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      stroke="rgba(255,255,255,0.55)"
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "#020b18",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 16,
+                        color: "#fff",
+                      }}
+                    />
+                    <Legend />
+                    <Bar
+                      dataKey="questoes"
+                      name="Questões"
+                      fill="#4b8df7"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState
+                  title="Sem ritmo semanal suficiente"
+                  description="Os dados semanais aparecerão depois que houver tentativas registradas."
+                />
+              )}
             </div>
           </section>
         </div>
@@ -427,15 +363,18 @@ export default function AnalyticsPage() {
 
       {activeTab === "subjects" ? (
         <div className="space-y-6">
-          <section className="grid gap-6 lg:grid-cols-3">
-            <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6 lg:col-span-2">
-              <h2 className="text-lg font-semibold text-white">
-                Desempenho por disciplina
-              </h2>
+          <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
+            <h2 className="text-lg font-semibold text-white">
+              Desempenho por disciplina
+            </h2>
+            <p className="mt-2 text-sm text-slate-400">
+              Apenas taxa de acerto real do usuário, sem comparação artificial.
+            </p>
 
-              <div className="mt-6 h-[360px]">
+            <div className="mt-6 h-[360px]">
+              {subjectData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.subjectAccuracy}>
+                  <BarChart data={subjectData}>
                     <CartesianGrid stroke="rgba(255,255,255,0.08)" vertical={false} />
                     <XAxis
                       dataKey="subject"
@@ -458,47 +397,21 @@ export default function AnalyticsPage() {
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="acerto" name="Você" fill="#4b8df7" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="media" name="Base" fill="#34d399" radius={[8, 8, 0, 0]} />
+                    <Bar
+                      dataKey="acerto"
+                      name="Taxa de acerto"
+                      fill="#4b8df7"
+                      radius={[8, 8, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-            </article>
-
-            <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-              <h2 className="text-lg font-semibold text-white">
-                Radar de domínio
-              </h2>
-
-              <div className="mt-6 h-[360px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData}>
-                    <PolarGrid stroke="rgba(255,255,255,0.16)" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: "#cbd5e1", fontSize: 12 }} />
-                    <PolarRadiusAxis
-                      angle={90}
-                      domain={[0, 100]}
-                      tick={{ fill: "#64748b", fontSize: 10 }}
-                    />
-                    <Legend />
-                    <Radar
-                      name="Você"
-                      dataKey="voce"
-                      stroke="#4b8df7"
-                      fill="#4b8df7"
-                      fillOpacity={0.28}
-                    />
-                    <Radar
-                      name="Base"
-                      dataKey="media"
-                      stroke="#34d399"
-                      fill="#34d399"
-                      fillOpacity={0.18}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </article>
+              ) : (
+                <EmptyState
+                  title="Sem dados por disciplina"
+                  description="Resolva atividades com disciplinas identificadas para preencher esta análise."
+                />
+              )}
+            </div>
           </section>
 
           <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
@@ -507,26 +420,35 @@ export default function AnalyticsPage() {
             </h2>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {data.subjectAccuracy.map((item) => (
-                <article
-                  key={item.subject}
-                  className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
-                >
-                  <p className="text-sm text-slate-400">{item.subject}</p>
-                  <div className="mt-2 text-2xl font-bold text-white">
-                    {item.acerto}%
-                  </div>
-                  <p className="mt-2 text-sm text-slate-300">
-                    {item.questions} questão(ões)
-                  </p>
-                </article>
-              ))}
+              {subjectData.length > 0 ? (
+                subjectData.map((item) => (
+                  <article
+                    key={item.subject}
+                    className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
+                  >
+                    <p className="text-sm text-slate-400">{item.subject}</p>
+                    <div className="mt-2 text-2xl font-bold text-white">
+                      {item.acerto}%
+                    </div>
+                    <p className="mt-2 text-sm text-slate-300">
+                      {item.questions} questão(ões)
+                    </p>
+                  </article>
+                ))
+              ) : (
+                <div className="md:col-span-2 xl:col-span-4">
+                  <EmptyState
+                    title="Nenhuma matéria registrada"
+                    description="As matérias aparecerão quando houver tentativas com classificação por disciplina."
+                  />
+                </div>
+              )}
             </div>
           </section>
         </div>
       ) : null}
 
-      {activeTab === "simulados" ? (
+      {activeTab === "history" ? (
         <section className="space-y-6">
           <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
             <h2 className="text-lg font-semibold text-white">
@@ -535,9 +457,10 @@ export default function AnalyticsPage() {
 
             <div className="mt-6 space-y-4">
               {data.simuladoHistory.length === 0 ? (
-                <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4 text-sm text-slate-300">
-                  Ainda não há histórico suficiente para exibir nesta aba.
-                </div>
+                <EmptyState
+                  title="Sem histórico suficiente"
+                  description="Ainda não há histórico suficiente para exibir nesta aba."
+                />
               ) : (
                 data.simuladoHistory.map((item) => (
                   <article
@@ -562,7 +485,7 @@ export default function AnalyticsPage() {
                           {item.score}%
                         </div>
                         <div className="text-sm text-slate-400">
-                          base {item.avg}%
+                          desempenho registrado
                         </div>
                       </div>
                     </div>
@@ -574,7 +497,7 @@ export default function AnalyticsPage() {
         </section>
       ) : null}
 
-      {activeTab === "details" ? (
+      {activeTab === "gamification" ? (
         <div className="space-y-6">
           <section className="grid gap-6 lg:grid-cols-2">
             <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
@@ -584,9 +507,10 @@ export default function AnalyticsPage() {
 
               <div className="mt-6 space-y-3">
                 {data.gamification.recentUnlocks.length === 0 ? (
-                  <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4 text-sm text-slate-300">
-                    Ainda não há conquistas recentes desbloqueadas.
-                  </div>
+                  <EmptyState
+                    title="Sem conquistas recentes"
+                    description="Ainda não há conquistas recentes desbloqueadas."
+                  />
                 ) : (
                   data.gamification.recentUnlocks.map((item) => (
                     <article
@@ -630,7 +554,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Prontos para pegar</p>
+                  <p className="text-sm text-slate-400">Prontos para resgate</p>
                   <p className="mt-2 text-xl font-semibold text-white">
                     {readyToClaim.length}
                   </p>
@@ -643,22 +567,11 @@ export default function AnalyticsPage() {
                     {gamification.profile.streakDays} dias
                   </div>
                 </div>
-
-                <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Diferença para a base</p>
-                  <div className="mt-2">
-                    <TrendBadge
-                      value={Number(
-                        (overallStats.avgAccuracy - overallStats.platformAvg).toFixed(1)
-                      )}
-                    />
-                  </div>
-                </div>
               </div>
             </article>
           </section>
         </div>
       ) : null}
     </div>
-  )
+  );
 }
