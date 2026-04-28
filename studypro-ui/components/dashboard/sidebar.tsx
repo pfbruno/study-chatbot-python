@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Sparkles,
   Swords,
+  Target,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -42,6 +43,12 @@ const mainItems: SidebarItem[] = [
     label: "Simulados",
     href: "/dashboard/simulados",
     icon: BookOpen,
+  },
+  {
+    label: "Treinar",
+    href: "/dashboard/treinar",
+    icon: Target,
+    badge: "rápido",
   },
   {
     label: "Chat IA",
