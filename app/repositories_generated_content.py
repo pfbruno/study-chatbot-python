@@ -14,6 +14,17 @@ def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _clean_optional_text(value: str | None, *, lower: bool = False) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    if not normalized:
+        return None
+
+    return normalized.lower() if lower else normalized
+
+
 def ensure_generated_content_tables() -> None:
     with closing(connect()) as conn:
         with conn.cursor() as cursor:
@@ -54,8 +65,10 @@ def ensure_generated_content_tables() -> None:
 
 def _validate_content_type(content_type: str) -> str:
     normalized = (content_type or "").strip().lower()
+
     if normalized not in ALLOWED_GENERATED_CONTENT_TYPES:
         raise ValueError("content_type inválido.")
+
     return normalized
 
 
@@ -101,16 +114,21 @@ def save_generated_content(
     ensure_generated_content_tables()
 
     normalized_type = _validate_content_type(content_type)
+
     normalized_title = (title or "").strip()
     if not normalized_title:
         raise ValueError("title é obrigatório.")
 
-    payload_json = json.dumps(payload, ensure_ascii=False)
+    normalized_description = _clean_optional_text(description)
+    normalized_source_type = _clean_optional_text(source_type, lower=True)
+    normalized_source_key = _clean_optional_text(source_key)
+
+    payload_json = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     now = _now_iso()
 
     with closing(connect()) as conn:
         with conn.cursor() as cursor:
-            if source_key:
+            if normalized_source_key:
                 cursor.execute(
                     """
                     INSERT INTO generated_content_items (
@@ -138,9 +156,9 @@ def save_generated_content(
                         user_id,
                         normalized_type,
                         normalized_title,
-                        description,
-                        source_type,
-                        source_key,
+                        normalized_description,
+                        normalized_source_type,
+                        normalized_source_key,
                         payload_json,
                         now,
                         now,
@@ -167,8 +185,8 @@ def save_generated_content(
                         user_id,
                         normalized_type,
                         normalized_title,
-                        description,
-                        source_type,
+                        normalized_description,
+                        normalized_source_type,
                         payload_json,
                         now,
                         now,
@@ -176,9 +194,14 @@ def save_generated_content(
                 )
 
             row = cursor.fetchone()
+
         conn.commit()
 
-    return _serialize_row(row) or {}
+    serialized = _serialize_row(row)
+    if not serialized:
+        raise RuntimeError("Falha ao salvar conteúdo gerado.")
+
+    return serialized
 
 
 def list_generated_content(
@@ -189,12 +212,18 @@ def list_generated_content(
 ) -> list[dict]:
     ensure_generated_content_tables()
 
-    safe_limit = max(1, min(int(limit), 100))
+    try:
+        parsed_limit = int(limit)
+    except (TypeError, ValueError):
+        parsed_limit = 20
+
+    safe_limit = max(1, min(parsed_limit, 100))
 
     with closing(connect()) as conn:
         with conn.cursor() as cursor:
             if content_type:
                 normalized_type = _validate_content_type(content_type)
+
                 cursor.execute(
                     """
                     SELECT *
@@ -220,7 +249,7 @@ def list_generated_content(
 
             rows = cursor.fetchall()
 
-    return [_serialize_row(row) for row in rows if row]
+    return [item for item in (_serialize_row(row) for row in rows) if item]
 
 
 def get_generated_content_by_id(*, user_id: int, content_id: int) -> dict | None:
@@ -249,6 +278,7 @@ def get_latest_generated_content(
     content_type: str,
 ) -> dict | None:
     ensure_generated_content_tables()
+
     normalized_type = _validate_content_type(content_type)
 
     with closing(connect()) as conn:
