@@ -21,15 +21,83 @@ import {
 
 import {
   AUTH_TOKEN_KEY,
-  generateRandomSimulation,
   getSimulationEntitlement,
-  type RandomSimulationResponse,
+  type AuthUser,
+  type BillingEntitlements,
+  type BillingUsage,
   type SimulationEntitlementResponse,
 } from "@/lib/api"
 
 type Difficulty = "easy" | "medium" | "hard"
-type CardKind = "preset" | "history" | "premium_offer"
+type CardKind = "library" | "history"
 type SimulationMode = "balanced" | "random"
+type ActiveSimulationSource = "single_year" | "library"
+
+type ActiveSimulationQuestion = {
+  number: number
+  subject: string
+  statement: string
+  options: Record<string, string>
+  source_pdf_label?: string | null
+  source_year?: number | null
+  source_number?: number | null
+  source_ref?: string | null
+}
+
+type ActiveSimulationResponse = {
+  simulation_id: string
+  simulation_source: ActiveSimulationSource
+  source_preset_id?: string
+  generated_at: string
+  exam_type: string
+  year: number
+  year_label?: string
+  years_pool?: number[]
+  title: string
+  description?: string
+  mode: SimulationMode
+  requested_question_count: number
+  generated_question_count: number
+  filters: {
+    subjects: string[]
+    mode: SimulationMode
+    seed: number | null
+  }
+  subjects_used: string[]
+  question_numbers: number[]
+  question_refs?: string[]
+  questions: ActiveSimulationQuestion[]
+  access?: {
+    auth_scope: "user" | "guest"
+    usage: BillingUsage
+    user: AuthUser | null
+  }
+}
+
+type LibraryItem = {
+  id: string
+  title: string
+  description: string
+  exam_type: string
+  question_count: number
+  subjects: string[]
+  mode: SimulationMode
+  difficulty: Difficulty
+  duration_minutes: number
+  tags: string[]
+  is_premium: boolean
+  total_questions_pool: number
+  years_pool: number[]
+  available_subjects: string[]
+  is_available: boolean
+}
+
+type LibraryCatalogResponse = {
+  exam_type: string
+  years_pool: number[]
+  available_subjects: string[]
+  items: LibraryItem[]
+}
 
 type SimulationHistoryEntry = {
   id: string
@@ -69,17 +137,17 @@ type SimuladoCard = {
   author: string
   createdAt: string
   mode: SimulationMode
+  yearsPoolLabel: string
+  totalQuestionsPool?: number
   href?: string
   isPremium?: boolean
-  payload?: {
-    exam_type: string
-    year: number
-    question_count: number
-    subjects?: string[] | null
-    mode?: SimulationMode
-    seed?: number | null
-  }
+  isAvailable?: boolean
+  presetId?: string
 }
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+  "https://study-chatbot-python.onrender.com"
 
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
@@ -111,215 +179,6 @@ const difficultyLabels: Record<Difficulty, string> = {
   hard: "Difícil",
 }
 
-const PRESET_SIMULATIONS: SimuladoCard[] = [
-  {
-    id: "preset-linguagens-12",
-    kind: "preset",
-    title: "Linguagens • 12 questões",
-    description:
-      "Treino rápido com foco em interpretação, leitura e linguagem no padrão do ENEM.",
-    subject: "Linguagens",
-    subjects: ["Linguagens"],
-    difficulty: "easy",
-    tags: ["ENEM", "Linguagens", "Rápido"],
-    questionCount: 12,
-    duration: 24,
-    timesCompleted: 0,
-    rating: 4.8,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "balanced",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 12,
-      subjects: ["Linguagens"],
-      mode: "balanced",
-    },
-  },
-  {
-    id: "preset-ingles-5",
-    kind: "preset",
-    title: "Inglês • 5 questões",
-    description:
-      "Bloco curto de língua estrangeira para aquecer antes de uma sessão maior.",
-    subject: "Inglês",
-    subjects: ["Inglês"],
-    difficulty: "easy",
-    tags: ["ENEM", "Inglês", "Aquecimento"],
-    questionCount: 5,
-    duration: 10,
-    timesCompleted: 0,
-    rating: 4.7,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "balanced",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 5,
-      subjects: ["Inglês"],
-      mode: "balanced",
-    },
-  },
-  {
-    id: "preset-humanas-15",
-    kind: "preset",
-    title: "Ciências Humanas • 15 questões",
-    description:
-      "Sessão intermediária para treinar leitura histórica, geográfica e interpretação social.",
-    subject: "Ciências Humanas",
-    subjects: ["Ciências Humanas"],
-    difficulty: "medium",
-    tags: ["ENEM", "Humanas", "Intermediário"],
-    questionCount: 15,
-    duration: 30,
-    timesCompleted: 0,
-    rating: 4.7,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "balanced",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 15,
-      subjects: ["Ciências Humanas"],
-      mode: "balanced",
-    },
-  },
-  {
-    id: "preset-matematica-15",
-    kind: "preset",
-    title: "Matemática • 15 questões",
-    description:
-      "Treino objetivo para ganhar ritmo de cálculo e interpretação numérica.",
-    subject: "Matemática",
-    subjects: ["Matemática"],
-    difficulty: "medium",
-    tags: ["ENEM", "Matemática", "Intermediário"],
-    questionCount: 15,
-    duration: 30,
-    timesCompleted: 0,
-    rating: 4.8,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "balanced",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 15,
-      subjects: ["Matemática"],
-      mode: "balanced",
-    },
-  },
-  {
-    id: "preset-natureza-15",
-    kind: "preset",
-    title: "Ciências da Natureza • 15 questões",
-    description:
-      "Treino combinado de conteúdos de natureza já no agrupamento real do banco de questões.",
-    subject: "Ciências da Natureza",
-    subjects: ["Ciências da Natureza"],
-    difficulty: "medium",
-    tags: ["ENEM", "Natureza", "Intermediário"],
-    questionCount: 15,
-    duration: 30,
-    timesCompleted: 0,
-    rating: 4.7,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "balanced",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 15,
-      subjects: ["Ciências da Natureza"],
-      mode: "balanced",
-    },
-  },
-  {
-    id: "preset-misto-20",
-    kind: "preset",
-    title: "Simulado Misto • 20 questões",
-    description:
-      "Sessão balanceada com várias áreas para simular uma rodada real de treino.",
-    subject: "Geral",
-    subjects: [
-      "Linguagens",
-      "Ciências Humanas",
-      "Ciências da Natureza",
-      "Matemática",
-      "Inglês",
-    ],
-    difficulty: "medium",
-    tags: ["ENEM", "Misto", "Balanceado"],
-    questionCount: 20,
-    duration: 40,
-    timesCompleted: 0,
-    rating: 4.9,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "balanced",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 20,
-      subjects: null,
-      mode: "balanced",
-    },
-  },
-  {
-    id: "preset-matematica-hard-20",
-    kind: "preset",
-    title: "Matemática Intensivo • 20 questões",
-    description:
-      "Mais volume em matemática para fortalecer resistência de resolução.",
-    subject: "Matemática",
-    subjects: ["Matemática"],
-    difficulty: "hard",
-    tags: ["ENEM", "Matemática", "Intensivo"],
-    questionCount: 20,
-    duration: 45,
-    timesCompleted: 0,
-    rating: 4.8,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "random",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 20,
-      subjects: ["Matemática"],
-      mode: "random",
-    },
-  },
-  {
-    id: "preset-natureza-hard-20",
-    kind: "preset",
-    title: "Natureza Intensivo • 20 questões",
-    description:
-      "Mais volume em Ciências da Natureza sem quebrar o formato real do banco.",
-    subject: "Ciências da Natureza",
-    subjects: ["Ciências da Natureza"],
-    difficulty: "hard",
-    tags: ["ENEM", "Natureza", "Intensivo"],
-    questionCount: 20,
-    duration: 45,
-    timesCompleted: 0,
-    rating: 4.8,
-    author: "StudyPro",
-    createdAt: "2026-04-26",
-    mode: "random",
-    payload: {
-      exam_type: "enem",
-      year: 2022,
-      question_count: 20,
-      subjects: ["Ciências da Natureza"],
-      mode: "random",
-    },
-  },
-]
-
 function formatCount(value: number) {
   return value.toLocaleString("pt-BR")
 }
@@ -336,6 +195,7 @@ function normalizeSubject(subject?: string | null): string {
   if (value.includes("hist")) return "História"
   if (value.includes("geog")) return "Geografia"
   if (value.includes("port")) return "Português"
+  if (value.includes("ing")) return "Inglês"
   if (value.includes("ling")) return "Linguagens"
   if (value.includes("human")) return "Ciências Humanas"
   if (value.includes("nature")) return "Ciências da Natureza"
@@ -347,6 +207,12 @@ function inferDifficultyFromScore(score: number): Difficulty {
   if (score >= 75) return "easy"
   if (score >= 45) return "medium"
   return "hard"
+}
+
+function formatYearsPool(years: number[]) {
+  if (!years.length) return "Sem anos"
+  if (years.length === 1) return String(years[0])
+  return `${years[0]}–${years[years.length - 1]}`
 }
 
 function groupHistoryByTitle(history: SimulationHistoryEntry[]) {
@@ -403,61 +269,97 @@ function buildHistoryCards(history: SimulationHistoryEntry[]): SimuladoCard[] {
       author: "Seu histórico",
       createdAt: latest.saved_at,
       mode: latest.mode,
+      yearsPoolLabel: String(latest.year),
       href: "/dashboard/simulados/resultado",
+      isAvailable: true,
     })
   }
 
   return cards
 }
 
-function buildPremiumOfferCards(): SimuladoCard[] {
-  return [
+function buildLibraryCards(catalog: LibraryCatalogResponse): SimuladoCard[] {
+  return catalog.items.map((item) => ({
+    id: `library-${item.id}`,
+    kind: "library",
+    title: item.title,
+    description: item.description,
+    subject: item.subjects[0] ?? "Geral",
+    subjects: item.subjects.length ? item.subjects : ["Geral"],
+    difficulty: item.difficulty,
+    tags: item.tags,
+    questionCount: item.question_count,
+    duration: item.duration_minutes,
+    timesCompleted: 0,
+    rating: item.is_premium ? 5 : 4.8,
+    author: "Biblioteca StudyPro",
+    createdAt: new Date().toISOString(),
+    mode: item.mode,
+    yearsPoolLabel: formatYearsPool(item.years_pool),
+    totalQuestionsPool: item.total_questions_pool,
+    isPremium: item.is_premium,
+    isAvailable: item.is_available,
+    presetId: item.id,
+  }))
+}
+
+async function safeReadError(response: Response): Promise<string> {
+  try {
+    const data = await response.json()
+
+    if (typeof data?.detail === "string") {
+      return data.detail
+    }
+
+    if (typeof data?.message === "string") {
+      return data.message
+    }
+
+    return "Erro na requisição."
+  } catch {
+    return "Erro na requisição."
+  }
+}
+
+async function fetchLibraryCatalog(): Promise<LibraryCatalogResponse> {
+  const response = await fetch(`${API_BASE_URL}/simulados/library?exam_type=enem`, {
+    method: "GET",
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    throw new Error(await safeReadError(response))
+  }
+
+  return response.json()
+}
+
+async function generateLibrarySimulation(
+  presetId: string,
+  token?: string | null
+): Promise<ActiveSimulationResponse> {
+  const headers: HeadersInit = {
+    "Content-Type": "application/json",
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/simulados/library/${presetId}/generate?exam_type=enem`,
     {
-      id: "premium-natureza-25",
-      kind: "premium_offer",
-      title: "Natureza Premium • 25 questões",
-      description:
-        "Mais volume de treino em Ciências da Natureza com sessão ampliada.",
-      subject: "Ciências da Natureza",
-      subjects: ["Ciências da Natureza"],
-      difficulty: "hard",
-      tags: ["Premium", "Volume extra"],
-      questionCount: 25,
-      duration: 55,
-      timesCompleted: 0,
-      rating: 5,
-      author: "StudyPro Pro",
-      createdAt: "2026-04-26",
-      mode: "balanced",
-      href: "/pricing",
-      isPremium: true,
-    },
-    {
-      id: "premium-misto-30",
-      kind: "premium_offer",
-      title: "Misto Premium • 30 questões",
-      description:
-        "Sessão mais longa para simular constância e aumentar resistência de prova.",
-      subject: "Geral",
-      subjects: [
-        "Linguagens",
-        "Ciências Humanas",
-        "Ciências da Natureza",
-        "Matemática",
-      ],
-      difficulty: "hard",
-      tags: ["Premium", "Resistência"],
-      questionCount: 30,
-      duration: 70,
-      timesCompleted: 0,
-      rating: 5,
-      author: "StudyPro Pro",
-      createdAt: "2026-04-26",
-      mode: "balanced",
-      href: "/pricing",
-      isPremium: true,
-    },
-  ]
+      method: "POST",
+      headers,
+      body: JSON.stringify({ seed: null }),
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(await safeReadError(response))
+  }
+
+  return response.json()
 }
 
 function FreeUsageCard({
@@ -496,7 +398,7 @@ function FreeUsageCard({
           ? "Verificando status da sua conta."
           : isPro
           ? "Seu plano já está liberado para gerar mais simulados e estudar sem interrupções."
-          : "Agora você tem vários simulados prontos para localizar e iniciar. O Pro amplia o volume de treino e reduz as travas do dia."}
+          : "Os simulados prontos agora usam o banco consolidado de todas as provas disponíveis no site."}
       </p>
 
       {!isPro ? (
@@ -523,14 +425,14 @@ function PaywallCard() {
 
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
-            Paywall leve
+            Biblioteca pronta
           </p>
           <h3 className="mt-2 text-lg font-semibold text-white">
-            O Pro existe para manter continuidade
+            Mais volume com o Pro
           </h3>
           <p className="mt-3 text-sm leading-7 text-amber-100">
-            No gratuito você já consegue começar com simulados prontos. No Pro
-            você aumenta o volume, reduz interrupções e expande o treino.
+            No gratuito você já acessa a biblioteca pronta. No Pro você amplia
+            o volume e reduz as travas diárias de geração.
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -582,7 +484,7 @@ function SimuladoActionButton({
   if (isLocked) {
     return (
       <Link
-        href={card.href || "/pricing"}
+        href="/pricing"
         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
       >
         Ver plano Pro
@@ -594,7 +496,7 @@ function SimuladoActionButton({
     <button
       type="button"
       onClick={() => onStart(card)}
-      disabled={isGenerating}
+      disabled={isGenerating || card.isAvailable === false}
       className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isGenerating ? (
@@ -602,7 +504,11 @@ function SimuladoActionButton({
       ) : (
         <Play className="size-4" />
       )}
-      {isGenerating ? "Preparando..." : "Fazer agora"}
+      {card.isAvailable === false
+        ? "Indisponível"
+        : isGenerating
+        ? "Preparando..."
+        : "Fazer agora"}
     </button>
   )
 }
@@ -645,10 +551,12 @@ export default function SimuladosPage() {
   }, [])
 
   useEffect(() => {
-    function loadCards() {
+    async function loadCards() {
       try {
         setLoading(true)
         setError("")
+
+        const catalog = await fetchLibraryCatalog()
 
         const historyRaw = localStorage.getItem(SIMULATION_HISTORY_KEY)
         let history: SimulationHistoryEntry[] = []
@@ -665,9 +573,9 @@ export default function SimuladosPage() {
         }
 
         const historyCards = buildHistoryCards(history)
-        const premiumCards = buildPremiumOfferCards()
+        const libraryCards = buildLibraryCards(catalog)
 
-        setCards([...PRESET_SIMULATIONS, ...historyCards, ...premiumCards])
+        setCards([...libraryCards, ...historyCards])
       } catch (err) {
         setError(
           err instanceof Error
@@ -679,7 +587,7 @@ export default function SimuladosPage() {
       }
     }
 
-    loadCards()
+    void loadCards()
   }, [])
 
   const isPro = entitlement?.entitlements.is_pro ?? false
@@ -722,7 +630,7 @@ export default function SimuladosPage() {
   }, [cards, difficulty, search, sort, subject])
 
   async function handleStartSimulation(card: SimuladoCard) {
-    if (!card.payload) return
+    if (card.kind !== "library" || !card.presetId) return
 
     if (!canGenerate && !isPro) {
       setActionError(
@@ -736,10 +644,7 @@ export default function SimuladosPage() {
       setGeneratingId(card.id)
 
       const token = localStorage.getItem(AUTH_TOKEN_KEY)
-      const simulation: RandomSimulationResponse = await generateRandomSimulation(
-        card.payload,
-        token
-      )
+      const simulation = await generateLibrarySimulation(card.presetId, token)
 
       sessionStorage.setItem(ACTIVE_SIMULATION_KEY, JSON.stringify(simulation))
       sessionStorage.removeItem(ACTIVE_SIMULATION_ANSWERS_KEY)
@@ -770,7 +675,7 @@ export default function SimuladosPage() {
                 Simulados
               </h1>
               <p className="mt-2 text-xl text-[#7ea0d6]">
-                Encontre simulados prontos, filtre por área e comece a resolver.
+                Biblioteca pronta com questões de todas as provas já disponíveis no site.
               </p>
             </div>
           </div>
@@ -882,99 +787,118 @@ export default function SimuladosPage() {
                 Nenhum simulado encontrado com os filtros atuais.
               </div>
             ) : (
-              <div className="mt-6 grid gap-5 xl:grid-cols-3">
-                {filtered.map((sim) => {
-                  const locked = sim.isPremium && !isPro
-
-                  return (
-                    <article
-                      key={sim.id}
-                      className={`rounded-[24px] border p-5 transition ${
-                        locked
-                          ? "border-amber-500/20 bg-amber-500/10 hover:border-amber-400/40"
-                          : "border-white/10 bg-[#081224] hover:border-[#2f7cff]/40 hover:bg-[#0a1830]"
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <h3 className="max-w-[85%] text-[19px] font-bold leading-tight text-white">
-                          {sim.title}
-                        </h3>
-
-                        {sim.isPremium ? (
-                          locked ? (
-                            <Lock className="mt-1 size-5 text-amber-300" />
-                          ) : (
-                            <Crown className="mt-1 size-5 text-yellow-400" />
-                          )
-                        ) : null}
+              <div className="mt-6 grid gap-5 xl:grid-cols-2">
+                {filtered.map((card) => (
+                  <article
+                    key={card.id}
+                    className="rounded-[28px] border border-white/10 bg-[#071225] p-5 transition hover:border-[#2f7cff]/30 hover:bg-[#0a1730]"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0e2347] text-[#79a6ff]">
+                        <BookOpen className="size-6" />
                       </div>
 
-                      <p className="mt-4 line-clamp-3 min-h-[78px] text-lg leading-8 text-[#7ea0d6]">
-                        {sim.description}
-                      </p>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {card.kind === "library" ? (
+                          <span className="rounded-full border border-blue-400/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300">
+                            Biblioteca
+                          </span>
+                        ) : (
+                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
+                            Histórico
+                          </span>
+                        )}
 
-                      <div className="mt-4 flex flex-wrap gap-2">
                         <span
-                          className={`rounded-full border px-3 py-1 text-sm font-medium ${difficultyColors[sim.difficulty]}`}
+                          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                            difficultyColors[card.difficulty]
+                          }`}
                         >
-                          {difficultyLabels[sim.difficulty]}
+                          {difficultyLabels[card.difficulty]}
                         </span>
-
-                        {sim.tags.slice(0, 2).map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-full border border-white/15 bg-[#071225] px-3 py-1 text-sm font-medium text-white"
-                          >
-                            {tag}
-                          </span>
-                        ))}
                       </div>
+                    </div>
 
-                      <div className="mt-5 border-t border-white/10 pt-4">
-                        <div className="flex flex-wrap items-center gap-5 text-sm text-[#8ea6cc]">
-                          <span className="inline-flex items-center gap-1.5">
-                            <BookOpen className="size-4" />
-                            {sim.questionCount}q
-                          </span>
+                    <h3 className="mt-5 text-2xl font-bold tracking-tight text-white">
+                      {card.title}
+                    </h3>
 
-                          <span className="inline-flex items-center gap-1.5">
-                            <Clock className="size-4" />
-                            {sim.duration}min
-                          </span>
+                    <p className="mt-3 min-h-[72px] text-sm leading-7 text-[#7ea0d6]">
+                      {card.description}
+                    </p>
 
-                          <span className="inline-flex items-center gap-1.5">
-                            <Users className="size-4" />
-                            {formatCount(sim.timesCompleted)}
-                          </span>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {card.tags.map((tag) => (
+                        <span
+                          key={`${card.id}-${tag}`}
+                          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
 
-                          <span className="inline-flex items-center gap-1.5 text-yellow-400">
-                            <Star className="size-4 fill-yellow-400 text-yellow-400" />
-                            {sim.rating.toFixed(1)}
-                          </span>
-                        </div>
-
-                        <p className="mt-4 text-base text-[#9db3d7]">
-                          por <span className="font-medium text-white">{sim.author}</span>
+                    <div className="mt-5 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-white/10 bg-[#020b18] p-4">
+                        <p className="flex items-center gap-2 text-sm text-slate-400">
+                          <BookOpen className="size-4" />
+                          Questões
                         </p>
-
-                        {locked ? (
-                          <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                            Disponível no Pro para aumentar seu volume de treino.
-                          </div>
-                        ) : null}
-
-                        <div className="mt-5">
-                          <SimuladoActionButton
-                            card={sim}
-                            isPro={isPro}
-                            generatingId={generatingId}
-                            onStart={handleStartSimulation}
-                          />
+                        <div className="mt-2 text-2xl font-bold text-white">
+                          {card.questionCount}
                         </div>
                       </div>
-                    </article>
-                  )
-                })}
+
+                      <div className="rounded-2xl border border-white/10 bg-[#020b18] p-4">
+                        <p className="flex items-center gap-2 text-sm text-slate-400">
+                          <Clock className="size-4" />
+                          Tempo
+                        </p>
+                        <div className="mt-2 text-2xl font-bold text-white">
+                          {card.duration} min
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-[#020b18] p-4">
+                        <p className="flex items-center gap-2 text-sm text-slate-400">
+                          <Users className="size-4" />
+                          Base
+                        </p>
+                        <div className="mt-2 text-lg font-bold text-white">
+                          {card.yearsPoolLabel}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-[#020b18] p-4">
+                        <p className="flex items-center gap-2 text-sm text-slate-400">
+                          <Star className="size-4" />
+                          Pool
+                        </p>
+                        <div className="mt-2 text-lg font-bold text-white">
+                          {typeof card.totalQuestionsPool === "number"
+                            ? `${formatCount(card.totalQuestionsPool)} q.`
+                            : `${card.rating.toFixed(1)} ★`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-slate-400">{card.author}</p>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {card.subjects.join(" • ")}
+                        </p>
+                      </div>
+
+                      <SimuladoActionButton
+                        card={card}
+                        isPro={isPro}
+                        generatingId={generatingId}
+                        onStart={handleStartSimulation}
+                      />
+                    </div>
+                  </article>
+                ))}
               </div>
             )}
           </>
