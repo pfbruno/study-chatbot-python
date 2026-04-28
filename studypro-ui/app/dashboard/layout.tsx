@@ -3,13 +3,19 @@
 import { useEffect, useMemo, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import type { GamificationSummaryResponse } from "@/lib/api"
-import { AUTH_TOKEN_KEY, AUTH_USER_KEY, getGamificationSummary } from "@/lib/api"
+import type { DashboardUser as AuthLikeUser } from "@/lib/api"
+import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from "@/lib/api"
+import {
+  dispatchGamificationRefresh,
+  fetchGamificationSummary,
+  GAMIFICATION_REFRESH_EVENT,
+  type PersistedGamificationSummaryResponse,
+} from "@/lib/gamification-client"
 import { AppSidebar } from "@/components/dashboard/sidebar"
 import { DashboardTopbar } from "@/components/dashboard/dashboard-topbar"
 import { GamificationProgressToast } from "@/components/dashboard/gamification-progress-toast"
 
-const EMPTY_GAMIFICATION: GamificationSummaryResponse = {
+const EMPTY_GAMIFICATION: PersistedGamificationSummaryResponse = {
   profile: {
     userName: "Usuário",
     level: 1,
@@ -46,7 +52,7 @@ export default function DashboardLayout({
   const [user, setUser] = useState<DashboardUser | null>(null)
 
   const [gamification, setGamification] =
-    useState<GamificationSummaryResponse>(EMPTY_GAMIFICATION)
+    useState<PersistedGamificationSummaryResponse>(EMPTY_GAMIFICATION)
   const [gamificationLoading, setGamificationLoading] = useState(true)
 
   const isChatRoute = pathname === "/dashboard/chat"
@@ -90,7 +96,7 @@ export default function DashboardLayout({
 
       try {
         setGamificationLoading(true)
-        const data = await getGamificationSummary(token)
+        const data = await fetchGamificationSummary(token)
 
         if (!mounted) return
         setGamification(data)
@@ -104,9 +110,18 @@ export default function DashboardLayout({
       }
     }
 
+    const handleRefresh = () => {
+      void loadGamification()
+    }
+
     if (isReady) {
       void loadGamification()
     }
+
+    window.addEventListener(
+      GAMIFICATION_REFRESH_EVENT,
+      handleRefresh as EventListener
+    )
 
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "visible" && isReady) {
@@ -116,6 +131,10 @@ export default function DashboardLayout({
 
     return () => {
       mounted = false
+      window.removeEventListener(
+        GAMIFICATION_REFRESH_EVENT,
+        handleRefresh as EventListener
+      )
       window.clearInterval(intervalId)
     }
   }, [isReady])
