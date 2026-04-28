@@ -27,8 +27,10 @@ from app.database import (
 )
 from app.exams.service import get_recent_exam_attempts, get_user_exam_analytics
 from app.repositories_gamification import (
+    claim_gamification_challenge,
     get_gamification_ranking,
     get_gamification_summary,
+    track_gamification_challenge,
 )
 
 router = APIRouter(tags=["chat"])
@@ -237,6 +239,7 @@ def _serialize_user(user: dict) -> dict:
         "id": user["id"],
         "name": user["name"],
         "email": user["email"],
+        "email_verified": bool(user.get("email_verified", 0)),
         "plan": user.get("plan", "free"),
         "subscription_status": user.get("subscription_status"),
         "current_period_end": user.get("current_period_end"),
@@ -897,6 +900,88 @@ def get_summary(
 ) -> dict:
     user = _get_current_user_or_401(authorization)
     return get_gamification_summary(user_id=user["id"], user_name=user["name"])
+
+
+@router.post("/gamification/challenges/{challenge_id}/track", tags=["gamification"])
+def track_challenge(
+    challenge_id: str,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    normalized_challenge_id = challenge_id.strip()
+
+    if not normalized_challenge_id:
+        raise HTTPException(status_code=400, detail="challenge_id inválido.")
+
+    try:
+        result = track_gamification_challenge(
+            user_id=user["id"],
+            user_name=user["name"],
+            challenge_id=normalized_challenge_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    record_hook_activity_event(
+        user_id=user["id"],
+        event_type="study_goal_selected",
+        subject=normalized_challenge_id,
+        metadata={
+            "module": "desafios",
+            "challenge_id": normalized_challenge_id,
+            "action": result.get("action", "track"),
+        },
+    )
+
+    return result
+
+
+@router.post("/gamification/challenges/{challenge_id}/claim", tags=["gamification"])
+def claim_challenge(
+    challenge_id: str,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    normalized_challenge_id = challenge_id.strip()
+
+    if not normalized_challenge_id:
+        raise HTTPException(status_code=400, detail="challenge_id inválido.")
+
+    try:
+        result = claim_gamification_challenge(
+            user_id=user["id"],
+            user_name=user["name"],
+            challenge_id=normalized_challenge_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    challenge = result.get("challenge") or {}
+    xp_reward = int(challenge.get("xpReward", 0) or 0)
+
+    record_hook_activity_event(
+        user_id=user["id"],
+        event_type="reward_claimed",
+        subject=normalized_challenge_id,
+        metadata={
+            "module": "desafios",
+            "challenge_id": normalized_challenge_id,
+            "xp_reward": xp_reward,
+        },
+    )
+
+    record_hook_activity_event(
+        user_id=user["id"],
+        event_type="xp_earned",
+        subject=normalized_challenge_id,
+        metadata={
+            "module": "desafios",
+            "challenge_id": normalized_challenge_id,
+            "xp_reward": xp_reward,
+        },
+    )
+
+    return result
 
 
 @router.get("/gamification/ranking", tags=["gamification"])
