@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react"
 import { RichQuestionContent } from "@/components/study/rich-question-content"
 import { saveRecentAttempt } from "@/lib/activity"
 import { dispatchAnalyticsRefresh, trackActivityEvent } from "@/lib/activity-events"
+import { saveGeneratedContent } from "@/lib/generated-content-client"
 import {
   appendSimulationHistory,
   recordCompletedSimulationAttempt,
@@ -153,6 +154,21 @@ export default function ResultadoSimuladoPage() {
     localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summary))
 
     try {
+      await saveGeneratedContent({
+        content_type: "review_summary",
+        title: summary.title,
+        description: summary.subtitle,
+        source_type: "simulation_result",
+        source_key:
+          data.attempt_id ??
+          `${data.simulation.exam_type}-${data.simulation.year}-${data.simulation.simulation_id}`,
+        payload: summary,
+      })
+    } catch {
+      // mantém o fluxo local mesmo se a persistência falhar
+    }
+
+    try {
       await trackActivityEvent({
         event_type: "summary_opened",
         module: "resumos",
@@ -168,7 +184,7 @@ export default function ResultadoSimuladoPage() {
       // mantém a experiência mesmo se o tracking falhar
     }
 
-    setActionMessage("Resumo gerado e evento registrado no analytics.")
+    setActionMessage("Resumo salvo na sua conta e disponível na área de resumos.")
     router.push("/dashboard/resumos")
   }
 
@@ -177,6 +193,22 @@ export default function ResultadoSimuladoPage() {
 
     const cards = buildReviewFlashcards(data)
     localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(cards))
+
+    try {
+      await saveGeneratedContent({
+        content_type: "flashcards",
+        title: `Flashcards • ${data.simulation.title}`,
+        description:
+          "Cartões curtos gerados a partir das questões erradas ou em branco do último simulado.",
+        source_type: "simulation_result",
+        source_key:
+          data.attempt_id ??
+          `${data.simulation.exam_type}-${data.simulation.year}-${data.simulation.simulation_id}`,
+        payload: cards,
+      })
+    } catch {
+      // mantém o fluxo local mesmo se a persistência falhar
+    }
 
     try {
       await trackActivityEvent({
@@ -193,7 +225,7 @@ export default function ResultadoSimuladoPage() {
       // mantém a experiência mesmo se o tracking falhar
     }
 
-    setActionMessage("Flashcards gerados e evento registrado no analytics.")
+    setActionMessage("Flashcards salvos na sua conta e disponíveis na área de flashcards.")
     router.push("/dashboard/flashcards")
   }
 
