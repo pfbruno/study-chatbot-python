@@ -17,8 +17,10 @@ function buildWeeklySquares(
   weeklyEvolution: GamificationWeeklyEvolutionPoint[],
   fallbackStreakDays: number
 ) {
+  const orderedWeek = weeklyEvolution.slice(0, 7)
+
   return Array.from({ length: 7 }, (_, index) => {
-    const point = weeklyEvolution[index]
+    const point = orderedWeek[index]
 
     return {
       label: point?.label ?? `Dia ${index + 1}`,
