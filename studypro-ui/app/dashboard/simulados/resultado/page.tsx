@@ -65,6 +65,13 @@ type ResultData = {
   }
 }
 
+function buildGeneratedContentSourceKey(data: ResultData) {
+  return (
+    data.attempt_id ??
+    `${data.simulation.exam_type}-${data.simulation.year}-${data.simulation.simulation_id}`
+  )
+}
+
 export default function ResultadoSimuladoPage() {
   const router = useRouter()
 
@@ -87,6 +94,7 @@ export default function ResultadoSimuladoPage() {
       const savedAt = new Date().toISOString()
       const attemptId =
         parsed.attempt_id ?? `${parsed.simulation.simulation_id}-legacy`
+
       const answeredQuestions = Math.max(
         0,
         parsed.result.total_questions - parsed.result.unanswered_count
@@ -153,19 +161,21 @@ export default function ResultadoSimuladoPage() {
     const summary = buildReviewSummary(data)
     localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summary))
 
+    let persistedInAccount = false
+
     try {
       await saveGeneratedContent({
         content_type: "review_summary",
         title: summary.title,
         description: summary.subtitle,
         source_type: "simulation_result",
-        source_key:
-          data.attempt_id ??
-          `${data.simulation.exam_type}-${data.simulation.year}-${data.simulation.simulation_id}`,
+        source_key: buildGeneratedContentSourceKey(data),
         payload: summary,
       })
+
+      persistedInAccount = true
     } catch {
-      // mantém o fluxo local mesmo se a persistência falhar
+      persistedInAccount = false
     }
 
     try {
@@ -178,13 +188,19 @@ export default function ResultadoSimuladoPage() {
           simulation_title: data.simulation.title,
           total_questions: data.result.total_questions,
           correct_answers: data.result.correct_answers,
+          persisted_in_account: persistedInAccount,
         },
       })
     } catch {
-      // mantém a experiência mesmo se o tracking falhar
+      // Mantém a experiência mesmo se o tracking falhar.
     }
 
-    setActionMessage("Resumo salvo na sua conta e disponível na área de resumos.")
+    setActionMessage(
+      persistedInAccount
+        ? "Resumo salvo na sua conta e disponível na área de resumos."
+        : "Resumo gerado nesta sessão. Faça login novamente se quiser manter este conteúdo salvo na conta."
+    )
+
     router.push("/dashboard/resumos")
   }
 
@@ -194,6 +210,8 @@ export default function ResultadoSimuladoPage() {
     const cards = buildReviewFlashcards(data)
     localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(cards))
 
+    let persistedInAccount = false
+
     try {
       await saveGeneratedContent({
         content_type: "flashcards",
@@ -201,13 +219,13 @@ export default function ResultadoSimuladoPage() {
         description:
           "Cartões curtos gerados a partir das questões erradas ou em branco do último simulado.",
         source_type: "simulation_result",
-        source_key:
-          data.attempt_id ??
-          `${data.simulation.exam_type}-${data.simulation.year}-${data.simulation.simulation_id}`,
+        source_key: buildGeneratedContentSourceKey(data),
         payload: cards,
       })
+
+      persistedInAccount = true
     } catch {
-      // mantém o fluxo local mesmo se a persistência falhar
+      persistedInAccount = false
     }
 
     try {
@@ -219,13 +237,19 @@ export default function ResultadoSimuladoPage() {
           source: "simulation_result",
           simulation_title: data.simulation.title,
           flashcards_reviewed: cards.length,
+          persisted_in_account: persistedInAccount,
         },
       })
     } catch {
-      // mantém a experiência mesmo se o tracking falhar
+      // Mantém a experiência mesmo se o tracking falhar.
     }
 
-    setActionMessage("Flashcards salvos na sua conta e disponíveis na área de flashcards.")
+    setActionMessage(
+      persistedInAccount
+        ? "Flashcards salvos na sua conta e disponíveis na área de flashcards."
+        : "Flashcards gerados nesta sessão. Faça login novamente se quiser manter este conteúdo salvo na conta."
+    )
+
     router.push("/dashboard/flashcards")
   }
 
@@ -233,6 +257,7 @@ export default function ResultadoSimuladoPage() {
     return (
       <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8">
         <p className="text-white">{error}</p>
+
         <Link
           href="/dashboard/simulados"
           className="mt-6 inline-flex rounded-2xl border border-white/20 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/5"
@@ -259,6 +284,7 @@ export default function ResultadoSimuladoPage() {
         <p className="text-sm uppercase tracking-[0.18em] text-[#7ea0d6]">
           Resultado do simulado
         </p>
+
         <h1 className="mt-2 text-4xl font-bold tracking-tight text-white">
           {simulation.title}
         </h1>
@@ -299,7 +325,9 @@ export default function ResultadoSimuladoPage() {
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-        <h2 className="text-2xl font-bold text-white">Desempenho por disciplina</h2>
+        <h2 className="text-2xl font-bold text-white">
+          Desempenho por disciplina
+        </h2>
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {result.subjects_summary.map((subject) => (
@@ -311,6 +339,7 @@ export default function ResultadoSimuladoPage() {
                 <h3 className="text-lg font-semibold text-white">
                   {subject.subject}
                 </h3>
+
                 <span className="text-sm font-medium text-[#7ea0d6]">
                   {subject.accuracy_percentage}%
                 </span>
@@ -341,11 +370,15 @@ export default function ResultadoSimuladoPage() {
 
         <div className="mt-6 space-y-4">
           {result.results_by_question.map((questionResult) => {
-            const sourceQuestion = questionsByNumber.get(questionResult.question_number)
+            const sourceQuestion = questionsByNumber.get(
+              questionResult.question_number
+            )
+
             const selectedOptionContent =
               questionResult.user_answer && sourceQuestion
                 ? sourceQuestion.options[questionResult.user_answer] ?? null
                 : null
+
             const correctOptionContent = sourceQuestion
               ? sourceQuestion.options[questionResult.correct_answer] ?? null
               : null
@@ -365,15 +398,15 @@ export default function ResultadoSimuladoPage() {
                       questionResult.status === "correct"
                         ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
                         : questionResult.status === "wrong"
-                        ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
-                        : "border-white/10 bg-white/5 text-slate-300"
+                          ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                          : "border-white/10 bg-white/5 text-slate-300"
                     }`}
                   >
                     {questionResult.status === "correct"
                       ? "Correta"
                       : questionResult.status === "wrong"
-                      ? "Incorreta"
-                      : "Em branco"}
+                        ? "Incorreta"
+                        : "Em branco"}
                   </span>
                 </div>
 
@@ -391,9 +424,11 @@ export default function ResultadoSimuladoPage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                       Sua resposta
                     </p>
+
                     <p className="mt-2 text-sm text-white">
                       {questionResult.user_answer || "—"}
                     </p>
+
                     {selectedOptionContent ? (
                       <div className="mt-3">
                         <RichQuestionContent content={selectedOptionContent} />
@@ -405,9 +440,11 @@ export default function ResultadoSimuladoPage() {
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                       Gabarito
                     </p>
+
                     <p className="mt-2 text-sm text-white">
                       {questionResult.correct_answer}
                     </p>
+
                     {correctOptionContent ? (
                       <div className="mt-3">
                         <RichQuestionContent content={correctOptionContent} />
