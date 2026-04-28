@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react"
 import { RichQuestionContent } from "@/components/study/rich-question-content"
 
 type SimulationMode = "balanced" | "random"
+type ActiveSimulationSource = "single_year" | "library"
 
 type SimulationQuestion = {
   number: number
@@ -14,14 +15,22 @@ type SimulationQuestion = {
   statement: string
   options: Record<string, string>
   source_pdf_label?: string | null
+  source_year?: number | null
+  source_number?: number | null
+  source_ref?: string | null
 }
 
 type SimulationGenerationResponse = {
   simulation_id: string
+  simulation_source?: ActiveSimulationSource
+  source_preset_id?: string
   generated_at: string
   exam_type: string
   year: number
+  year_label?: string
+  years_pool?: number[]
   title: string
+  description?: string
   mode: SimulationMode
   requested_question_count: number
   generated_question_count: number
@@ -32,12 +41,15 @@ type SimulationGenerationResponse = {
   }
   subjects_used: string[]
   question_numbers: number[]
+  question_refs?: string[]
   questions: SimulationQuestion[]
 }
 
 type SimulationSubmissionResponse = {
+  simulation_source?: ActiveSimulationSource
   exam_type: string
   year: number
+  year_label?: string
   title: string
   total_questions: number
   valid_questions: number
@@ -56,10 +68,14 @@ type SimulationSubmissionResponse = {
   }>
   results_by_question: Array<{
     question_number: number
+    question_ref?: string
     subject: string
     user_answer: string | null
     correct_answer: string
     status: "correct" | "wrong" | "blank"
+    source_year?: number
+    source_number?: number
+    source_ref?: string
   }>
 }
 
@@ -112,6 +128,7 @@ export default function ResolverSimuladoPage() {
   const questions = simulation?.questions ?? []
   const totalQuestions = questions.length
   const currentQuestion = questions[currentIndex] ?? null
+  const simulationSource = simulation?.simulation_source ?? "single_year"
 
   const answeredCount = useMemo(() => {
     return questions.filter((question) => {
@@ -159,22 +176,39 @@ export default function ResolverSimuladoPage() {
     setSubmitError("")
 
     try {
-      const payload = {
-        exam_type: simulation.exam_type,
-        year: simulation.year,
-        question_numbers: simulation.question_numbers,
-        answers: simulation.question_numbers.map((number) => answers[number] ?? null),
-      }
+      const token = localStorage.getItem("studypro_auth_token")
 
-      const response = await fetch(`${API_BASE_URL}/simulados/submit`, {
+      const payload =
+        simulationSource === "library"
+          ? {
+              exam_type: simulation.exam_type,
+              question_refs: simulation.question_refs ?? [],
+              answers: (simulation.question_refs ?? []).map((_, index) => {
+                const displayNumber = simulation.question_numbers[index]
+                return answers[displayNumber] ?? null
+              }),
+            }
+          : {
+              exam_type: simulation.exam_type,
+              year: simulation.year,
+              question_numbers: simulation.question_numbers,
+              answers: simulation.question_numbers.map(
+                (number) => answers[number] ?? null
+              ),
+            }
+
+      const endpoint =
+        simulationSource === "library"
+          ? `${API_BASE_URL}/simulados/library/submit`
+          : `${API_BASE_URL}/simulados/submit`
+
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(localStorage.getItem("studypro_auth_token")
+          ...(token
             ? {
-                Authorization: `Bearer ${localStorage.getItem(
-                  "studypro_auth_token"
-                )}`,
+                Authorization: `Bearer ${token}`,
               }
             : {}),
         },
@@ -247,9 +281,12 @@ export default function ResolverSimuladoPage() {
 
         <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-300">
           <span>{simulation.exam_type.toUpperCase()}</span>
-          <span>{String(simulation.year)}</span>
+          <span>{simulation.year_label || String(simulation.year)}</span>
           <span>{simulation.mode === "balanced" ? "Balanceado" : "Aleatório"}</span>
           <span>{simulation.generated_question_count} questões</span>
+          <span>
+            {simulationSource === "library" ? "Biblioteca multi-ano" : "Ano único"}
+          </span>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -280,6 +317,14 @@ export default function ResolverSimuladoPage() {
             <p className="mt-2 text-sm text-[#7ea0d6]">
               Disciplina: {currentQuestion.subject}
             </p>
+
+            {currentQuestion.source_year || currentQuestion.source_number ? (
+              <p className="mt-1 text-xs text-slate-500">
+                Origem: {currentQuestion.source_year ?? "—"} • questão{" "}
+                {currentQuestion.source_number ?? currentQuestion.number}
+              </p>
+            ) : null}
+
             {currentQuestion.source_pdf_label ? (
               <p className="mt-1 text-xs text-slate-500">
                 Referência: {currentQuestion.source_pdf_label}
@@ -376,7 +421,7 @@ export default function ResolverSimuladoPage() {
 
             return (
               <button
-                key={question.number}
+                key={`${question.number}-${question.source_ref ?? index}`}
                 type="button"
                 onClick={() => goToQuestion(index)}
                 className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
