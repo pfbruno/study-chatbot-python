@@ -24,13 +24,17 @@ import {
 import {
   ArrowDown,
   ArrowUp,
+  Award,
   BarChart3,
   BookOpen,
-  Brain,
   Clock,
+  Crown,
+  Flame,
   Minus,
+  Sparkles,
   Target,
   TrendingUp,
+  Trophy,
 } from "lucide-react"
 
 import { useAnalyticsOverview } from "@/hooks/use-analytics-overview"
@@ -175,10 +179,15 @@ export default function AnalyticsPage() {
     )
   }
 
-  const { overallStats } = data
+  const { overallStats, gamification } = data
+  const readyToClaim = gamification.challenges.filter(
+    (item) => item.status === "ready_to_claim"
+  )
+  const trackedChallenge =
+    gamification.challenges.find((item) => item.isTracked) ?? null
 
   return (
-    <div className="space-y-6 max-w-7xl">
+    <div className="max-w-7xl space-y-6">
       <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-white md:text-3xl">
@@ -186,7 +195,7 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="mt-2 text-slate-400">
-            Acompanhe sua evolução e identifique pontos de melhoria.
+            Acompanhe desempenho acadêmico, evolução gamificada e seus pontos de melhoria.
           </p>
         </div>
       </section>
@@ -196,7 +205,7 @@ export default function AnalyticsPage() {
           icon={<Target className="size-5" />}
           value={`${overallStats.avgAccuracy}%`}
           label="Taxa de acerto"
-          helper={`Média da plataforma: ${overallStats.platformAvg}%`}
+          helper={`Média base: ${overallStats.platformAvg}%`}
         />
         <StatCard
           icon={<BookOpen className="size-5 text-emerald-300" />}
@@ -215,6 +224,33 @@ export default function AnalyticsPage() {
           value={`${overallStats.improvement > 0 ? "+" : ""}${overallStats.improvement}%`}
           label="Evolução total"
           helper="Baseada nas tentativas registradas"
+        />
+      </section>
+
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatCard
+          icon={<Crown className="size-5 text-amber-300" />}
+          value={`Nv ${gamification.profile.level}`}
+          label="Nível atual"
+          helper={`${gamification.profile.currentXP}/${gamification.profile.nextLevelXP} XP no nível`}
+        />
+        <StatCard
+          icon={<Sparkles className="size-5 text-sky-300" />}
+          value={gamification.profile.totalXP.toLocaleString("pt-BR")}
+          label="XP total"
+          helper="XP persistido da jornada do aluno"
+        />
+        <StatCard
+          icon={<Trophy className="size-5 text-emerald-300" />}
+          value={String(gamification.profile.completedChallenges)}
+          label="Desafios concluídos"
+          helper={`${readyToClaim.length} pronto(s) para pegar`}
+        />
+        <StatCard
+          icon={<Award className="size-5 text-fuchsia-300" />}
+          value={String(gamification.profile.unlockedAchievements)}
+          label="Conquistas desbloqueadas"
+          helper={`${gamification.profile.totalAchievements} no total`}
         />
       </section>
 
@@ -238,7 +274,7 @@ export default function AnalyticsPage() {
           <TabButton
             active={activeTab === "details"}
             onClick={() => setActiveTab("details")}
-            label="Detalhes"
+            label="Gamificação"
           />
         </div>
       </section>
@@ -248,7 +284,7 @@ export default function AnalyticsPage() {
           <section className="grid gap-6 lg:grid-cols-3">
             <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6 lg:col-span-2">
               <h2 className="text-lg font-semibold text-white">
-                Evolução de acertos vs média da plataforma
+                Evolução de acertos vs média base
               </h2>
 
               <div className="mt-6 h-[320px]">
@@ -287,7 +323,7 @@ export default function AnalyticsPage() {
                     <Line
                       type="monotone"
                       dataKey="media"
-                      name="Plataforma"
+                      name="Base"
                       stroke="#34d399"
                       strokeWidth={2}
                       strokeDasharray="6 6"
@@ -299,9 +335,7 @@ export default function AnalyticsPage() {
             </article>
 
             <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-              <h2 className="text-lg font-semibold text-white">
-                Resumo rápido
-              </h2>
+              <h2 className="text-lg font-semibold text-white">Resumo rápido</h2>
 
               <div className="mt-6 space-y-4">
                 <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
@@ -326,7 +360,7 @@ export default function AnalyticsPage() {
                 </div>
 
                 <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Diferença para a média</p>
+                  <p className="text-sm text-slate-400">Diferença para a base</p>
                   <div className="mt-2">
                     <TrendBadge
                       value={Number(
@@ -425,7 +459,7 @@ export default function AnalyticsPage() {
                     />
                     <Legend />
                     <Bar dataKey="acerto" name="Você" fill="#4b8df7" radius={[8, 8, 0, 0]} />
-                    <Bar dataKey="media" name="Plataforma" fill="#34d399" radius={[8, 8, 0, 0]} />
+                    <Bar dataKey="media" name="Base" fill="#34d399" radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -455,7 +489,7 @@ export default function AnalyticsPage() {
                       fillOpacity={0.28}
                     />
                     <Radar
-                      name="Plataforma"
+                      name="Base"
                       dataKey="media"
                       stroke="#34d399"
                       fill="#34d399"
@@ -528,7 +562,7 @@ export default function AnalyticsPage() {
                           {item.score}%
                         </div>
                         <div className="text-sm text-slate-400">
-                          média base {item.avg}%
+                          base {item.avg}%
                         </div>
                       </div>
                     </div>
@@ -545,34 +579,34 @@ export default function AnalyticsPage() {
           <section className="grid gap-6 lg:grid-cols-2">
             <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
               <h2 className="text-lg font-semibold text-white">
-                Pontos mais difíceis
+                Conquistas recentes
               </h2>
 
               <div className="mt-6 space-y-3">
-                {data.hardestQuestions.length === 0 ? (
+                {data.gamification.recentUnlocks.length === 0 ? (
                   <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4 text-sm text-slate-300">
-                    Ainda não há dados suficientes para ranquear dificuldades.
+                    Ainda não há conquistas recentes desbloqueadas.
                   </div>
                 ) : (
-                  data.hardestQuestions.map((item) => (
+                  data.gamification.recentUnlocks.map((item) => (
                     <article
                       key={item.id}
                       className="rounded-[22px] border border-white/10 bg-[#020b18] p-4"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center justify-between gap-4">
                         <div>
-                          <p className="text-sm text-slate-400">{item.subject}</p>
+                          <p className="text-sm text-slate-400">{item.rarity}</p>
                           <h3 className="mt-1 text-base font-semibold text-white">
-                            {item.topic}
+                            {item.title}
                           </h3>
                         </div>
 
                         <div className="text-right">
                           <div className="text-xl font-bold text-white">
-                            {item.accuracy}%
+                            +{item.xpReward} XP
                           </div>
                           <div className="text-sm text-slate-400">
-                            taxa de acerto
+                            desbloqueada
                           </div>
                         </div>
                       </div>
@@ -584,33 +618,34 @@ export default function AnalyticsPage() {
 
             <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
               <h2 className="text-lg font-semibold text-white">
-                Leitura rápida do perfil
+                Leitura da progressão
               </h2>
 
               <div className="mt-6 grid gap-4">
                 <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Melhor matéria</p>
+                  <p className="text-sm text-slate-400">Desafio em foco</p>
                   <p className="mt-2 text-xl font-semibold text-white">
-                    {overallStats.bestSubject}
+                    {trackedChallenge?.title || "Nenhum desafio acompanhado"}
                   </p>
                 </div>
 
                 <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Maior atenção</p>
+                  <p className="text-sm text-slate-400">Prontos para pegar</p>
                   <p className="mt-2 text-xl font-semibold text-white">
-                    {overallStats.worstSubject}
+                    {readyToClaim.length}
                   </p>
                 </div>
 
                 <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Tempo médio por sessão</p>
-                  <p className="mt-2 text-xl font-semibold text-white">
-                    {overallStats.avgTimePerSession}
-                  </p>
+                  <p className="text-sm text-slate-400">Streak atual</p>
+                  <div className="mt-2 flex items-center gap-2 text-xl font-semibold text-white">
+                    <Flame className="size-5 text-amber-300" />
+                    {gamification.profile.streakDays} dias
+                  </div>
                 </div>
 
                 <div className="rounded-[22px] border border-white/10 bg-[#020b18] p-4">
-                  <p className="text-sm text-slate-400">Diferença para a média</p>
+                  <p className="text-sm text-slate-400">Diferença para a base</p>
                   <div className="mt-2">
                     <TrendBadge
                       value={Number(
