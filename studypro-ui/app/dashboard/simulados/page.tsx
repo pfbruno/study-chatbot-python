@@ -444,7 +444,7 @@ function PaywallCard() {
             </Link>
 
             <Link
-              href="/dashboard/provas/enem/2022"
+              href="/dashboard/provas/enem"
               className="inline-flex rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
             >
               Resolver prova oficial
