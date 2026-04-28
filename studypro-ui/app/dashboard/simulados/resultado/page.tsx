@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react"
 
 import { RichQuestionContent } from "@/components/study/rich-question-content"
 import { saveRecentAttempt } from "@/lib/activity"
+import { dispatchAnalyticsRefresh, trackActivityEvent } from "@/lib/activity-events"
 import {
   appendSimulationHistory,
   recordCompletedSimulationAttempt,
@@ -68,6 +69,7 @@ export default function ResultadoSimuladoPage() {
 
   const [data, setData] = useState<ResultData | null>(null)
   const [error, setError] = useState("")
+  const [actionMessage, setActionMessage] = useState("")
 
   useEffect(() => {
     try {
@@ -127,6 +129,8 @@ export default function ResultadoSimuladoPage() {
             accuracyPercentage: item.accuracy_percentage,
           })) ?? [],
       })
+
+      dispatchAnalyticsRefresh()
     } catch {
       setError("Erro ao carregar resultado.")
     }
@@ -142,19 +146,54 @@ export default function ResultadoSimuladoPage() {
     return new Map(questions.map((question) => [question.number, question]))
   }, [data])
 
-  function handleGenerateSummary() {
+  async function handleGenerateSummary() {
     if (!data) return
 
     const summary = buildReviewSummary(data)
     localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summary))
+
+    try {
+      await trackActivityEvent({
+        event_type: "summary_opened",
+        module: "resumos",
+        subject: data.simulation.exam_type.toUpperCase(),
+        metadata_json: {
+          source: "simulation_result",
+          simulation_title: data.simulation.title,
+          total_questions: data.result.total_questions,
+          correct_answers: data.result.correct_answers,
+        },
+      })
+    } catch {
+      // mantém a experiência mesmo se o tracking falhar
+    }
+
+    setActionMessage("Resumo gerado e evento registrado no analytics.")
     router.push("/dashboard/resumos")
   }
 
-  function handleGenerateFlashcards() {
+  async function handleGenerateFlashcards() {
     if (!data) return
 
     const cards = buildReviewFlashcards(data)
     localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(cards))
+
+    try {
+      await trackActivityEvent({
+        event_type: "flashcard_reviewed",
+        module: "flashcards",
+        subject: data.simulation.exam_type.toUpperCase(),
+        metadata_json: {
+          source: "simulation_result",
+          simulation_title: data.simulation.title,
+          flashcards_reviewed: cards.length,
+        },
+      })
+    } catch {
+      // mantém a experiência mesmo se o tracking falhar
+    }
+
+    setActionMessage("Flashcards gerados e evento registrado no analytics.")
     router.push("/dashboard/flashcards")
   }
 
@@ -219,6 +258,12 @@ export default function ResultadoSimuladoPage() {
             Gerar flashcards de revisão
           </button>
         </div>
+
+        {actionMessage ? (
+          <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+            {actionMessage}
+          </div>
+        ) : null}
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
