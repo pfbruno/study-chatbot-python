@@ -6,12 +6,12 @@ import type {
   GamificationProfile,
   GamificationWeeklyEvolutionPoint,
 } from "@/lib/api"
-import type { ChallengeItem } from "@/lib/challenges"
+import type { PersistedGamificationChallenge } from "@/lib/gamification-client"
 
 type GamificationHudProps = {
   profile: GamificationProfile
   weeklyEvolution: GamificationWeeklyEvolutionPoint[]
-  challenges: ChallengeItem[]
+  challenges: PersistedGamificationChallenge[]
   loading?: boolean
 }
 
@@ -29,11 +29,12 @@ function buildWeeklySquares(
   })
 }
 
-function getFocusChallenge(challenges: ChallengeItem[]) {
+function getFocusChallenge(challenges: PersistedGamificationChallenge[]) {
   return (
     challenges.find((challenge) => challenge.isTracked) ??
     challenges.find((challenge) => challenge.status === "ready_to_claim") ??
     challenges.find((challenge) => challenge.status === "active") ??
+    challenges.find((challenge) => challenge.status === "completed") ??
     null
   )
 }
@@ -130,6 +131,8 @@ export function GamificationHud({
               : focusChallenge
               ? focusChallenge.status === "ready_to_claim"
                 ? "Pronto para pegar"
+                : focusChallenge.status === "claimed"
+                ? "Recompensa já resgatada"
                 : `${focusChallenge.progress}/${focusChallenge.target}`
               : "Acompanhe sua evolução diária"}
           </p>
