@@ -1,12 +1,13 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { Bell } from "lucide-react"
 
 import type {
-  GamificationChallenge,
   GamificationProfile,
   GamificationWeeklyEvolutionPoint,
 } from "@/lib/api"
+import type { PersistedGamificationChallenge } from "@/lib/gamification-client"
 import { GamificationHud } from "@/components/dashboard/gamification-hud"
 
 type DashboardUser = {
@@ -20,10 +21,10 @@ type DashboardTopbarProps = {
   onSearchChange: (value: string) => void
   user: DashboardUser | null
   avatarLabel: string
-  mobileSidebar?: React.ReactNode
+  mobileSidebar?: ReactNode
   gamificationProfile?: GamificationProfile | null
   weeklyEvolution?: GamificationWeeklyEvolutionPoint[]
-  challenges?: GamificationChallenge[]
+  challenges?: PersistedGamificationChallenge[]
   gamificationLoading?: boolean
 }
 
