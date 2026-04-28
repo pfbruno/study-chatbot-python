@@ -8,16 +8,17 @@ import {
   CheckCircle2,
   Clock3,
   Crown,
-  Flame,
-  Rocket,
   Sparkles,
   Swords,
   Target,
   Trophy,
+  Flame,
+  Rocket,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 
 import { AUTH_TOKEN_KEY } from "@/lib/api"
+import { dispatchAnalyticsRefresh } from "@/lib/activity-events"
 import {
   claimPersistedGamificationChallenge,
   dispatchGamificationRefresh,
@@ -433,6 +434,7 @@ export default function DesafiosPage() {
 
       setFeedback(response.message || "Desafio marcado como acompanhado.")
       dispatchGamificationRefresh()
+      dispatchAnalyticsRefresh()
     } catch (err) {
       setFeedback(
         err instanceof Error
@@ -460,6 +462,7 @@ export default function DesafiosPage() {
 
       setFeedback(response.message || "Recompensa resgatada com sucesso.")
       dispatchGamificationRefresh()
+      dispatchAnalyticsRefresh()
     } catch (err) {
       setFeedback(
         err instanceof Error
@@ -537,8 +540,8 @@ export default function DesafiosPage() {
             </div>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-              O status dos desafios agora é sincronizado com a sua conta, e não apenas
-              com este navegador.
+              O status dos desafios agora é sincronizado com a sua conta, e as
+              mudanças já refletem no analytics da plataforma.
             </div>
           </div>
         </div>
