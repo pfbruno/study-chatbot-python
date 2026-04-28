@@ -9,6 +9,7 @@ import {
   RotateCcw,
 } from "lucide-react"
 
+import { getLatestGeneratedContent } from "@/lib/generated-content-client"
 import type { ReviewSummaryPayload } from "@/lib/review-content"
 
 const REVIEW_SUMMARY_KEY = "studypro_review_summary"
@@ -29,27 +30,42 @@ function formatLocalDate(value: string) {
 export default function ResumosPage() {
   const [summary, setSummary] = useState<ReviewSummaryPayload | null>(null)
   const [loadError, setLoadError] = useState("")
+  const [sourceLabel, setSourceLabel] = useState("")
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(REVIEW_SUMMARY_KEY)
+    async function loadSummary() {
+      try {
+        const raw = localStorage.getItem(REVIEW_SUMMARY_KEY)
 
-      if (!raw) {
+        if (raw) {
+          const parsed = JSON.parse(raw) as ReviewSummaryPayload
+
+          if (parsed?.title && parsed?.revisionSummary) {
+            setSummary(parsed)
+            setSourceLabel("Carregado do conteúdo gerado nesta sessão.")
+            return
+          }
+        }
+
+        const persisted = await getLatestGeneratedContent<ReviewSummaryPayload>(
+          "review_summary"
+        )
+
+        const payload = persisted?.item?.payload
+
+        if (!payload?.title || !payload?.revisionSummary) {
+          setLoadError("Nenhum resumo de revisão foi encontrado.")
+          return
+        }
+
+        setSummary(payload)
+        setSourceLabel("Carregado do conteúdo salvo na sua conta.")
+      } catch {
         setLoadError("Nenhum resumo de revisão foi encontrado.")
-        return
       }
-
-      const parsed = JSON.parse(raw) as ReviewSummaryPayload
-
-      if (!parsed?.title || !parsed?.revisionSummary) {
-        setLoadError("Nenhum resumo de revisão foi encontrado.")
-        return
-      }
-
-      setSummary(parsed)
-    } catch {
-      setLoadError("Não foi possível carregar o resumo de revisão.")
     }
+
+    void loadSummary()
   }, [])
 
   function handleRestart() {
@@ -110,6 +126,10 @@ export default function ResumosPage() {
             <p className="mt-4 text-lg leading-8 text-slate-300">
               {summary.subtitle}
             </p>
+
+            {sourceLabel ? (
+              <p className="mt-4 text-sm text-slate-400">{sourceLabel}</p>
+            ) : null}
           </div>
 
           <div className="w-full xl:max-w-[320px]">
