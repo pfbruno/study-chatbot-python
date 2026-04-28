@@ -3,15 +3,15 @@
 import { Flame, Sparkles, Trophy } from "lucide-react"
 
 import type {
-  GamificationChallenge,
   GamificationProfile,
   GamificationWeeklyEvolutionPoint,
 } from "@/lib/api"
+import type { ChallengeItem } from "@/lib/challenges"
 
 type GamificationHudProps = {
   profile: GamificationProfile
   weeklyEvolution: GamificationWeeklyEvolutionPoint[]
-  challenges: GamificationChallenge[]
+  challenges: ChallengeItem[]
   loading?: boolean
 }
 
@@ -19,7 +19,7 @@ function buildWeeklySquares(
   weeklyEvolution: GamificationWeeklyEvolutionPoint[],
   fallbackStreakDays: number
 ) {
-  const normalized = Array.from({ length: 7 }, (_, index) => {
+  return Array.from({ length: 7 }, (_, index) => {
     const point = weeklyEvolution[index]
     return {
       label: point?.label ?? `Dia ${index + 1}`,
@@ -27,17 +27,15 @@ function buildWeeklySquares(
       xp: point?.xp ?? 0,
     }
   })
-
-  return normalized
 }
 
-function getActiveChallenge(challenges: GamificationChallenge[]) {
-  const readyOrActive = challenges.find(
-    (challenge) =>
-      challenge.status === "active" || challenge.status === "completed"
+function getFocusChallenge(challenges: ChallengeItem[]) {
+  return (
+    challenges.find((challenge) => challenge.isTracked) ??
+    challenges.find((challenge) => challenge.status === "ready_to_claim") ??
+    challenges.find((challenge) => challenge.status === "active") ??
+    null
   )
-
-  return readyOrActive ?? null
 }
 
 export function GamificationHud({
@@ -58,7 +56,7 @@ export function GamificationHud({
     profile.streakDays || 0
   )
 
-  const activeChallenge = getActiveChallenge(challenges)
+  const focusChallenge = getFocusChallenge(challenges)
 
   return (
     <div className="hidden min-w-0 items-center gap-3 xl:flex">
@@ -112,7 +110,7 @@ export function GamificationHud({
         </div>
       </div>
 
-      <div className="flex min-w-[240px] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+      <div className="flex min-w-[260px] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
         <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-300">
           <Sparkles className="size-4" />
         </div>
@@ -124,13 +122,15 @@ export function GamificationHud({
           <p className="truncate text-sm font-semibold text-white">
             {loading
               ? "Carregando..."
-              : activeChallenge?.title || "Nenhum desafio em andamento"}
+              : focusChallenge?.title || "Nenhum desafio em andamento"}
           </p>
           <p className="text-xs text-slate-400">
             {loading
               ? "..."
-              : activeChallenge
-              ? `${activeChallenge.progress}/${activeChallenge.target}`
+              : focusChallenge
+              ? focusChallenge.status === "ready_to_claim"
+                ? "Pronto para pegar"
+                : `${focusChallenge.progress}/${focusChallenge.target}`
               : "Acompanhe sua evolução diária"}
           </p>
         </div>
