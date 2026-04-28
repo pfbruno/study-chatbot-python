@@ -11,6 +11,8 @@ from app.database import connect
 
 LEVEL_XP_STEP = 800
 
+ChallengeStatus = Literal["active", "ready_to_claim", "claimed", "completed", "locked"]
+
 
 def _now_utc() -> datetime:
     return datetime.now(UTC)
@@ -45,6 +47,27 @@ def ensure_gamification_tables() -> None:
                 ON gamification_achievement_unlocks(user_id, unlocked_at DESC)
                 """
             )
+
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS gamification_challenge_tracking (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    challenge_id TEXT NOT NULL,
+                    is_tracked BOOLEAN NOT NULL DEFAULT FALSE,
+                    claimed_at TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    UNIQUE(user_id, challenge_id)
+                )
+                """
+            )
+            cursor.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_gamification_tracking_user
+                ON gamification_challenge_tracking(user_id, updated_at DESC)
+                """
+            )
         conn.commit()
 
 
@@ -68,7 +91,7 @@ def _parse_dt(value: str) -> datetime:
 def _event_xp(event_type: str, metadata: dict[str, Any]) -> int:
     explicit = metadata.get("xp_reward")
     if isinstance(explicit, int):
-      return max(0, explicit)
+        return max(0, explicit)
 
     if event_type == "exam_completed":
         return 220
@@ -212,6 +235,79 @@ def _fetch_recent_unlocks(user_id: int, limit: int = 5) -> list[dict[str, Any]]:
             rows = cursor.fetchall()
 
     return [dict(row) for row in rows]
+
+
+def _fetch_tracking_map(user_id: int) -> dict[str, dict[str, Any]]:
+    ensure_gamification_tables()
+
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT challenge_id, is_tracked, claimed_at, created_at, updated_at
+                FROM gamification_challenge_tracking
+                WHERE user_id = %s
+                """,
+                (user_id,),
+            )
+            rows = cursor.fetchall()
+
+    return {row["challenge_id"]: dict(row) for row in rows}
+
+
+def _upsert_tracked_challenge(user_id: int, challenge_id: str) -> None:
+    ensure_gamification_tables()
+    now = _now_iso()
+
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO gamification_challenge_tracking (
+                    user_id,
+                    challenge_id,
+                    is_tracked,
+                    claimed_at,
+                    created_at,
+                    updated_at
+                )
+                VALUES (%s, %s, TRUE, NULL, %s, %s)
+                ON CONFLICT (user_id, challenge_id)
+                DO UPDATE SET
+                    is_tracked = TRUE,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (user_id, challenge_id, now, now),
+            )
+        conn.commit()
+
+
+def _mark_claimed_challenge(user_id: int, challenge_id: str) -> None:
+    ensure_gamification_tables()
+    now = _now_iso()
+
+    with closing(connect()) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO gamification_challenge_tracking (
+                    user_id,
+                    challenge_id,
+                    is_tracked,
+                    claimed_at,
+                    created_at,
+                    updated_at
+                )
+                VALUES (%s, %s, TRUE, %s, %s, %s)
+                ON CONFLICT (user_id, challenge_id)
+                DO UPDATE SET
+                    is_tracked = TRUE,
+                    claimed_at = EXCLUDED.claimed_at,
+                    updated_at = EXCLUDED.updated_at
+                """,
+                (user_id, challenge_id, now, now, now),
+            )
+        conn.commit()
 
 
 def _compute_streak_from_dates(dates: set[date]) -> tuple[int, int]:
@@ -465,7 +561,7 @@ def _achievement_definitions(metrics: dict[str, Any], top10_reached: bool) -> li
     ]
 
 
-def _build_challenges(metrics: dict[str, Any], recent_events_7d: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _build_base_challenges(metrics: dict[str, Any], recent_events_7d: list[dict[str, Any]]) -> list[dict[str, Any]]:
     today_str = _today().isoformat()
     today_questions = 0
     today_flashcards = 0
@@ -473,7 +569,7 @@ def _build_challenges(metrics: dict[str, Any], recent_events_7d: list[dict[str, 
     xp_last_7 = 0
     exam_completed_recent = 0
     weekly_active_days = len(
-        { _parse_dt(event["created_at"]).date().isoformat() for event in recent_events_7d if event.get("created_at") }
+        {_parse_dt(event["created_at"]).date().isoformat() for event in recent_events_7d if event.get("created_at")}
     )
 
     for event in recent_events_7d:
@@ -585,6 +681,39 @@ def _build_challenges(metrics: dict[str, Any], recent_events_7d: list[dict[str, 
     ]
 
 
+def _apply_tracking_to_challenges(
+    user_id: int,
+    challenges: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    tracking_map = _fetch_tracking_map(user_id)
+    normalized: list[dict[str, Any]] = []
+
+    for challenge in challenges:
+        item = dict(challenge)
+        tracked = tracking_map.get(item["id"])
+        item["isTracked"] = bool(tracked and tracked.get("is_tracked"))
+
+        claimed_at = tracked.get("claimed_at") if tracked else None
+        if claimed_at:
+            item["status"] = "claimed"
+        else:
+            if item["status"] == "completed":
+                item["status"] = "ready_to_claim"
+
+        normalized.append(item)
+
+    return normalized
+
+
+def _build_challenges(
+    user_id: int,
+    metrics: dict[str, Any],
+    recent_events_7d: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    base = _build_base_challenges(metrics, recent_events_7d)
+    return _apply_tracking_to_challenges(user_id, base)
+
+
 def get_gamification_summary(user_id: int, user_name: str) -> dict[str, Any]:
     ensure_gamification_tables()
 
@@ -643,9 +772,9 @@ def get_gamification_summary(user_id: int, user_name: str) -> dict[str, Any]:
             }
         )
 
-    challenges = _build_challenges(metrics, recent_events_7d)
+    challenges = _build_challenges(user_id, metrics, recent_events_7d)
+    completed_challenges = sum(1 for item in challenges if item["status"] in {"ready_to_claim", "claimed"})
     unlocked_count = sum(1 for item in achievements if item["status"] == "unlocked")
-    completed_challenges = sum(1 for item in challenges if item["status"] == "completed")
 
     return {
         "profile": {
@@ -666,6 +795,70 @@ def get_gamification_summary(user_id: int, user_name: str) -> dict[str, Any]:
             for item in metrics["weekly_evolution"]
         ],
         "challenges": challenges,
+    }
+
+
+def track_gamification_challenge(
+    user_id: int,
+    user_name: str,
+    challenge_id: str,
+) -> dict[str, Any]:
+    summary_before = get_gamification_summary(user_id, user_name)
+    challenge = next(
+        (item for item in summary_before["challenges"] if item["id"] == challenge_id),
+        None,
+    )
+    if not challenge:
+        raise ValueError("Desafio não encontrado.")
+
+    _upsert_tracked_challenge(user_id, challenge_id)
+
+    summary_after = get_gamification_summary(user_id, user_name)
+    updated_challenge = next(
+        (item for item in summary_after["challenges"] if item["id"] == challenge_id),
+        None,
+    )
+
+    return {
+        "message": "Desafio marcado para acompanhamento.",
+        "action": "track",
+        "challenge": updated_challenge,
+        "summary": summary_after,
+    }
+
+
+def claim_gamification_challenge(
+    user_id: int,
+    user_name: str,
+    challenge_id: str,
+) -> dict[str, Any]:
+    summary_before = get_gamification_summary(user_id, user_name)
+    challenge = next(
+        (item for item in summary_before["challenges"] if item["id"] == challenge_id),
+        None,
+    )
+    if not challenge:
+        raise ValueError("Desafio não encontrado.")
+
+    if challenge["status"] == "claimed":
+        raise ValueError("Este desafio já foi resgatado.")
+
+    if challenge["status"] != "ready_to_claim":
+        raise ValueError("Este desafio ainda não está pronto para resgate.")
+
+    _mark_claimed_challenge(user_id, challenge_id)
+
+    summary_after = get_gamification_summary(user_id, user_name)
+    updated_challenge = next(
+        (item for item in summary_after["challenges"] if item["id"] == challenge_id),
+        None,
+    )
+
+    return {
+        "message": "Recompensa resgatada com sucesso.",
+        "action": "claim",
+        "challenge": updated_challenge,
+        "summary": summary_after,
     }
 
 
@@ -739,7 +932,9 @@ def get_gamification_ranking(
                 "xp": metrics["total_xp"],
                 "streak": metrics["current_streak"],
                 "completedChallenges": sum(
-                    1 for item in _build_challenges(metrics, events) if item["status"] == "completed"
+                    1
+                    for item in _build_base_challenges(metrics, events)
+                    if item["status"] == "completed"
                 ),
                 "accuracy": round(metrics["average_accuracy"]),
                 "level": metrics["level"],
