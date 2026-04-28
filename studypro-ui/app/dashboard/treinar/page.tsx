@@ -15,12 +15,15 @@ import {
 
 import {
   AUTH_TOKEN_KEY,
-  generateRandomSimulation,
   getSimulationEntitlement,
   type RandomSimulationResponse,
   type SimulationEntitlementResponse,
 } from "@/lib/api";
 import { trackActivityEvent } from "@/lib/activity-events";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+  "https://study-chatbot-python.onrender.com";
 
 const ACTIVE_SIMULATION_KEY = "studypro_active_simulation";
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers";
@@ -28,83 +31,133 @@ const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result";
 
 type TrainingPreset = {
   id: string;
+  backendPresetId: string;
   title: string;
   description: string;
   questionCount: number;
   duration: number;
-  subjects?: string[] | null;
-  mode: "balanced" | "random";
   tag: string;
+  subjectLabel: string;
 };
 
 const TRAINING_PRESETS: TrainingPreset[] = [
   {
     id: "treino-misto-10",
+    backendPresetId: "mix-10",
     title: "Treino rápido misto",
     description:
-      "Questões variadas para entrar no ritmo sem precisar configurar nada.",
+      "Questões variadas de todos os anos disponíveis para começar sem configurar nada.",
     questionCount: 10,
     duration: 20,
-    subjects: null,
-    mode: "random",
     tag: "Começar agora",
+    subjectLabel: "Geral",
   },
   {
-    id: "treino-matematica-10",
+    id: "treino-matematica-15",
+    backendPresetId: "math-15",
     title: "Treino Matemática",
     description:
       "Sessão curta para ganhar velocidade de raciocínio e cálculo.",
-    questionCount: 10,
-    duration: 22,
-    subjects: ["Matemática"],
-    mode: "random",
+    questionCount: 15,
+    duration: 30,
     tag: "Foco",
+    subjectLabel: "Matemática",
   },
   {
-    id: "treino-humanas-10",
+    id: "treino-humanas-15",
+    backendPresetId: "humanas-15",
     title: "Treino Humanas",
     description:
-      "Questões aleatórias de Ciências Humanas para treinar leitura e interpretação.",
-    questionCount: 10,
-    duration: 22,
-    subjects: ["Ciências Humanas"],
-    mode: "random",
+      "Questões de Ciências Humanas usando o banco consolidado multi-ano.",
+    questionCount: 15,
+    duration: 30,
     tag: "Foco",
+    subjectLabel: "Ciências Humanas",
   },
   {
-    id: "treino-natureza-10",
+    id: "treino-natureza-15",
+    backendPresetId: "natureza-15",
     title: "Treino Natureza",
     description:
-      "Treino rápido com questões aleatórias de Ciências da Natureza.",
-    questionCount: 10,
-    duration: 22,
-    subjects: ["Ciências da Natureza"],
-    mode: "random",
+      "Treino com questões de Ciências da Natureza de todos os anos disponíveis.",
+    questionCount: 15,
+    duration: 30,
     tag: "Foco",
+    subjectLabel: "Ciências da Natureza",
   },
   {
-    id: "treino-linguagens-10",
+    id: "treino-linguagens-15",
+    backendPresetId: "linguagens-15",
     title: "Treino Linguagens",
     description:
-      "Sessão curta para fortalecer leitura, interpretação e linguagem.",
-    questionCount: 10,
-    duration: 20,
-    subjects: ["Linguagens"],
-    mode: "random",
+      "Sessão para fortalecer leitura, interpretação e linguagem.",
+    questionCount: 15,
+    duration: 30,
     tag: "Foco",
+    subjectLabel: "Linguagens",
   },
   {
     id: "treino-intensivo-20",
+    backendPresetId: "mix-20-balanced",
     title: "Treino intensivo misto",
     description:
-      "Mais volume para uma sessão de estudo mais forte, ainda sem configuração manual.",
+      "Sessão balanceada com mais volume, usando questões de diferentes anos.",
     questionCount: 20,
     duration: 40,
-    subjects: null,
-    mode: "random",
     tag: "Intensivo",
+    subjectLabel: "Geral",
   },
 ];
+
+async function parseApiError(response: Response) {
+  try {
+    const data = await response.json();
+
+    if (typeof data?.detail === "string") return data.detail;
+
+    if (Array.isArray(data?.detail)) {
+      return data.detail
+        .map((item: unknown) => {
+          if (typeof item === "string") return item;
+          if (item && typeof item === "object" && "msg" in item) {
+            return String((item as { msg: string }).msg);
+          }
+          return "Erro de validação.";
+        })
+        .join(" | ");
+    }
+
+    if (typeof data?.message === "string") return data.message;
+
+    return "Erro na requisição.";
+  } catch {
+    return "Erro na requisição.";
+  }
+}
+
+async function generateTrainingSimulation(
+  presetId: string,
+  token?: string | null
+) {
+  const response = await fetch(
+    `${API_URL}/simulados/library/${presetId}/generate?exam_type=enem`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ seed: null }),
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseApiError(response));
+  }
+
+  return response.json() as Promise<RandomSimulationResponse>;
+}
 
 function EntitlementCard({
   entitlement,
@@ -123,16 +176,17 @@ function EntitlementCard({
         <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
           <Sparkles className="size-4 text-blue-300" />
         </div>
+
         <div>
           <p className="text-sm text-slate-400">Seu treino hoje</p>
           <h3 className="text-lg font-semibold text-white">
             {loading
               ? "Carregando..."
               : isPro
-              ? "Plano PRO ativo"
-              : typeof remaining === "number" && typeof dailyLimit === "number"
-              ? `${remaining} de ${dailyLimit} geração(ões) restantes`
-              : "Plano Free"}
+                ? "Plano PRO ativo"
+                : typeof remaining === "number" && typeof dailyLimit === "number"
+                  ? `${remaining} de ${dailyLimit} geração(ões) restantes`
+                  : "Plano Free"}
           </h3>
         </div>
       </div>
@@ -141,8 +195,8 @@ function EntitlementCard({
         {loading
           ? "Verificando acesso da sua conta."
           : isPro
-          ? "Você pode iniciar treinos sem interrupção e com mais liberdade de uso."
-          : "O modo Treinar foi pensado para começar rápido. No Pro você amplia volume e reduz limites diários."}
+            ? "Você pode iniciar treinos sem interrupção e com mais liberdade de uso."
+            : "O modo Treinar gera uma sessão pronta em um clique. No Pro você amplia volume e reduz limites diários."}
       </p>
     </div>
   );
@@ -193,21 +247,19 @@ function TrainingCard({
         </div>
       </div>
 
-      <div className="mt-5">
-        <button
-          type="button"
-          onClick={() => onStart(preset)}
-          disabled={loading}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Play className="size-4" />
-          )}
-          {loading ? "Preparando treino..." : "Começar treino"}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => onStart(preset)}
+        disabled={loading}
+        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#4b8df7] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {loading ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Play className="size-4" />
+        )}
+        {loading ? "Preparando treino..." : "Começar treino"}
+      </button>
     </article>
   );
 }
@@ -258,15 +310,8 @@ export default function TreinarPage() {
 
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
-      const simulation: RandomSimulationResponse = await generateRandomSimulation(
-        {
-          exam_type: "enem",
-          year: 2022,
-          question_count: preset.questionCount,
-          subjects: preset.subjects ?? null,
-          mode: preset.mode,
-          seed: null,
-        },
+      const simulation = await generateTrainingSimulation(
+        preset.backendPresetId,
         token
       );
 
@@ -274,20 +319,18 @@ export default function TreinarPage() {
         await trackActivityEvent({
           event_type: "simulation_started",
           module: "treinar",
-          subject:
-            preset.subjects && preset.subjects.length > 0
-              ? preset.subjects.join(", ")
-              : "Geral",
+          subject: preset.subjectLabel,
           metadata_json: {
             source: "training_mode",
             preset_id: preset.id,
+            backend_preset_id: preset.backendPresetId,
             preset_title: preset.title,
             question_count: preset.questionCount,
-            mode: preset.mode,
+            simulation_source: simulation.simulation_source ?? "library",
           },
         });
       } catch {
-        // não bloqueia o treino se o tracking falhar
+        // Não bloqueia o treino se o tracking falhar.
       }
 
       sessionStorage.setItem(ACTIVE_SIMULATION_KEY, JSON.stringify(simulation));
@@ -321,8 +364,8 @@ export default function TreinarPage() {
             </h1>
 
             <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-              Sem montar simulado, sem escolher várias opções, sem perder tempo.
-              O treino gera questões aleatórias para você começar agora.
+              O treino usa questões do banco consolidado de provas disponíveis.
+              Você escolhe um modo e começa em um clique.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
