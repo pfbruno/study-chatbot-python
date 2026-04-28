@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import {
   Award,
   Brain,
@@ -16,30 +17,42 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
+import { AUTH_TOKEN_KEY } from "@/lib/api"
 import {
-  buildChallengeCatalog,
-  claimChallengeReward,
-  getChallengeState,
-  setTrackedChallenge,
-  STUDY_CHALLENGES_UPDATED_EVENT,
-  type ChallengeDifficulty,
-  type ChallengeItem,
-  type ChallengeStatus,
-  type ChallengeType,
-} from "@/lib/challenges"
-import {
-  getStudyProgress,
-  STUDY_PROGRESS_UPDATED_EVENT,
-  type StudyProgressSnapshot,
-} from "@/lib/study-progress"
+  claimPersistedGamificationChallenge,
+  dispatchGamificationRefresh,
+  fetchGamificationSummary,
+  trackPersistedGamificationChallenge,
+  type PersistedGamificationChallenge,
+  type PersistedGamificationSummaryResponse,
+} from "@/lib/gamification-client"
 
-const EMPTY_PROGRESS: StudyProgressSnapshot = {
-  totalAnsweredQuestions: 0,
-  totalCompletedSimulations: 0,
-  totalCorrectAnswers: 0,
-  completedAttemptIds: [],
-  updatedAt: null,
+const EMPTY_GAMIFICATION: PersistedGamificationSummaryResponse = {
+  profile: {
+    userName: "Usuário",
+    level: 1,
+    currentXP: 0,
+    nextLevelXP: 800,
+    totalXP: 0,
+    streakDays: 0,
+    completedChallenges: 0,
+    unlockedAchievements: 0,
+    totalAchievements: 0,
+  },
+  achievements: [],
+  recentUnlocks: [],
+  weeklyEvolution: [],
+  challenges: [],
 }
+
+type ChallengeDifficulty = "easy" | "medium" | "hard"
+type ChallengeStatus =
+  | "active"
+  | "ready_to_claim"
+  | "claimed"
+  | "completed"
+  | "locked"
+type ChallengeType = "daily" | "weekly" | "special"
 
 function difficultyStyles(difficulty: ChallengeDifficulty) {
   if (difficulty === "hard") {
@@ -83,17 +96,21 @@ function statusStyles(status: ChallengeStatus) {
   if (status === "locked") {
     return "border-white/10 bg-white/5 text-slate-400"
   }
+  if (status === "completed") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+  }
   return "border-[#2f7cff]/30 bg-[#2f7cff]/10 text-[#79a6ff]"
 }
 
 function statusLabel(status: ChallengeStatus) {
   if (status === "claimed") return "Resgatado"
   if (status === "ready_to_claim") return "Pronto para pegar"
+  if (status === "completed") return "Concluído"
   if (status === "locked") return "Bloqueado"
   return "Ativo"
 }
 
-function iconForChallenge(icon: ChallengeItem["icon"]) {
+function iconForChallenge(icon: PersistedGamificationChallenge["icon"]) {
   switch (icon) {
     case "brain":
       return Brain
@@ -130,36 +147,63 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   )
 }
 
+function SummaryRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode
+  label: string
+  value: string
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+      <div className="flex items-center gap-3">
+        {icon}
+        <span className="text-sm text-slate-300">{label}</span>
+      </div>
+      <span className="text-sm font-semibold text-white">{value}</span>
+    </div>
+  )
+}
+
+function getButtonLabel(item: PersistedGamificationChallenge) {
+  if (item.status === "claimed") return "Resgatado"
+  if (item.status === "ready_to_claim") return "Pegar"
+  if (item.isTracked) return "Acompanhando"
+  return "Acompanhar"
+}
+
+function getButtonClassName(item: PersistedGamificationChallenge) {
+  if (item.status === "claimed") {
+    return "bg-emerald-400/20 text-emerald-200 cursor-default"
+  }
+
+  if (item.status === "ready_to_claim") {
+    return "bg-amber-400 text-[#071225] hover:opacity-90"
+  }
+
+  if (item.isTracked) {
+    return "bg-[#79a6ff] text-[#071225] cursor-default"
+  }
+
+  return "bg-[#4b8df7] text-white hover:opacity-90"
+}
+
 function ChallengeCard({
   item,
   onTrack,
   onClaim,
+  loading,
 }: {
-  item: ChallengeItem
+  item: PersistedGamificationChallenge
   onTrack: (challengeId: string) => void
   onClaim: (challengeId: string) => void
+  loading: boolean
 }) {
   const Icon = iconForChallenge(item.icon)
   const progress =
     item.target > 0 ? Math.round((item.progress / item.target) * 100) : 0
-
-  const buttonLabel =
-    item.status === "claimed"
-      ? "Resgatado"
-      : item.status === "ready_to_claim"
-      ? "Pegar"
-      : item.isTracked
-      ? "Acompanhando"
-      : "Acompanhar"
-
-  const buttonClassName =
-    item.status === "claimed"
-      ? "bg-emerald-400/20 text-emerald-200 cursor-default"
-      : item.status === "ready_to_claim"
-      ? "bg-amber-400 text-[#071225] hover:opacity-90"
-      : item.isTracked
-      ? "bg-[#79a6ff] text-[#071225] hover:opacity-90"
-      : "bg-[#4b8df7] text-white hover:opacity-90"
 
   return (
     <article
@@ -258,15 +302,17 @@ function ChallengeCard({
 
           <button
             type="button"
-            disabled={item.status === "claimed"}
+            disabled={loading || item.status === "claimed" || item.isTracked}
             onClick={() =>
               item.status === "ready_to_claim"
                 ? onClaim(item.id)
                 : onTrack(item.id)
             }
-            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${buttonClassName}`}
+            className={`rounded-2xl px-4 py-2 text-sm font-semibold transition ${getButtonClassName(
+              item
+            )}`}
           >
-            {buttonLabel}
+            {loading ? "Processando..." : getButtonLabel(item)}
           </button>
         </div>
       </div>
@@ -277,9 +323,11 @@ function ChallengeCard({
 function CompactChallengeItem({
   item,
   onClaim,
+  loading,
 }: {
-  item: ChallengeItem
+  item: PersistedGamificationChallenge
   onClaim: (challengeId: string) => void
+  loading: boolean
 }) {
   const Icon = iconForChallenge(item.icon)
   const progress =
@@ -305,9 +353,10 @@ function CompactChallengeItem({
             <button
               type="button"
               onClick={() => onClaim(item.id)}
+              disabled={loading}
               className="mt-3 rounded-xl bg-amber-400 px-3 py-2 text-xs font-semibold text-[#071225]"
             >
-              Pegar recompensa
+              {loading ? "Processando..." : "Pegar recompensa"}
             </button>
           ) : null}
         </div>
@@ -320,66 +369,44 @@ function CompactChallengeItem({
   )
 }
 
-function SummaryRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <div className="flex items-center gap-3">
-        {icon}
-        <span className="text-sm text-slate-300">{label}</span>
-      </div>
-      <span className="text-sm font-semibold text-white">{value}</span>
-    </div>
-  )
-}
-
 export default function DesafiosPage() {
-  const [progress, setProgress] = useState<StudyProgressSnapshot>(EMPTY_PROGRESS)
-  const [challengeState, setChallengeState] = useState(getChallengeState())
+  const [summary, setSummary] =
+    useState<PersistedGamificationSummaryResponse>(EMPTY_GAMIFICATION)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [feedback, setFeedback] = useState("")
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+
+  async function loadSummary() {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+
+    if (!token) {
+      setError("Sessão não encontrada.")
+      setLoading(false)
+      return
+    }
+
+    try {
+      setLoading(true)
+      const data = await fetchGamificationSummary(token)
+      setSummary(data)
+      setError("")
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível carregar os desafios."
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const sync = () => {
-      setProgress(getStudyProgress())
-      setChallengeState(getChallengeState())
-    }
-
-    sync()
-    window.addEventListener("storage", sync)
-    window.addEventListener(
-      STUDY_PROGRESS_UPDATED_EVENT,
-      sync as EventListener
-    )
-    window.addEventListener(
-      STUDY_CHALLENGES_UPDATED_EVENT,
-      sync as EventListener
-    )
-
-    return () => {
-      window.removeEventListener("storage", sync)
-      window.removeEventListener(
-        STUDY_PROGRESS_UPDATED_EVENT,
-        sync as EventListener
-      )
-      window.removeEventListener(
-        STUDY_CHALLENGES_UPDATED_EVENT,
-        sync as EventListener
-      )
-    }
+    void loadSummary()
   }, [])
 
-  const challenges = useMemo(
-    () => buildChallengeCatalog(progress, challengeState),
-    [progress, challengeState]
-  )
-
+  const challenges = summary.challenges
   const dailyChallenges = challenges.filter((item) => item.type === "daily")
   const weeklyChallenges = challenges.filter((item) => item.type === "weekly")
   const specialChallenges = challenges.filter((item) => item.type === "special")
@@ -390,28 +417,58 @@ export default function DesafiosPage() {
   ).length
   const claimedCount = challenges.filter((item) => item.status === "claimed").length
 
-  const claimedXP = challengeState.claimedXP
+  async function handleTrack(challengeId: string) {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) return
 
-  function handleTrack(challengeId: string) {
-    const currentTracked = challengeState.trackedChallengeId
-    const nextTracked = currentTracked === challengeId ? null : challengeId
-    setTrackedChallenge(nextTracked)
-    setChallengeState(getChallengeState())
+    try {
+      setActionLoadingId(challengeId)
+      const response = await trackPersistedGamificationChallenge(challengeId, token)
 
-    const trackedItem = challenges.find((item) => item.id === challengeId)
-    if (trackedItem) {
+      if (response.summary) {
+        setSummary(response.summary)
+      } else {
+        await loadSummary()
+      }
+
+      setFeedback(response.message || "Desafio marcado como acompanhado.")
+      dispatchGamificationRefresh()
+    } catch (err) {
       setFeedback(
-        nextTracked
-          ? `Agora você está acompanhando: ${trackedItem.title}.`
-          : `Você deixou de acompanhar: ${trackedItem.title}.`
+        err instanceof Error
+          ? err.message
+          : "Não foi possível acompanhar este desafio."
       )
+    } finally {
+      setActionLoadingId(null)
     }
   }
 
-  function handleClaim(challengeId: string) {
-    const result = claimChallengeReward(challengeId, progress)
-    setChallengeState(getChallengeState())
-    setFeedback(result.message)
+  async function handleClaim(challengeId: string) {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) return
+
+    try {
+      setActionLoadingId(challengeId)
+      const response = await claimPersistedGamificationChallenge(challengeId, token)
+
+      if (response.summary) {
+        setSummary(response.summary)
+      } else {
+        await loadSummary()
+      }
+
+      setFeedback(response.message || "Recompensa resgatada com sucesso.")
+      dispatchGamificationRefresh()
+    } catch (err) {
+      setFeedback(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível resgatar a recompensa."
+      )
+    } finally {
+      setActionLoadingId(null)
+    }
   }
 
   return (
@@ -421,7 +478,7 @@ export default function DesafiosPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
               <Swords className="size-4" />
-              Missões e progressão ativa
+              Missões e progressão persistida
             </div>
 
             <h1 className="mt-6 text-5xl font-bold tracking-tight text-white">
@@ -429,20 +486,26 @@ export default function DesafiosPage() {
             </h1>
 
             <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-              Agora você pode acompanhar desafios, concluir metas, resgatar XP e
-              refletir esse avanço diretamente no topo da plataforma.
+              Agora o acompanhamento e o resgate de desafios ficam salvos por usuário
+              no backend da plataforma.
             </p>
 
             <div className="mt-8 grid gap-4 md:grid-cols-4">
               <MetricCard label="Ativos" value={String(activeChallenges)} />
               <MetricCard label="Prontos para pegar" value={String(readyToClaimCount)} />
               <MetricCard label="Resgatados" value={String(claimedCount)} />
-              <MetricCard label="XP já resgatado" value={`${claimedXP}`} />
+              <MetricCard label="Total XP" value={`${summary.profile.totalXP}`} />
             </div>
 
             {feedback ? (
               <div className="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
                 {feedback}
+              </div>
+            ) : null}
+
+            {error ? (
+              <div className="mt-5 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
+                {error}
               </div>
             ) : null}
           </div>
@@ -468,14 +531,14 @@ export default function DesafiosPage() {
               />
               <SummaryRow
                 icon={<Sparkles className="size-4 text-[#79a6ff]" />}
-                label="Questões contadas"
-                value={`${progress.totalAnsweredQuestions}`}
+                label="Streak atual"
+                value={`${summary.profile.streakDays} dia(s)`}
               />
             </div>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-              O progresso desta tela é alimentado pelas tentativas concluídas na
-              área de simulados, e o resgate de XP é salvo localmente por conta de navegador.
+              O status dos desafios agora é sincronizado com a sua conta, e não apenas
+              com este navegador.
             </div>
           </div>
         </div>
@@ -503,6 +566,7 @@ export default function DesafiosPage() {
                 key={item.id}
                 item={item}
                 onClaim={handleClaim}
+                loading={actionLoadingId === item.id}
               />
             ))}
           </div>
@@ -529,6 +593,7 @@ export default function DesafiosPage() {
                 key={item.id}
                 item={item}
                 onClaim={handleClaim}
+                loading={actionLoadingId === item.id}
               />
             ))}
           </div>
@@ -555,6 +620,7 @@ export default function DesafiosPage() {
                 key={item.id}
                 item={item}
                 onClaim={handleClaim}
+                loading={actionLoadingId === item.id}
               />
             ))}
           </div>
@@ -567,20 +633,27 @@ export default function DesafiosPage() {
             Todos os desafios
           </h2>
           <p className="mt-2 text-base text-[#7ea0d6]">
-            Visão detalhada por missão, progresso, recompensa e estado de resgate
+            Visão detalhada por missão, progresso, recompensa e persistência
           </p>
         </div>
 
-        <div className="grid gap-5 xl:grid-cols-2">
-          {challenges.map((item) => (
-            <ChallengeCard
-              key={item.id}
-              item={item}
-              onTrack={handleTrack}
-              onClaim={handleClaim}
-            />
-          ))}
-        </div>
+        {loading ? (
+          <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8 text-slate-300">
+            Carregando desafios...
+          </div>
+        ) : (
+          <div className="grid gap-5 xl:grid-cols-2">
+            {challenges.map((item) => (
+              <ChallengeCard
+                key={item.id}
+                item={item}
+                onTrack={handleTrack}
+                onClaim={handleClaim}
+                loading={actionLoadingId === item.id}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </div>
   )
