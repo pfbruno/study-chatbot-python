@@ -32,6 +32,12 @@ from app.repositories_gamification import (
     get_gamification_summary,
     track_gamification_challenge,
 )
+from app.repositories_generated_content import (
+    get_generated_content_by_id,
+    get_latest_generated_content,
+    list_generated_content,
+    save_generated_content,
+)
 
 router = APIRouter(tags=["chat"])
 
@@ -94,6 +100,8 @@ ALLOWED_ACTIVITY_EVENTS = {
     "top10_reached",
     "top3_reached",
 }
+
+ALLOWED_GENERATED_CONTENT_TYPES = {"review_summary", "flashcards"}
 
 _MONTH_LABELS = {
     1: "Jan",
@@ -160,6 +168,55 @@ class ActivityEventRequest(BaseModel):
     @field_validator("subject")
     @classmethod
     def validate_subject(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+
+class GeneratedContentSaveRequest(BaseModel):
+    content_type: str = Field(..., min_length=1, max_length=40)
+    title: str = Field(..., min_length=1, max_length=180)
+    description: str | None = Field(default=None, max_length=400)
+    source_type: str | None = Field(default=None, max_length=40)
+    source_key: str | None = Field(default=None, max_length=120)
+    payload: dict[str, Any] | list[Any]
+
+    @field_validator("content_type")
+    @classmethod
+    def validate_content_type(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in ALLOWED_GENERATED_CONTENT_TYPES:
+            raise ValueError("content_type inválido.")
+        return normalized
+
+    @field_validator("title")
+    @classmethod
+    def validate_title(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("title inválido.")
+        return normalized
+
+    @field_validator("description")
+    @classmethod
+    def validate_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @field_validator("source_type")
+    @classmethod
+    def validate_source_type(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower()
+        return normalized or None
+
+    @field_validator("source_key")
+    @classmethod
+    def validate_source_key(cls, value: str | None) -> str | None:
         if value is None:
             return None
         normalized = value.strip()
@@ -991,3 +1048,90 @@ def get_ranking(
 ) -> dict:
     user = _get_current_user_or_401(authorization)
     return get_gamification_ranking(scope=scope, current_user_id=user["id"])
+
+
+@router.post("/generated-content", tags=["generated-content"])
+def create_generated_content(
+    payload: GeneratedContentSaveRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+
+    try:
+        item = save_generated_content(
+            user_id=user["id"],
+            content_type=payload.content_type,
+            title=payload.title,
+            description=payload.description,
+            source_type=payload.source_type,
+            source_key=payload.source_key,
+            payload=payload.payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "message": "Conteúdo gerado salvo com sucesso.",
+        "item": item,
+    }
+
+
+@router.get("/generated-content", tags=["generated-content"])
+def get_generated_content_list(
+    content_type: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+
+    try:
+        items = list_generated_content(
+            user_id=user["id"],
+            content_type=content_type,
+            limit=limit,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {
+        "items": items,
+    }
+
+
+@router.get("/generated-content/latest", tags=["generated-content"])
+def get_latest_generated_content_item(
+    content_type: str = Query(...),
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+
+    try:
+        item = get_latest_generated_content(
+            user_id=user["id"],
+            content_type=content_type,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Nenhum conteúdo encontrado.")
+
+    return {
+        "item": item,
+    }
+
+
+@router.get("/generated-content/{content_id}", tags=["generated-content"])
+def get_generated_content_item(
+    content_id: int,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+    item = get_generated_content_by_id(user_id=user["id"], content_id=content_id)
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Conteúdo não encontrado.")
+
+    return {
+        "item": item,
+    }
