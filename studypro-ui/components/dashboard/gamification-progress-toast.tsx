@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Sparkles, Trophy } from "lucide-react"
 
-import type {
-  GamificationChallenge,
-  GamificationProfile,
-} from "@/lib/api"
+import type { GamificationProfile } from "@/lib/api"
+import type { ChallengeItem } from "@/lib/challenges"
 
 type ToastItem = {
   id: string
@@ -30,14 +28,14 @@ type Snapshot = {
 
 type GamificationProgressToastProps = {
   profile: GamificationProfile
-  challenges: GamificationChallenge[]
+  challenges: ChallengeItem[]
 }
 
-const STORAGE_KEY = "studypro_gamification_snapshot_v1"
+const STORAGE_KEY = "studypro_gamification_snapshot_v2"
 
 function buildSnapshot(
   profile: GamificationProfile,
-  challenges: GamificationChallenge[]
+  challenges: ChallengeItem[]
 ): Snapshot {
   return {
     totalXP: profile.totalXP ?? 0,
@@ -120,12 +118,12 @@ export function GamificationProgressToast({
         })
       }
 
-      const becameCompleted =
+      const becameReadyToClaim =
         previousState &&
-        previousState.status !== "completed" &&
-        challenge.status === "completed"
+        previousState.status !== "ready_to_claim" &&
+        challenge.status === "ready_to_claim"
 
-      if (becameCompleted) {
+      if (becameReadyToClaim) {
         nextToasts.push({
           id: `completed-${challenge.id}-${Date.now()}`,
           title: "Desafio concluído",
