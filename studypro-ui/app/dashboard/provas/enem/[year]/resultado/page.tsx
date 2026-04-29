@@ -1,20 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
 import {
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
-  Layers3,
-  Map,
-  MessageSquare,
-  ScrollText,
   Target,
   Trophy,
   XCircle,
 } from "lucide-react"
+
+import { QuestionAIExplanation } from "@/components/study/question-ai-explanation"
+import { RichQuestionContent } from "@/components/study/rich-question-content"
 
 type LocalResultByQuestion = {
   question_number: number
@@ -22,6 +21,20 @@ type LocalResultByQuestion = {
   user_answer: string | null
   correct_answer: string | null
   status: "correct" | "wrong" | "blank" | "annulled"
+}
+
+type ExamQuestion = {
+  number: number
+  day?: number | null
+  area?: string | null
+  subject: string
+  topic?: string | null
+  statement: string
+  options: Record<string, string>
+  answer?: string | null
+  annulled?: boolean
+  source_pdf_label?: string | null
+  source_ref?: string | null
 }
 
 type ExamResult = {
@@ -46,7 +59,15 @@ type ExamResult = {
   }>
 }
 
+type ExamPayload = {
+  questions?: ExamQuestion[]
+}
+
 const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
+
+function buildRawQuestionsUrl(year: number) {
+  return `https://raw.githubusercontent.com/pfbruno/study-chatbot-python/main/data/exams/questions/enem/${year}.json`
+}
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -70,20 +91,46 @@ export default function ExamResultPage() {
   const params = useParams()
   const year = Number(params.year as string)
 
+  const [result, setResult] = useState<ExamResult | null>(null)
+  const [questions, setQuestions] = useState<ExamQuestion[]>([])
+  const [loading, setLoading] = useState(true)
+
   const storageKey = `${OFFICIAL_EXAM_RESULT_PREFIX}enem_${year}`
 
-  const result = useMemo<ExamResult | null>(() => {
-    if (typeof window === "undefined") return null
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true)
 
-    const raw = localStorage.getItem(storageKey)
-    if (!raw) return null
+        const rawResult = localStorage.getItem(storageKey)
+        if (rawResult) {
+          setResult(JSON.parse(rawResult) as ExamResult)
+        }
 
-    try {
-      return JSON.parse(raw) as ExamResult
-    } catch {
-      return null
+        const rawResponse = await fetch(buildRawQuestionsUrl(year), {
+          cache: "no-store",
+        })
+
+        if (rawResponse.ok) {
+          const payload = (await rawResponse.json()) as ExamPayload
+          setQuestions(Array.isArray(payload.questions) ? payload.questions : [])
+        }
+      } catch {
+        setResult(null)
+        setQuestions([])
+      } finally {
+        setLoading(false)
+      }
     }
-  }, [storageKey])
+
+    if (Number.isInteger(year)) {
+      void load()
+    }
+  }, [storageKey, year])
+
+  const questionsByNumber = useMemo(() => {
+    return new Map(questions.map((question) => [question.number, question]))
+  }, [questions])
 
   const weakestSubjects = useMemo(() => {
     if (!result) return []
@@ -93,6 +140,14 @@ export default function ExamResultPage() {
   }, [result])
 
   const performance = getPerformanceLabel(result?.score_percentage ?? 0)
+
+  if (loading) {
+    return (
+      <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8 text-slate-300">
+        Carregando resultado...
+      </div>
+    )
+  }
 
   if (!result) {
     return (
@@ -203,7 +258,8 @@ export default function ExamResultPage() {
                     {subject.subject}
                   </div>
                   <div className="text-base text-[#7ea0d6]">
-                    {subject.correct}/{subject.total} • {subject.accuracy_percentage.toFixed(1)}%
+                    {subject.correct}/{subject.total} •{" "}
+                    {subject.accuracy_percentage.toFixed(1)}%
                   </div>
                 </div>
                 <ProgressBar value={subject.accuracy_percentage} />
@@ -242,7 +298,8 @@ export default function ExamResultPage() {
                       {subject.subject}
                     </div>
                     <div className="text-sm text-[#7ea0d6]">
-                      {subject.correct} acerto(s), {subject.wrong} erro(s), {subject.blank} em branco
+                      {subject.correct} acerto(s), {subject.wrong} erro(s),{" "}
+                      {subject.blank} em branco
                     </div>
                   </div>
                 </div>
@@ -252,128 +309,141 @@ export default function ExamResultPage() {
                 </div>
               </div>
             ))}
-
-            <Link
-              href="/dashboard/estudo"
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-[#030b1d] px-5 py-4 text-xl font-semibold text-white transition hover:bg-[#0a1730]"
-            >
-              Iniciar revisão guiada
-            </Link>
           </div>
         </article>
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
         <h2 className="text-3xl font-bold tracking-tight text-white">
-          Correção por questão
+          Correção detalhada com IA
         </h2>
         <p className="mt-2 text-base text-[#7ea0d6]">
-          Clique em uma questão para ver o gabarito comentado
+          As explicações aparecem nas questões erradas ou em branco.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 space-y-5">
           {result.results_by_question.map((item) => {
-            const colorClass =
+            const question = questionsByNumber.get(item.question_number)
+            const selectedOptionContent =
+              item.user_answer && question
+                ? question.options[item.user_answer] ?? null
+                : null
+            const correctOptionContent =
+              item.correct_answer && question
+                ? question.options[item.correct_answer] ?? null
+                : null
+
+            const shouldShowExplanation =
+              Boolean(question) &&
+              Boolean(item.correct_answer) &&
+              (item.status === "wrong" || item.status === "blank")
+
+            const statusLabel =
               item.status === "correct"
-                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                ? "Correta"
                 : item.status === "wrong"
-                ? "border-rose-500/20 bg-rose-500/10 text-rose-400"
-                : item.status === "blank"
-                ? "border-white/10 bg-white/5 text-slate-300"
-                : "border-yellow-500/20 bg-yellow-500/10 text-yellow-300"
+                  ? "Incorreta"
+                  : item.status === "blank"
+                    ? "Em branco"
+                    : "Anulada"
+
+            const statusClass =
+              item.status === "correct"
+                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                : item.status === "wrong"
+                  ? "border-rose-500/30 bg-rose-500/10 text-rose-300"
+                  : item.status === "blank"
+                    ? "border-white/10 bg-white/5 text-slate-300"
+                    : "border-yellow-500/30 bg-yellow-500/10 text-yellow-300"
 
             return (
-              <button
+              <article
                 key={item.question_number}
-                type="button"
-                className={`flex h-12 min-w-12 items-center justify-center rounded-2xl border px-3 text-base font-semibold transition hover:opacity-90 ${colorClass}`}
+                className="rounded-[24px] border border-white/10 bg-[#020b18] p-5"
               >
-                {item.question_number}
-              </button>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Questão {item.question_number}
+                    </h3>
+                    <p className="mt-1 text-sm text-[#7ea0d6]">
+                      {item.subject}
+                    </p>
+                  </div>
+
+                  <span
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${statusClass}`}
+                  >
+                    {statusLabel}
+                  </span>
+                </div>
+
+                {question ? (
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Enunciado
+                    </p>
+                    <RichQuestionContent content={question.statement} />
+                  </div>
+                ) : null}
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Sua resposta
+                    </p>
+
+                    <p className="mt-2 text-sm text-white">
+                      {item.user_answer || "—"}
+                    </p>
+
+                    {selectedOptionContent ? (
+                      <div className="mt-3">
+                        <RichQuestionContent content={selectedOptionContent} />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                      Gabarito
+                    </p>
+
+                    <p className="mt-2 text-sm text-white">
+                      {item.correct_answer || "—"}
+                    </p>
+
+                    {correctOptionContent ? (
+                      <div className="mt-3">
+                        <RichQuestionContent content={correctOptionContent} />
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {shouldShowExplanation && question && item.correct_answer ? (
+                  <QuestionAIExplanation
+                    payload={{
+                      source: "exam",
+                      attempt_id: `exam-enem-${year}`,
+                      exam_type: result.exam_type,
+                      year,
+                      question_ref:
+                        question.source_ref ??
+                        `${result.exam_type}-${year}-${item.question_number}`,
+                      question_number: item.question_number,
+                      subject: item.subject,
+                      statement: question.statement,
+                      options: question.options,
+                      user_answer: item.user_answer,
+                      correct_answer: item.correct_answer,
+                      status: item.status === "blank" ? "blank" : "wrong",
+                    }}
+                  />
+                ) : null}
+              </article>
             )
           })}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-5 text-sm text-[#7ea0d6]">
-          <span className="inline-flex items-center gap-2">
-            <span className="size-3 rounded-full bg-emerald-400" />
-            Acerto
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="size-3 rounded-full bg-rose-400" />
-            Erro
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="size-3 rounded-full bg-slate-400" />
-            Em branco
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="size-3 rounded-full bg-yellow-300" />
-            Anulada
-          </span>
-        </div>
-      </section>
-
-      <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-        <h2 className="text-3xl font-bold tracking-tight text-white">
-          Sua revisão já está pronta
-        </h2>
-        <p className="mt-2 text-base text-[#7ea0d6]">
-          Conecte o resultado à sua área de estudo
-        </p>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <Link
-            href="/dashboard/flashcards"
-            className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
-          >
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-              <Layers3 className="size-6 text-[#79a6ff]" />
-            </div>
-            <div className="mt-4 text-2xl font-bold text-white">Gerar flashcards</div>
-            <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-              Cards com IA das questões que você errou
-            </div>
-          </Link>
-
-          <Link
-            href="/dashboard/resumos"
-            className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(16,185,129,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-emerald-500/30"
-          >
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-              <ScrollText className="size-6 text-emerald-300" />
-            </div>
-            <div className="mt-4 text-2xl font-bold text-white">Resumo personalizado</div>
-            <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-              Resumo focado nos seus pontos fracos
-            </div>
-          </Link>
-
-          <Link
-            href="/dashboard/estudo"
-            className="rounded-[24px] border border-white/10 bg-[linear-gradient(135deg,_rgba(168,85,247,0.14),_rgba(14,35,71,0.7))] p-5 transition hover:border-purple-500/30"
-          >
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-              <Map className="size-6 text-purple-300" />
-            </div>
-            <div className="mt-4 text-2xl font-bold text-white">Mapa mental</div>
-            <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-              Visualize conceitos centrais das matérias revisadas
-            </div>
-          </Link>
-
-          <Link
-            href="/dashboard/chat-ia"
-            className="rounded-[24px] border border-white/10 bg-[#12244a] p-5 transition hover:border-[#2f7cff]/40"
-          >
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#0f1d3d]">
-              <MessageSquare className="size-6 text-[#79a6ff]" />
-            </div>
-            <div className="mt-4 text-2xl font-bold text-white">Tirar dúvidas com IA</div>
-            <div className="mt-2 text-base leading-7 text-[#7ea0d6]">
-              Converse sobre as questões da prova
-            </div>
-          </Link>
         </div>
       </section>
     </div>
@@ -396,7 +466,11 @@ function MetricCard({
       <div className="flex size-12 items-center justify-center rounded-2xl bg-white/5">
         {icon}
       </div>
-      <div className={`mt-5 text-5xl font-bold tracking-tight ${valueClassName ?? "text-white"}`}>
+      <div
+        className={`mt-5 text-5xl font-bold tracking-tight ${
+          valueClassName ?? "text-white"
+        }`}
+      >
         {value}
       </div>
       <div className="mt-2 text-xl text-[#7ea0d6]">{label}</div>
