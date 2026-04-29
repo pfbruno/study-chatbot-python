@@ -13,6 +13,13 @@ from app.database import (
     increment_user_simulation_usage,
     record_hook_activity_event,
 )
+from app.question_explanation_service import build_question_explanation
+from app.repositories_question_explanations import (
+    build_question_key,
+    get_question_explanation,
+    list_question_explanations_by_attempt,
+    save_question_explanation,
+)
 from app.simulations import (
     generate_library_simulation,
     get_ready_simulation_library,
@@ -49,6 +56,69 @@ class LibrarySimulationSubmission(BaseModel):
         if not sanitized:
             raise ValueError("question_refs não pode ser vazio.")
         return sanitized
+
+
+class QuestionExplanationGenerateRequest(BaseModel):
+    source: Literal["simulation", "exam", "training"]
+    attempt_id: str = Field(..., min_length=1, max_length=180)
+    exam_type: str = Field(..., min_length=1, max_length=40)
+    year: int | None = Field(default=None, ge=1900, le=2100)
+    question_ref: str | None = Field(default=None, max_length=180)
+    question_number: int = Field(..., ge=1)
+    subject: str = Field(..., min_length=1, max_length=160)
+    statement: str = Field(..., min_length=1)
+    options: dict[str, str] = Field(default_factory=dict)
+    user_answer: str | None = Field(default=None, max_length=12)
+    correct_answer: str | None = Field(default=None, max_length=12)
+    status: Literal["wrong", "blank"]
+
+    @field_validator("attempt_id")
+    @classmethod
+    def validate_attempt_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("attempt_id inválido.")
+        return normalized
+
+    @field_validator("exam_type")
+    @classmethod
+    def validate_exam_type(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if not normalized:
+            raise ValueError("exam_type inválido.")
+        return normalized
+
+    @field_validator("question_ref")
+    @classmethod
+    def validate_question_ref(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @field_validator("subject")
+    @classmethod
+    def validate_subject(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("subject inválido.")
+        return normalized
+
+    @field_validator("user_answer")
+    @classmethod
+    def validate_user_answer(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        return normalized or None
+
+    @field_validator("correct_answer")
+    @classmethod
+    def validate_correct_answer(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        return normalized or None
 
 
 def _now_utc() -> datetime:
@@ -311,3 +381,83 @@ def submit_ready_simulation(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/question-explanations/generate", tags=["question-explanations"])
+def generate_question_explanation_endpoint(
+    payload: QuestionExplanationGenerateRequest,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+
+    question_key = build_question_key(
+        question_ref=payload.question_ref,
+        exam_type=payload.exam_type,
+        year=payload.year,
+        question_number=payload.question_number,
+    )
+
+    existing = get_question_explanation(
+        user_id=int(user["id"]),
+        source=payload.source,
+        attempt_id=payload.attempt_id,
+        question_key=question_key,
+    )
+
+    if existing:
+        return {
+            "message": "Explicação já existente.",
+            "item": existing,
+        }
+
+    generated = build_question_explanation(
+        source=payload.source,
+        exam_type=payload.exam_type,
+        year=payload.year,
+        question_number=payload.question_number,
+        subject=payload.subject,
+        statement=payload.statement,
+        options=payload.options,
+        user_answer=payload.user_answer,
+        correct_answer=payload.correct_answer,
+        status=payload.status,
+    )
+
+    item = save_question_explanation(
+        user_id=int(user["id"]),
+        source=payload.source,
+        attempt_id=payload.attempt_id,
+        question_key=question_key,
+        question_ref=payload.question_ref,
+        exam_type=payload.exam_type,
+        year=payload.year,
+        question_number=payload.question_number,
+        subject=payload.subject,
+        user_answer=payload.user_answer,
+        correct_answer=payload.correct_answer,
+        explanation_text=generated["explanation_text"],
+        sources=generated["sources"],
+    )
+
+    return {
+        "message": "Explicação gerada com sucesso.",
+        "item": item,
+    }
+
+
+@router.get(
+    "/question-explanations/by-attempt/{attempt_id}",
+    tags=["question-explanations"],
+)
+def list_question_explanations_for_attempt_endpoint(
+    attempt_id: str,
+    authorization: str | None = Header(default=None),
+) -> dict:
+    user = _get_current_user_or_401(authorization)
+
+    return {
+        "items": list_question_explanations_by_attempt(
+            user_id=int(user["id"]),
+            attempt_id=attempt_id,
+        )
+    }
