@@ -1,32 +1,29 @@
 "use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
+import { QuestionAIExplanation } from "@/components/study/question-ai-explanation"
 import { RichQuestionContent } from "@/components/study/rich-question-content"
 import { saveRecentAttempt } from "@/lib/activity"
-import { dispatchAnalyticsRefresh, trackActivityEvent } from "@/lib/activity-events"
-import { saveGeneratedContent } from "@/lib/generated-content-client"
+import { dispatchAnalyticsRefresh } from "@/lib/activity-events"
 import {
   appendSimulationHistory,
   recordCompletedSimulationAttempt,
   type SimulationHistoryEntry,
 } from "@/lib/study-progress"
-import {
-  buildReviewFlashcards,
-  buildReviewSummary,
-} from "@/lib/review-content"
 
 const RESULT_KEY = "studypro_last_simulation_result"
-const REVIEW_SUMMARY_KEY = "studypro_review_summary"
-const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
 type ResultQuestion = {
   number: number
   subject: string
   statement: string
   options: Record<string, string>
+  source_pdf_label?: string | null
+  source_year?: number | null
+  source_number?: number | null
+  source_ref?: string | null
 }
 
 type ResultData = {
@@ -57,6 +54,10 @@ type ResultData = {
     }>
     results_by_question: Array<{
       question_number: number
+      question_ref?: string | null
+      source_ref?: string | null
+      source_year?: number | null
+      source_number?: number | null
       subject: string
       user_answer: string | null
       correct_answer: string
@@ -65,19 +66,13 @@ type ResultData = {
   }
 }
 
-function buildGeneratedContentSourceKey(data: ResultData) {
-  return (
-    data.attempt_id ??
-    `${data.simulation.exam_type}-${data.simulation.year}-${data.simulation.simulation_id}`
-  )
+function buildAttemptId(data: ResultData) {
+  return data.attempt_id ?? `${data.simulation.simulation_id}-legacy`
 }
 
 export default function ResultadoSimuladoPage() {
-  const router = useRouter()
-
   const [data, setData] = useState<ResultData | null>(null)
   const [error, setError] = useState("")
-  const [actionMessage, setActionMessage] = useState("")
 
   useEffect(() => {
     try {
@@ -92,8 +87,7 @@ export default function ResultadoSimuladoPage() {
       setData(parsed)
 
       const savedAt = new Date().toISOString()
-      const attemptId =
-        parsed.attempt_id ?? `${parsed.simulation.simulation_id}-legacy`
+      const attemptId = buildAttemptId(parsed)
 
       const answeredQuestions = Math.max(
         0,
@@ -155,104 +149,6 @@ export default function ResultadoSimuladoPage() {
     return new Map(questions.map((question) => [question.number, question]))
   }, [data])
 
-  async function handleGenerateSummary() {
-    if (!data) return
-
-    const summary = buildReviewSummary(data)
-    localStorage.setItem(REVIEW_SUMMARY_KEY, JSON.stringify(summary))
-
-    let persistedInAccount = false
-
-    try {
-      await saveGeneratedContent({
-        content_type: "review_summary",
-        title: summary.title,
-        description: summary.subtitle,
-        source_type: "simulation_result",
-        source_key: buildGeneratedContentSourceKey(data),
-        payload: summary,
-      })
-
-      persistedInAccount = true
-    } catch {
-      persistedInAccount = false
-    }
-
-    try {
-      await trackActivityEvent({
-        event_type: "summary_opened",
-        module: "resumos",
-        subject: data.simulation.exam_type.toUpperCase(),
-        metadata_json: {
-          source: "simulation_result",
-          simulation_title: data.simulation.title,
-          total_questions: data.result.total_questions,
-          correct_answers: data.result.correct_answers,
-          persisted_in_account: persistedInAccount,
-        },
-      })
-    } catch {
-      // Mantém a experiência mesmo se o tracking falhar.
-    }
-
-    setActionMessage(
-      persistedInAccount
-        ? "Resumo salvo na sua conta e disponível na área de resumos."
-        : "Resumo gerado nesta sessão. Faça login novamente se quiser manter este conteúdo salvo na conta."
-    )
-
-    router.push("/dashboard/resumos")
-  }
-
-  async function handleGenerateFlashcards() {
-    if (!data) return
-
-    const cards = buildReviewFlashcards(data)
-    localStorage.setItem(REVIEW_FLASHCARDS_KEY, JSON.stringify(cards))
-
-    let persistedInAccount = false
-
-    try {
-      await saveGeneratedContent({
-        content_type: "flashcards",
-        title: `Flashcards • ${data.simulation.title}`,
-        description:
-          "Cartões curtos gerados a partir das questões erradas ou em branco do último simulado.",
-        source_type: "simulation_result",
-        source_key: buildGeneratedContentSourceKey(data),
-        payload: cards,
-      })
-
-      persistedInAccount = true
-    } catch {
-      persistedInAccount = false
-    }
-
-    try {
-      await trackActivityEvent({
-        event_type: "flashcard_reviewed",
-        module: "flashcards",
-        subject: data.simulation.exam_type.toUpperCase(),
-        metadata_json: {
-          source: "simulation_result",
-          simulation_title: data.simulation.title,
-          flashcards_reviewed: cards.length,
-          persisted_in_account: persistedInAccount,
-        },
-      })
-    } catch {
-      // Mantém a experiência mesmo se o tracking falhar.
-    }
-
-    setActionMessage(
-      persistedInAccount
-        ? "Flashcards salvos na sua conta e disponíveis na área de flashcards."
-        : "Flashcards gerados nesta sessão. Faça login novamente se quiser manter este conteúdo salvo na conta."
-    )
-
-    router.push("/dashboard/flashcards")
-  }
-
   if (error) {
     return (
       <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8">
@@ -277,6 +173,7 @@ export default function ResultadoSimuladoPage() {
   }
 
   const { result, simulation } = data
+  const attemptId = buildAttemptId(data)
 
   return (
     <div className="space-y-6">
@@ -289,6 +186,12 @@ export default function ResultadoSimuladoPage() {
           {simulation.title}
         </h1>
 
+        <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
+          A correção agora mostra explicações individuais nas questões erradas
+          ou em branco. Resumos e flashcards automáticos foram removidos desta
+          tela para concentrar a revisão no erro real.
+        </p>
+
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           <Stat
             label="Aproveitamento"
@@ -298,30 +201,6 @@ export default function ResultadoSimuladoPage() {
           <Stat label="Erros" value={String(result.wrong_answers)} />
           <Stat label="Respondidas" value={String(answeredQuestions)} />
         </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={handleGenerateSummary}
-            className="rounded-2xl bg-[#2f7cff] px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-          >
-            Gerar resumo explicativo
-          </button>
-
-          <button
-            type="button"
-            onClick={handleGenerateFlashcards}
-            className="rounded-2xl border border-white/20 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/5"
-          >
-            Gerar flashcards de revisão
-          </button>
-        </div>
-
-        {actionMessage ? (
-          <div className="mt-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-            {actionMessage}
-          </div>
-        ) : null}
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
@@ -382,6 +261,17 @@ export default function ResultadoSimuladoPage() {
             const correctOptionContent = sourceQuestion
               ? sourceQuestion.options[questionResult.correct_answer] ?? null
               : null
+
+            const shouldShowExplanation =
+              Boolean(sourceQuestion) &&
+              (questionResult.status === "wrong" ||
+                questionResult.status === "blank")
+
+            const questionRef =
+              questionResult.question_ref ??
+              questionResult.source_ref ??
+              sourceQuestion?.source_ref ??
+              `${simulation.exam_type}-${simulation.year}-${questionResult.question_number}`
 
             return (
               <article
@@ -452,6 +342,26 @@ export default function ResultadoSimuladoPage() {
                     ) : null}
                   </div>
                 </div>
+
+                {shouldShowExplanation && sourceQuestion ? (
+                  <QuestionAIExplanation
+                    payload={{
+                      source: "simulation",
+                      attempt_id: attemptId,
+                      exam_type: simulation.exam_type,
+                      year: simulation.year,
+                      question_ref: questionRef,
+                      question_number: questionResult.question_number,
+                      subject: questionResult.subject,
+                      statement: sourceQuestion.statement,
+                      options: sourceQuestion.options,
+                      user_answer: questionResult.user_answer,
+                      correct_answer: questionResult.correct_answer,
+                      status:
+                        questionResult.status === "blank" ? "blank" : "wrong",
+                    }}
+                  />
+                ) : null}
               </article>
             )
           })}
