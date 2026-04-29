@@ -1,27 +1,19 @@
-import { DashboardPreview } from "@/components/landing/dashboard-preview"
-import { Features } from "@/components/landing/features"
-import { Footer } from "@/components/landing/footer"
-import { Header } from "@/components/landing/header"
-import { Hero } from "@/components/landing/hero"
-import { HowItWorks } from "@/components/landing/how-it-works"
-import { Pricing } from "@/components/landing/pricing"
-import { SocialProof } from "@/components/landing/social-proof"
+import type { Metadata } from "next"
+
+import { StudyProLanding } from "@/components/landing/studypro-landing"
+
+export const metadata: Metadata = {
+  title: "StudyPro — Entenda seus erros e estude com direção",
+  description:
+    "Plataforma de estudos com IA para ENEM. Resolva provas, faça simulados e receba explicações por IA nas questões que você errou ou deixou em branco.",
+  openGraph: {
+    title: "StudyPro — Entenda seus erros e estude com direção",
+    description:
+      "Transforme cada correção em direção de estudo. Provas oficiais, simulados, IA explicativa e dashboard de evolução.",
+    type: "website",
+  },
+}
 
 export default function Home() {
-  return (
-    <main className="min-h-screen">
-      <Header />
-
-      <div className="relative">
-        <Hero />
-        <SocialProof />
-        <Features />
-        <HowItWorks />
-        <DashboardPreview />
-        <Pricing />
-      </div>
-
-      <Footer />
-    </main>
-  )
+  return <StudyProLanding />
 }
