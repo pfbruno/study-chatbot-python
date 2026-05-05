@@ -17,6 +17,7 @@ USER_PUBLIC_FIELDS = """
 id,
 name,
 email,
+email_verified,
 plan,
 subscription_status,
 current_period_end,
@@ -34,6 +35,7 @@ USER_AUTH_FIELDS = """
 id,
 name,
 email,
+email_verified,
 password_hash,
 password_salt,
 plan,
@@ -153,6 +155,10 @@ def create_table() -> None:
                 """
             )
             _ensure_user_billing_columns(cursor)
+
+            cursor.execute(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER NOT NULL DEFAULT 0"
+            )
 
             cursor.execute(
                 """
@@ -615,6 +621,7 @@ def get_user_by_token(token: str) -> dict | None:
                     users.id,
                     users.name,
                     users.email,
+                    users.email_verified,
                     users.plan,
                     users.subscription_status,
                     users.current_period_end,
