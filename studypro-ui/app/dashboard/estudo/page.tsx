@@ -1,5 +1,5 @@
-import { StudyArea } from "@/components/dashboard/study-area";
+import { redirect } from "next/navigation";
 
 export default function DashboardStudyPage() {
-  return <StudyArea />;
+  redirect("/dashboard");
 }

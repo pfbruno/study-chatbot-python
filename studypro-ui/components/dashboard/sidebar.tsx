@@ -6,15 +6,12 @@ import {
   Award,
   BarChart3,
   BookOpen,
-  Brain,
   CreditCard,
-  FileText,
   GraduationCap,
   LayoutDashboard,
   Medal,
   Menu,
   MessageSquare,
-  Sparkles,
   Swords,
   Target,
   X,
@@ -57,11 +54,6 @@ const mainItems: SidebarItem[] = [
     badge: "novo",
   },
   {
-    label: "Ãrea de Estudo",
-    href: "/dashboard/estudo",
-    icon: Brain,
-  },
-  {
     label: "Analytics",
     href: "/dashboard/analytics",
     icon: BarChart3,
@@ -87,17 +79,7 @@ const gamificationItems: SidebarItem[] = [
   },
 ];
 
-const secondaryItems: SidebarItem[] = [
-  {
-    label: "Resumos",
-    href: "/dashboard/resumos",
-    icon: FileText,
-  },
-  {
-    label: "Flashcards",
-    href: "/dashboard/flashcards",
-    icon: Sparkles,
-  },
+const accountItems: SidebarItem[] = [
   {
     label: "Planos",
     href: "/pricing",
@@ -181,7 +163,9 @@ function SidebarNav({
             <GraduationCap className="size-5" />
           </div>
           <div>
-            <div className="text-base font-semibold text-white">MinhAprovação</div>
+            <div className="text-base font-semibold text-white">
+              MinhAprovação
+            </div>
             <div className="text-xs text-slate-400">
               Plataforma de estudos
             </div>
@@ -205,8 +189,8 @@ function SidebarNav({
         />
 
         <NavSection
-          title="Ferramentas"
-          items={secondaryItems}
+          title="Conta"
+          items={accountItems}
           pathname={pathname}
           onNavigate={onNavigate}
         />
@@ -219,7 +203,8 @@ function SidebarNav({
           </div>
           <div className="mt-2 text-lg font-semibold text-white">Free</div>
           <p className="mt-2 text-sm leading-6 text-amber-50/90">
-            Desbloqueie analytics avançado, simulados premium, ranking e evolução gamificada.
+            Desbloqueie analytics avançado, simulados premium, ranking e
+            evolução gamificada.
           </p>
           <Link
             href="/pricing"
