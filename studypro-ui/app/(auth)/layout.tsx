@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { BookOpen } from "lucide-react"
 
 export default function AuthLayout({
@@ -20,7 +20,7 @@ export default function AuthLayout({
             </div>
             <div className="flex flex-col">
               <span className="text-base font-semibold tracking-tight text-white">
-                StudyPro
+                MinhAprovação
               </span>
               <span className="text-xs text-muted-foreground">
                 Plataforma inteligente de estudos
@@ -32,14 +32,14 @@ export default function AuthLayout({
             href="/"
             className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
-            Voltar ao início
+            Voltar ao inÃ­cio
           </Link>
         </header>
 
         <main className="flex flex-1 items-center py-6 md:py-10">{children}</main>
 
         <footer className="py-6 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} StudyPro. Todos os direitos reservados.
+          Â© {new Date().getFullYear()} MinhAprovação. Todos os direitos reservados.
         </footer>
       </div>
     </div>

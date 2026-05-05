@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -52,19 +52,19 @@ type ChatSession = {
   messages: Message[]
 }
 
-const CHAT_SESSIONS_KEY = "studypro_chat_sessions"
-const CHAT_ACTIVE_SESSION_KEY = "studypro_chat_active_session"
-const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
-const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
-const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
+const CHAT_SESSIONS_KEY = "MinhAprovação_chat_sessions"
+const CHAT_ACTIVE_SESSION_KEY = "MinhAprovação_chat_active_session"
+const ACTIVE_SIMULATION_KEY = "MinhAprovação_active_simulation"
+const ACTIVE_SIMULATION_ANSWERS_KEY = "MinhAprovação_active_simulation_answers"
+const LAST_SIMULATION_RESULT_KEY = "MinhAprovação_last_simulation_result"
 
-const INITIAL_ASSISTANT_MESSAGE = `Olá! Como posso ajudar você hoje?`
+const INITIAL_ASSISTANT_MESSAGE = `OlÃ¡! Como posso ajudar vocÃª hoje?`
 
 const QUICK_PROMPTS = [
   "Explique mitose e meiose de forma simples",
-  "Crie um simulado de 10 questões de biologia do ENEM",
+  "Crie um simulado de 10 questÃµes de biologia do ENEM",
   "Monte um cronograma de estudos de 4 semanas para o ENEM",
-  "Gere 5 questões estilo ENEM com gabarito sobre genética",
+  "Gere 5 questÃµes estilo ENEM com gabarito sobre genÃ©tica",
 ]
 
 function messageId() {
@@ -266,14 +266,14 @@ function sanitizeAssistantText(raw: string | null | undefined) {
   if (!normalized) return ""
 
   const explanationMatch = normalized.match(
-    /(?:^|\n)Explicação:\s*([\s\S]*?)(?=\n(?:Resumo|Sugestão de estudo|Tema identificado):|$)/i
+    /(?:^|\n)ExplicaÃ§Ã£o:\s*([\s\S]*?)(?=\n(?:Resumo|SugestÃ£o de estudo|Tema identificado):|$)/i
   )
 
   if (explanationMatch?.[1]?.trim()) {
     return explanationMatch[1].trim()
   }
 
-  const ignoredLabel = /^(Tema identificado|Resumo|Sugestão de estudo):/i
+  const ignoredLabel = /^(Tema identificado|Resumo|SugestÃ£o de estudo):/i
   const lines = normalized
     .split("\n")
     .filter((line) => !ignoredLabel.test(line.trim()))
@@ -293,7 +293,7 @@ function getAssistantMessageText(response: ChatMessageResponse) {
     if (sanitized) return sanitized
   }
 
-  return "Não consegui gerar uma resposta agora."
+  return "NÃ£o consegui gerar uma resposta agora."
 }
 
 function ConversationsPanel({
@@ -462,7 +462,7 @@ export function ChatIA() {
         setError(
           err instanceof Error
             ? err.message
-            : "Não foi possível carregar o status do chat."
+            : "NÃ£o foi possÃ­vel carregar o status do chat."
         )
       } finally {
         setLoadingEntitlement(false)
@@ -684,7 +684,7 @@ export function ChatIA() {
           id: messageId(),
           role: "assistant",
           content:
-            "Simulado criado com sucesso. Vou te encaminhar para a área de resolução agora.",
+            "Simulado criado com sucesso. Vou te encaminhar para a Ã¡rea de resoluÃ§Ã£o agora.",
           createdAt: new Date().toISOString(),
         }
 
@@ -769,7 +769,7 @@ export function ChatIA() {
               <div>
                 <p className="text-sm font-semibold text-white">Conversas</p>
                 <p className="text-xs text-slate-400">
-                  Histórico e troca rápida de conversa
+                  HistÃ³rico e troca rÃ¡pida de conversa
                 </p>
               </div>
 
@@ -825,7 +825,7 @@ export function ChatIA() {
                 </span>
               </div>
               <p className="truncate text-sm text-slate-400">
-                Converse com a IA de forma contínua, com foco total no estudo.
+                Converse com a IA de forma contÃ­nua, com foco total no estudo.
               </p>
             </div>
 
@@ -846,7 +846,7 @@ export function ChatIA() {
                   <div className="max-w-3xl">
                     <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-300">
                       <Sparkles className="size-3.5" />
-                      Início rápido
+                      InÃ­cio rÃ¡pido
                     </div>
 
                     <h2 className="mt-4 text-2xl font-bold text-white md:text-3xl">
@@ -854,7 +854,7 @@ export function ChatIA() {
                     </h2>
 
                     <p className="mt-2 text-sm leading-7 text-slate-300">
-                      Tire dúvidas, peça resumos, gere questões, monte cronogramas
+                      Tire dÃºvidas, peÃ§a resumos, gere questÃµes, monte cronogramas
                       e crie simulados em linguagem natural.
                     </p>
                   </div>
@@ -902,7 +902,7 @@ export function ChatIA() {
                           <Bot className="size-4" />
                         </div>
                         <div className="text-xs font-semibold text-white">
-                          StudyPro IA
+                          MinhAprovação IA
                         </div>
                         <div className="text-[11px] text-slate-500">
                           {formatTime(message.createdAt)}
@@ -974,7 +974,7 @@ export function ChatIA() {
                         <Bot className="size-4" />
                       </div>
                       <div className="text-xs font-semibold text-white">
-                        StudyPro IA
+                        MinhAprovação IA
                       </div>
                       <div className="text-[11px] text-slate-500">
                         pensando...
@@ -1011,7 +1011,7 @@ export function ChatIA() {
                       Limite do plano gratuito
                     </p>
                     <h3 className="mt-1 text-lg font-semibold text-white">
-                      Você atingiu o limite diário do chat
+                      VocÃª atingiu o limite diÃ¡rio do chat
                     </h3>
                   </div>
 

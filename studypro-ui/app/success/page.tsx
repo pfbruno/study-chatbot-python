@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { Suspense, useEffect, useMemo, useState } from "react"
@@ -48,7 +48,7 @@ function SuccessPageContent() {
 
     if (!token) {
       setLoading(false)
-      setError("Você precisa estar logado para confirmar o status da assinatura.")
+      setError("VocÃª precisa estar logado para confirmar o status da assinatura.")
       return
     }
 
@@ -85,7 +85,7 @@ function SuccessPageContent() {
         setError(
           err instanceof Error
             ? err.message
-            : "Não foi possível confirmar o status da assinatura."
+            : "NÃ£o foi possÃ­vel confirmar o status da assinatura."
         )
         return true
       }
@@ -113,8 +113,8 @@ function SuccessPageContent() {
   const statusTitle = useMemo(() => {
     if (loading) return "Confirmando sua assinatura"
     if (isPro) return "Plano Pro ativado com sucesso"
-    if (error) return "Não foi possível confirmar automaticamente"
-    return "Assinatura criada, aguardando confirmação"
+    if (error) return "NÃ£o foi possÃ­vel confirmar automaticamente"
+    return "Assinatura criada, aguardando confirmaÃ§Ã£o"
   }, [loading, isPro, error])
 
   const statusDescription = useMemo(() => {
@@ -123,7 +123,7 @@ function SuccessPageContent() {
     }
 
     if (isPro) {
-      return "Seu plano foi atualizado e os recursos Pro já devem estar disponíveis no StudyPro."
+      return "Seu plano foi atualizado e os recursos Pro jÃ¡ devem estar disponÃ­veis no MinhAprovação."
     }
 
     if (error) {
@@ -131,7 +131,7 @@ function SuccessPageContent() {
     }
 
     return (
-      "A cobrança foi iniciada, mas o plano ainda não foi sincronizado como Pro. " +
+      "A cobranÃ§a foi iniciada, mas o plano ainda nÃ£o foi sincronizado como Pro. " +
       "Isso pode acontecer antes do webhook terminar de atualizar o backend."
     )
   }, [loading, isPro, error])
@@ -167,14 +167,14 @@ function SuccessPageContent() {
           <div className="mt-8 grid gap-4 md:grid-cols-3">
             <InfoCard
               label="Plano atual"
-              value={state.user?.plan?.toUpperCase() || "—"}
+              value={state.user?.plan?.toUpperCase() || "â€”"}
             />
             <InfoCard
               label="Status da assinatura"
-              value={state.user?.subscription_status || "—"}
+              value={state.user?.subscription_status || "â€”"}
             />
             <InfoCard
-              label="Tentativas de sincronização"
+              label="Tentativas de sincronizaÃ§Ã£o"
               value={String(attempts)}
             />
           </div>
@@ -197,8 +197,8 @@ function SuccessPageContent() {
 
           {!isPro && !loading ? (
             <div className="mt-8 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm leading-7 text-amber-100">
-              Se o plano não atualizar automaticamente, o próximo passo é configurar o webhook
-              definitivo do Mercado Pago e validar a assinatura em produção controlada.
+              Se o plano nÃ£o atualizar automaticamente, o prÃ³ximo passo Ã© configurar o webhook
+              definitivo do Mercado Pago e validar a assinatura em produÃ§Ã£o controlada.
             </div>
           ) : null}
         </section>
@@ -224,10 +224,10 @@ function SuccessPageFallback() {
 
             <div>
               <h1 className="text-3xl font-bold text-white">
-                Carregando confirmação
+                Carregando confirmaÃ§Ã£o
               </h1>
               <p className="mt-3 max-w-2xl text-base leading-8 text-slate-300">
-                Estamos preparando a validação do status da sua assinatura.
+                Estamos preparando a validaÃ§Ã£o do status da sua assinatura.
               </p>
             </div>
           </div>

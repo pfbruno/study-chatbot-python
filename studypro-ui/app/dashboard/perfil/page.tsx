@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
@@ -8,8 +8,8 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
 
-const AUTH_TOKEN_KEY = "studypro_auth_token"
-const AUTH_USER_KEY = "studypro_auth_user"
+const AUTH_TOKEN_KEY = "MinhAprovação_auth_token"
+const AUTH_USER_KEY = "MinhAprovação_auth_user"
 
 type AuthUser = {
   id: number
@@ -57,7 +57,7 @@ export default function PerfilPage() {
 
       if (!token) {
         setIsLoading(false)
-        setErrorMessage("Faça login para visualizar seu perfil.")
+        setErrorMessage("FaÃ§a login para visualizar seu perfil.")
         return
       }
 
@@ -72,7 +72,7 @@ export default function PerfilPage() {
 
         if (!response.ok) {
           const message = await safeReadError(response)
-          throw new Error(message || "Não foi possível carregar seu perfil.")
+          throw new Error(message || "NÃ£o foi possÃ­vel carregar seu perfil.")
         }
 
         const data: AuthMeResponse = await response.json()
@@ -115,10 +115,10 @@ export default function PerfilPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Perfil do aluno</p>
                 <h1 className="mt-1 text-2xl font-semibold text-white">
-                  {isLoading ? "Carregando..." : user?.name || "Usuário"}
+                  {isLoading ? "Carregando..." : user?.name || "UsuÃ¡rio"}
                 </h1>
                 <p className="mt-1 text-sm text-slate-300">
-                  {isLoading ? "Carregando e-mail..." : user?.email || "—"}
+                  {isLoading ? "Carregando e-mail..." : user?.email || "â€”"}
                 </p>
               </div>
             </div>
@@ -141,13 +141,13 @@ export default function PerfilPage() {
           </div>
 
           <div className="rounded-[28px] border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-muted-foreground">Visão geral</p>
+            <p className="text-sm text-muted-foreground">VisÃ£o geral</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">
-              Gerencie suas informações
+              Gerencie suas informaÃ§Ãµes
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-300">
               Esta etapa moderniza a interface do perfil, mantendo o consumo real
-              da rota `/auth/me` já usada pelo projeto.
+              da rota `/auth/me` jÃ¡ usada pelo projeto.
             </p>
 
             {errorMessage ? (
@@ -162,7 +162,7 @@ export default function PerfilPage() {
       <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="glass-panel rounded-[32px] p-6">
           <h2 className="text-2xl font-semibold text-white">
-            Informações pessoais
+            InformaÃ§Ãµes pessoais
           </h2>
 
           <div className="mt-6 grid gap-5">
@@ -171,7 +171,7 @@ export default function PerfilPage() {
                 className={inputClassName}
                 value={user?.name ?? ""}
                 readOnly
-                placeholder="Nome do usuário"
+                placeholder="Nome do usuÃ¡rio"
               />
             </FieldBlock>
 
@@ -180,12 +180,12 @@ export default function PerfilPage() {
                 className={inputClassName}
                 value={user?.email ?? ""}
                 readOnly
-                placeholder="E-mail do usuário"
+                placeholder="E-mail do usuÃ¡rio"
               />
             </FieldBlock>
 
             <FieldBlock
-              label="Situação da conta"
+              label="SituaÃ§Ã£o da conta"
               icon={<ShieldCheck className="size-4 text-primary" />}
             >
               <input
@@ -212,8 +212,8 @@ export default function PerfilPage() {
                 </p>
                 <p className="mt-2 text-sm leading-7 text-slate-300">
                   {user?.plan === "pro"
-                    ? "Seu acesso PRO está ativo."
-                    : "Seu acesso atual é Free. Faça upgrade para liberar uso ilimitado."}
+                    ? "Seu acesso PRO estÃ¡ ativo."
+                    : "Seu acesso atual Ã© Free. FaÃ§a upgrade para liberar uso ilimitado."}
                 </p>
               </div>
             </div>
@@ -266,13 +266,13 @@ async function safeReadError(response: Response): Promise<string> {
           if (item && typeof item === "object" && "msg" in item) {
             return String((item as { msg: string }).msg)
           }
-          return "Erro de validação."
+          return "Erro de validaÃ§Ã£o."
         })
         .join(" | ")
     }
 
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   } catch {
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   }
 }

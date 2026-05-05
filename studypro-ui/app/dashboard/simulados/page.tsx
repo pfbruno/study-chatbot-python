@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
@@ -149,16 +149,16 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
 
-const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
-const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
-const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
-const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
+const SIMULATION_HISTORY_KEY = "MinhAprovação_simulation_history"
+const ACTIVE_SIMULATION_KEY = "MinhAprovação_active_simulation"
+const ACTIVE_SIMULATION_ANSWERS_KEY = "MinhAprovação_active_simulation_answers"
+const LAST_SIMULATION_RESULT_KEY = "MinhAprovação_last_simulation_result"
 
 const difficulties = [
   { value: "all", label: "Todas" },
-  { value: "easy", label: "Fácil" },
-  { value: "medium", label: "Médio" },
-  { value: "hard", label: "Difícil" },
+  { value: "easy", label: "FÃ¡cil" },
+  { value: "medium", label: "MÃ©dio" },
+  { value: "hard", label: "DifÃ­cil" },
 ] as const
 
 const sortOptions = [
@@ -174,9 +174,9 @@ const difficultyColors: Record<Difficulty, string> = {
 }
 
 const difficultyLabels: Record<Difficulty, string> = {
-  easy: "Fácil",
-  medium: "Médio",
-  hard: "Difícil",
+  easy: "FÃ¡cil",
+  medium: "MÃ©dio",
+  hard: "DifÃ­cil",
 }
 
 function formatCount(value: number) {
@@ -189,16 +189,16 @@ function normalizeSubject(subject?: string | null): string {
   const value = subject.trim().toLowerCase()
 
   if (value.includes("biolog")) return "Biologia"
-  if (value.includes("mate")) return "Matemática"
-  if (value.includes("fís") || value.includes("fis")) return "Física"
-  if (value.includes("quí") || value.includes("qui")) return "Química"
-  if (value.includes("hist")) return "História"
+  if (value.includes("mate")) return "MatemÃ¡tica"
+  if (value.includes("fÃ­s") || value.includes("fis")) return "FÃ­sica"
+  if (value.includes("quÃ­") || value.includes("qui")) return "QuÃ­mica"
+  if (value.includes("hist")) return "HistÃ³ria"
   if (value.includes("geog")) return "Geografia"
-  if (value.includes("port")) return "Português"
-  if (value.includes("ing")) return "Inglês"
+  if (value.includes("port")) return "PortuguÃªs"
+  if (value.includes("ing")) return "InglÃªs"
   if (value.includes("ling")) return "Linguagens"
-  if (value.includes("human")) return "Ciências Humanas"
-  if (value.includes("nature")) return "Ciências da Natureza"
+  if (value.includes("human")) return "CiÃªncias Humanas"
+  if (value.includes("nature")) return "CiÃªncias da Natureza"
 
   return subject
 }
@@ -212,7 +212,7 @@ function inferDifficultyFromScore(score: number): Difficulty {
 function formatYearsPool(years: number[]) {
   if (!years.length) return "Sem anos"
   if (years.length === 1) return String(years[0])
-  return `${years[0]}–${years[years.length - 1]}`
+  return `${years[0]}â€“${years[years.length - 1]}`
 }
 
 function groupHistoryByTitle(history: SimulationHistoryEntry[]) {
@@ -254,19 +254,19 @@ function buildHistoryCards(history: SimulationHistoryEntry[]): SimuladoCard[] {
       id: `history-${latest.id}`,
       kind: "history",
       title: latest.title,
-      description: `Simulado já resolvido ${items.length} vez(es). Último resultado: ${latest.correct_answers} acerto(s), ${latest.wrong_answers} erro(s) e ${latest.unanswered_count} em branco.`,
+      description: `Simulado jÃ¡ resolvido ${items.length} vez(es). Ãšltimo resultado: ${latest.correct_answers} acerto(s), ${latest.wrong_answers} erro(s) e ${latest.unanswered_count} em branco.`,
       subject: subjects[0] ?? "Geral",
       subjects: subjects.length > 0 ? subjects : ["Geral"],
       difficulty: inferDifficultyFromScore(averageScore),
       tags: [
         latest.exam_type.toUpperCase(),
-        latest.mode === "balanced" ? "Balanceado" : "Aleatório",
+        latest.mode === "balanced" ? "Balanceado" : "AleatÃ³rio",
       ],
       questionCount: latest.total_questions,
       duration: Math.max(20, Math.round(latest.total_questions * 2.5)),
       timesCompleted: items.length,
       rating: Number(Math.max(0, Math.min(5, averageScore / 20)).toFixed(1)),
-      author: "Seu histórico",
+      author: "Seu histÃ³rico",
       createdAt: latest.saved_at,
       mode: latest.mode,
       yearsPoolLabel: String(latest.year),
@@ -292,7 +292,7 @@ function buildLibraryCards(catalog: LibraryCatalogResponse): SimuladoCard[] {
     duration: item.duration_minutes,
     timesCompleted: 0,
     rating: item.is_premium ? 5 : 4.8,
-    author: "Biblioteca StudyPro",
+    author: "Biblioteca MinhAprovação",
     createdAt: new Date().toISOString(),
     mode: item.mode,
     yearsPoolLabel: formatYearsPool(item.years_pool),
@@ -315,9 +315,9 @@ async function safeReadError(response: Response): Promise<string> {
       return data.message
     }
 
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   } catch {
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   }
 }
 
@@ -387,7 +387,7 @@ function FreeUsageCard({
               : isPro
               ? "Plano PRO ativo"
               : typeof remaining === "number" && typeof dailyLimit === "number"
-              ? `${remaining} de ${dailyLimit} geração(ões) restantes`
+              ? `${remaining} de ${dailyLimit} geraÃ§Ã£o(Ãµes) restantes`
               : "Plano Free"}
           </h3>
         </div>
@@ -397,8 +397,8 @@ function FreeUsageCard({
         {loading
           ? "Verificando status da sua conta."
           : isPro
-          ? "Seu plano já está liberado para gerar mais simulados e estudar sem interrupções."
-          : "Os simulados prontos agora usam o banco consolidado de todas as provas disponíveis no site."}
+          ? "Seu plano jÃ¡ estÃ¡ liberado para gerar mais simulados e estudar sem interrupÃ§Ãµes."
+          : "Os simulados prontos agora usam o banco consolidado de todas as provas disponÃ­veis no site."}
       </p>
 
       {!isPro ? (
@@ -431,8 +431,8 @@ function PaywallCard() {
             Mais volume com o Pro
           </h3>
           <p className="mt-3 text-sm leading-7 text-amber-100">
-            No gratuito você já acessa a biblioteca pronta. No Pro você amplia
-            o volume e reduz as travas diárias de geração.
+            No gratuito vocÃª jÃ¡ acessa a biblioteca pronta. No Pro vocÃª amplia
+            o volume e reduz as travas diÃ¡rias de geraÃ§Ã£o.
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -476,7 +476,7 @@ function SimuladoActionButton({
         href={card.href || "/dashboard/simulados/resultado"}
         className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
       >
-        Ver último resultado
+        Ver Ãºltimo resultado
       </Link>
     )
   }
@@ -505,7 +505,7 @@ function SimuladoActionButton({
         <Play className="size-4" />
       )}
       {card.isAvailable === false
-        ? "Indisponível"
+        ? "IndisponÃ­vel"
         : isGenerating
         ? "Preparando..."
         : "Fazer agora"}
@@ -580,7 +580,7 @@ export default function SimuladosPage() {
         setError(
           err instanceof Error
             ? err.message
-            : "Não foi possível carregar o catálogo de simulados."
+            : "NÃ£o foi possÃ­vel carregar o catÃ¡logo de simulados."
         )
       } finally {
         setLoading(false)
@@ -634,7 +634,7 @@ export default function SimuladosPage() {
 
     if (!canGenerate && !isPro) {
       setActionError(
-        "Você atingiu o limite diário do plano gratuito. Vá para o Pro ou tente novamente no próximo dia."
+        "VocÃª atingiu o limite diÃ¡rio do plano gratuito. VÃ¡ para o Pro ou tente novamente no prÃ³ximo dia."
       )
       return
     }
@@ -655,7 +655,7 @@ export default function SimuladosPage() {
       setActionError(
         err instanceof Error
           ? err.message
-          : "Não foi possível preparar este simulado agora."
+          : "NÃ£o foi possÃ­vel preparar este simulado agora."
       )
     } finally {
       setGeneratingId(null)
@@ -675,7 +675,7 @@ export default function SimuladosPage() {
                 Simulados
               </h1>
               <p className="mt-2 text-xl text-[#7ea0d6]">
-                Biblioteca pronta com questões de todas as provas já disponíveis no site.
+                Biblioteca pronta com questÃµes de todas as provas jÃ¡ disponÃ­veis no site.
               </p>
             </div>
           </div>
@@ -770,7 +770,7 @@ export default function SimuladosPage() {
         {loading ? (
           <div className="mt-6 flex items-center gap-3 text-lg text-[#7ea0d6]">
             <Loader2 className="size-5 animate-spin" />
-            Carregando catálogo de simulados...
+            Carregando catÃ¡logo de simulados...
           </div>
         ) : error ? (
           <div className="mt-6 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
@@ -805,7 +805,7 @@ export default function SimuladosPage() {
                           </span>
                         ) : (
                           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
-                            Histórico
+                            HistÃ³rico
                           </span>
                         )}
 
@@ -842,7 +842,7 @@ export default function SimuladosPage() {
                       <div className="rounded-2xl border border-white/10 bg-[#020b18] p-4">
                         <p className="flex items-center gap-2 text-sm text-slate-400">
                           <BookOpen className="size-4" />
-                          Questões
+                          QuestÃµes
                         </p>
                         <div className="mt-2 text-2xl font-bold text-white">
                           {card.questionCount}
@@ -877,7 +877,7 @@ export default function SimuladosPage() {
                         <div className="mt-2 text-lg font-bold text-white">
                           {typeof card.totalQuestionsPool === "number"
                             ? `${formatCount(card.totalQuestionsPool)} q.`
-                            : `${card.rating.toFixed(1)} ★`}
+                            : `${card.rating.toFixed(1)} â˜…`}
                         </div>
                       </div>
                     </div>
@@ -886,7 +886,7 @@ export default function SimuladosPage() {
                       <div>
                         <p className="text-sm text-slate-400">{card.author}</p>
                         <p className="mt-1 text-sm text-slate-500">
-                          {card.subjects.join(" • ")}
+                          {card.subjects.join(" â€¢ ")}
                         </p>
                       </div>
 

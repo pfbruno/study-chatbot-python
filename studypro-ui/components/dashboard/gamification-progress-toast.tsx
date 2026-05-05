@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Sparkles, Trophy } from "lucide-react"
@@ -31,7 +31,7 @@ type GamificationProgressToastProps = {
   challenges: PersistedGamificationChallenge[]
 }
 
-const STORAGE_KEY = "studypro_gamification_snapshot_backend_v1"
+const STORAGE_KEY = "MinhAprovação_gamification_snapshot_backend_v1"
 
 function buildSnapshot(
   profile: GamificationProfile,
@@ -112,7 +112,7 @@ export function GamificationProgressToast({
       ) {
         nextToasts.push({
           id: `progress-${challenge.id}-${challenge.progress}`,
-          title: "Desafio avançou",
+          title: "Desafio avanÃ§ou",
           description: `${challenge.title}: ${challenge.progress}/${challenge.target}`,
           variant: "progress",
         })
@@ -126,8 +126,8 @@ export function GamificationProgressToast({
       if (becameReadyToClaim) {
         nextToasts.push({
           id: `ready-${challenge.id}-${Date.now()}`,
-          title: "Desafio concluído",
-          description: `${challenge.title} • pegar recompensa`,
+          title: "Desafio concluÃ­do",
+          description: `${challenge.title} â€¢ pegar recompensa`,
           variant: "completed",
         })
       }
@@ -141,7 +141,7 @@ export function GamificationProgressToast({
         nextToasts.push({
           id: `claimed-${challenge.id}-${Date.now()}`,
           title: "Recompensa resgatada",
-          description: `${challenge.title} • XP incorporado`,
+          description: `${challenge.title} â€¢ XP incorporado`,
           variant: "xp",
         })
       }

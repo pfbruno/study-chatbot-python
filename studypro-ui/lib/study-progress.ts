@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 export type SimulationMode = "balanced" | "random"
 
@@ -24,7 +24,7 @@ export type SimulationHistoryEntry = {
   }>
 }
 
-export type StudyProgressSnapshot = {
+export type MinhAprovaçãogressSnapshot = {
   totalAnsweredQuestions: number
   totalCompletedSimulations: number
   totalCorrectAnswers: number
@@ -32,15 +32,15 @@ export type StudyProgressSnapshot = {
   updatedAt: string | null
 }
 
-export const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
-export const STUDY_PROGRESS_KEY = "studypro_study_progress"
-export const STUDY_PROGRESS_UPDATED_EVENT = "studypro:progress-updated"
-export const SIMULATION_HISTORY_UPDATED_EVENT = "studypro:simulation-history-updated"
+export const SIMULATION_HISTORY_KEY = "MinhAprovação_simulation_history"
+export const STUDY_PROGRESS_KEY = "MinhAprovação_study_progress"
+export const STUDY_PROGRESS_UPDATED_EVENT = "MinhAprovação:progress-updated"
+export const SIMULATION_HISTORY_UPDATED_EVENT = "MinhAprovação:simulation-history-updated"
 
 const MAX_HISTORY_ITEMS = 60
 const MAX_TRACKED_ATTEMPTS = 400
 
-const EMPTY_PROGRESS: StudyProgressSnapshot = {
+const EMPTY_PROGRESS: MinhAprovaçãogressSnapshot = {
   totalAnsweredQuestions: 0,
   totalCompletedSimulations: 0,
   totalCorrectAnswers: 0,
@@ -93,8 +93,8 @@ export function appendSimulationHistory(entry: SimulationHistoryEntry) {
   return next
 }
 
-export function getStudyProgress(): StudyProgressSnapshot {
-  const parsed = readJson<StudyProgressSnapshot>(STUDY_PROGRESS_KEY, EMPTY_PROGRESS)
+export function getMinhAprovaçãogress(): MinhAprovaçãogressSnapshot {
+  const parsed = readJson<MinhAprovaçãogressSnapshot>(STUDY_PROGRESS_KEY, EMPTY_PROGRESS)
 
   if (!parsed || typeof parsed !== "object") {
     return { ...EMPTY_PROGRESS }
@@ -117,7 +117,7 @@ export function recordCompletedSimulationAttempt(payload: {
   correctAnswers: number
   completedAt?: string
 }) {
-  const current = getStudyProgress()
+  const current = getMinhAprovaçãogress()
 
   if (current.completedAttemptIds.includes(payload.attemptId)) {
     return {
@@ -126,7 +126,7 @@ export function recordCompletedSimulationAttempt(payload: {
     }
   }
 
-  const next: StudyProgressSnapshot = {
+  const next: MinhAprovaçãogressSnapshot = {
     totalAnsweredQuestions:
       current.totalAnsweredQuestions + Math.max(0, payload.answeredQuestions),
     totalCompletedSimulations: current.totalCompletedSimulations + 1,

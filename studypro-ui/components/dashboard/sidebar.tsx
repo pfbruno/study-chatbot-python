@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -48,7 +48,7 @@ const mainItems: SidebarItem[] = [
     label: "Treinar",
     href: "/dashboard/treinar",
     icon: Target,
-    badge: "rápido",
+    badge: "rÃ¡pido",
   },
   {
     label: "Chat IA",
@@ -57,7 +57,7 @@ const mainItems: SidebarItem[] = [
     badge: "novo",
   },
   {
-    label: "Área de Estudo",
+    label: "Ãrea de Estudo",
     href: "/dashboard/estudo",
     icon: Brain,
   },
@@ -181,7 +181,7 @@ function SidebarNav({
             <GraduationCap className="size-5" />
           </div>
           <div>
-            <div className="text-base font-semibold text-white">StudyPro</div>
+            <div className="text-base font-semibold text-white">MinhAprovação</div>
             <div className="text-xs text-slate-400">
               Plataforma de estudos
             </div>
@@ -198,7 +198,7 @@ function SidebarNav({
         />
 
         <NavSection
-          title="Gamificação"
+          title="GamificaÃ§Ã£o"
           items={gamificationItems}
           pathname={pathname}
           onNavigate={onNavigate}
@@ -219,7 +219,7 @@ function SidebarNav({
           </div>
           <div className="mt-2 text-lg font-semibold text-white">Free</div>
           <p className="mt-2 text-sm leading-6 text-amber-50/90">
-            Desbloqueie analytics avançado, simulados premium, ranking e evolução gamificada.
+            Desbloqueie analytics avanÃ§ado, simulados premium, ranking e evoluÃ§Ã£o gamificada.
           </p>
           <Link
             href="/pricing"

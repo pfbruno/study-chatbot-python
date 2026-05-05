@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,9 +25,9 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com";
 
-const ACTIVE_SIMULATION_KEY = "studypro_active_simulation";
-const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers";
-const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result";
+const ACTIVE_SIMULATION_KEY = "MinhAprovação_active_simulation";
+const ACTIVE_SIMULATION_ANSWERS_KEY = "MinhAprovação_active_simulation_answers";
+const LAST_SIMULATION_RESULT_KEY = "MinhAprovação_last_simulation_result";
 
 type TrainingPreset = {
   id: string;
@@ -44,53 +44,53 @@ const TRAINING_PRESETS: TrainingPreset[] = [
   {
     id: "treino-misto-10",
     backendPresetId: "mix-10",
-    title: "Treino rápido misto",
+    title: "Treino rÃ¡pido misto",
     description:
-      "Questões variadas de todos os anos disponíveis para começar sem configurar nada.",
+      "QuestÃµes variadas de todos os anos disponÃ­veis para comeÃ§ar sem configurar nada.",
     questionCount: 10,
     duration: 20,
-    tag: "Começar agora",
+    tag: "ComeÃ§ar agora",
     subjectLabel: "Geral",
   },
   {
     id: "treino-matematica-15",
     backendPresetId: "math-15",
-    title: "Treino Matemática",
+    title: "Treino MatemÃ¡tica",
     description:
-      "Sessão curta para ganhar velocidade de raciocínio e cálculo.",
+      "SessÃ£o curta para ganhar velocidade de raciocÃ­nio e cÃ¡lculo.",
     questionCount: 15,
     duration: 30,
     tag: "Foco",
-    subjectLabel: "Matemática",
+    subjectLabel: "MatemÃ¡tica",
   },
   {
     id: "treino-humanas-15",
     backendPresetId: "humanas-15",
     title: "Treino Humanas",
     description:
-      "Questões de Ciências Humanas usando o banco consolidado multi-ano.",
+      "QuestÃµes de CiÃªncias Humanas usando o banco consolidado multi-ano.",
     questionCount: 15,
     duration: 30,
     tag: "Foco",
-    subjectLabel: "Ciências Humanas",
+    subjectLabel: "CiÃªncias Humanas",
   },
   {
     id: "treino-natureza-15",
     backendPresetId: "natureza-15",
     title: "Treino Natureza",
     description:
-      "Treino com questões de Ciências da Natureza de todos os anos disponíveis.",
+      "Treino com questÃµes de CiÃªncias da Natureza de todos os anos disponÃ­veis.",
     questionCount: 15,
     duration: 30,
     tag: "Foco",
-    subjectLabel: "Ciências da Natureza",
+    subjectLabel: "CiÃªncias da Natureza",
   },
   {
     id: "treino-linguagens-15",
     backendPresetId: "linguagens-15",
     title: "Treino Linguagens",
     description:
-      "Sessão para fortalecer leitura, interpretação e linguagem.",
+      "SessÃ£o para fortalecer leitura, interpretaÃ§Ã£o e linguagem.",
     questionCount: 15,
     duration: 30,
     tag: "Foco",
@@ -101,7 +101,7 @@ const TRAINING_PRESETS: TrainingPreset[] = [
     backendPresetId: "mix-20-balanced",
     title: "Treino intensivo misto",
     description:
-      "Sessão balanceada com mais volume, usando questões de diferentes anos.",
+      "SessÃ£o balanceada com mais volume, usando questÃµes de diferentes anos.",
     questionCount: 20,
     duration: 40,
     tag: "Intensivo",
@@ -122,16 +122,16 @@ async function parseApiError(response: Response) {
           if (item && typeof item === "object" && "msg" in item) {
             return String((item as { msg: string }).msg);
           }
-          return "Erro de validação.";
+          return "Erro de validaÃ§Ã£o.";
         })
         .join(" | ");
     }
 
     if (typeof data?.message === "string") return data.message;
 
-    return "Erro na requisição.";
+    return "Erro na requisiÃ§Ã£o.";
   } catch {
-    return "Erro na requisição.";
+    return "Erro na requisiÃ§Ã£o.";
   }
 }
 
@@ -185,7 +185,7 @@ function EntitlementCard({
               : isPro
                 ? "Plano PRO ativo"
                 : typeof remaining === "number" && typeof dailyLimit === "number"
-                  ? `${remaining} de ${dailyLimit} geração(ões) restantes`
+                  ? `${remaining} de ${dailyLimit} geraÃ§Ã£o(Ãµes) restantes`
                   : "Plano Free"}
           </h3>
         </div>
@@ -195,8 +195,8 @@ function EntitlementCard({
         {loading
           ? "Verificando acesso da sua conta."
           : isPro
-            ? "Você pode iniciar treinos sem interrupção e com mais liberdade de uso."
-            : "O modo Treinar gera uma sessão pronta em um clique. No Pro você amplia volume e reduz limites diários."}
+            ? "VocÃª pode iniciar treinos sem interrupÃ§Ã£o e com mais liberdade de uso."
+            : "O modo Treinar gera uma sessÃ£o pronta em um clique. No Pro vocÃª amplia volume e reduz limites diÃ¡rios."}
       </p>
     </div>
   );
@@ -233,7 +233,7 @@ function TrainingCard({
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-white/10 bg-[#020b18] p-4">
-          <p className="text-sm text-slate-400">Questões</p>
+          <p className="text-sm text-slate-400">QuestÃµes</p>
           <div className="mt-2 text-2xl font-bold text-white">
             {preset.questionCount}
           </div>
@@ -258,7 +258,7 @@ function TrainingCard({
         ) : (
           <Play className="size-4" />
         )}
-        {loading ? "Preparando treino..." : "Começar treino"}
+        {loading ? "Preparando treino..." : "ComeÃ§ar treino"}
       </button>
     </article>
   );
@@ -299,7 +299,7 @@ export default function TreinarPage() {
   async function handleStartTraining(preset: TrainingPreset) {
     if (!canGenerate && !isPro) {
       setActionError(
-        "Você atingiu o limite diário do plano gratuito. Vá para o Pro ou tente novamente no próximo dia."
+        "VocÃª atingiu o limite diÃ¡rio do plano gratuito. VÃ¡ para o Pro ou tente novamente no prÃ³ximo dia."
       );
       return;
     }
@@ -330,7 +330,7 @@ export default function TreinarPage() {
           },
         });
       } catch {
-        // Não bloqueia o treino se o tracking falhar.
+        // NÃ£o bloqueia o treino se o tracking falhar.
       }
 
       sessionStorage.setItem(ACTIVE_SIMULATION_KEY, JSON.stringify(simulation));
@@ -342,7 +342,7 @@ export default function TreinarPage() {
       setActionError(
         err instanceof Error
           ? err.message
-          : "Não foi possível preparar o treino agora."
+          : "NÃ£o foi possÃ­vel preparar o treino agora."
       );
     } finally {
       setGeneratingId(null);
@@ -364,8 +364,8 @@ export default function TreinarPage() {
             </h1>
 
             <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-              O treino usa questões do banco consolidado de provas disponíveis.
-              Você escolhe um modo e começa em um clique.
+              O treino usa questÃµes do banco consolidado de provas disponÃ­veis.
+              VocÃª escolhe um modo e comeÃ§a em um clique.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -382,7 +382,7 @@ export default function TreinarPage() {
                 )}
                 {generatingId === primaryPreset.id
                   ? "Preparando treino..."
-                  : "Começar treino agora"}
+                  : "ComeÃ§ar treino agora"}
               </button>
 
               <Link

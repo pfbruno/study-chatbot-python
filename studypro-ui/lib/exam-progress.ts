@@ -1,4 +1,4 @@
-export type ExamProgressStatus = "not_started" | "in_progress" | "completed"
+﻿export type ExamProgressStatus = "not_started" | "in_progress" | "completed"
 
 export type StoredExamProgress = {
   examId: number
@@ -9,7 +9,7 @@ export type StoredExamProgress = {
   scorePercentage?: number
 }
 
-const KEY = "studypro_exam_progress"
+const KEY = "MinhAprovação_exam_progress"
 
 function readAll(): StoredExamProgress[] {
   if (typeof window === "undefined") return []
@@ -55,3 +55,4 @@ export function markExamCompleted(examId: number, answeredCount: number, totalQu
     scorePercentage,
   })
 }
+

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -126,7 +126,7 @@ function PricingPageContent() {
         setErrorMessage(
           error instanceof Error
             ? error.message
-            : "Não foi possível carregar a configuração de pagamento."
+            : "NÃ£o foi possÃ­vel carregar a configuraÃ§Ã£o de pagamento."
         )
       } finally {
         setIsLoadingConfig(false)
@@ -152,7 +152,7 @@ function PricingPageContent() {
     script.onload = () => setMercadoPagoLoaded(true)
     script.onerror = () =>
       setErrorMessage(
-        "Não foi possível carregar o SDK do Mercado Pago. Verifique a chave pública e tente novamente."
+        "NÃ£o foi possÃ­vel carregar o SDK do Mercado Pago. Verifique a chave pÃºblica e tente novamente."
       )
     document.body.appendChild(script)
 
@@ -185,7 +185,7 @@ function PricingPageContent() {
         id: "form-checkout",
         cardNumber: {
           id: "form-checkout__cardNumber",
-          placeholder: "Número do cartão",
+          placeholder: "NÃºmero do cartÃ£o",
         },
         expirationDate: {
           id: "form-checkout__expirationDate",
@@ -197,7 +197,7 @@ function PricingPageContent() {
         },
         cardholderName: {
           id: "form-checkout__cardholderName",
-          placeholder: "Titular do cartão",
+          placeholder: "Titular do cartÃ£o",
         },
         issuer: {
           id: "form-checkout__issuer",
@@ -213,7 +213,7 @@ function PricingPageContent() {
         },
         identificationNumber: {
           id: "form-checkout__identificationNumber",
-          placeholder: "Número do documento",
+          placeholder: "NÃºmero do documento",
         },
         cardholderEmail: {
           id: "form-checkout__cardholderEmail",
@@ -225,7 +225,7 @@ function PricingPageContent() {
           if (error) {
             console.error("Erro ao montar CardForm:", error)
             setErrorMessage(
-              "Não foi possível montar o formulário do cartão. Revise a configuração do Mercado Pago e tente novamente."
+              "NÃ£o foi possÃ­vel montar o formulÃ¡rio do cartÃ£o. Revise a configuraÃ§Ã£o do Mercado Pago e tente novamente."
             )
             return
           }
@@ -257,7 +257,7 @@ function PricingPageContent() {
             } = cardFormRef.current.getCardFormData()
 
             if (!token) {
-              throw new Error("O token do cartão não foi gerado.")
+              throw new Error("O token do cartÃ£o nÃ£o foi gerado.")
             }
 
             const response = await createMercadoPagoSubscription(
@@ -275,7 +275,7 @@ function PricingPageContent() {
             localStorage.setItem(AUTH_USER_KEY, JSON.stringify(response.user))
             setUser(response.user)
             setSuccessMessage(
-              "Assinatura criada com sucesso. Seu plano já foi atualizado."
+              "Assinatura criada com sucesso. Seu plano jÃ¡ foi atualizado."
             )
 
             window.location.href = "/success?provider=mercadopago"
@@ -304,7 +304,7 @@ function PricingPageContent() {
   const isPro = user?.plan === "pro"
   const freeUsageText =
     usage?.daily_limit && usage?.remaining_today !== null
-      ? `${usage.remaining_today} de ${usage.daily_limit} geração(ões) restantes hoje`
+      ? `${usage.remaining_today} de ${usage.daily_limit} geraÃ§Ã£o(Ãµes) restantes hoje`
       : "Uso liberado"
 
   const canRenderPaymentForm = useMemo(() => {
@@ -323,7 +323,7 @@ function PricingPageContent() {
           <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
             <div>
               <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-                Monetização ENEM
+                MonetizaÃ§Ã£o ENEM
               </div>
 
               <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
@@ -332,14 +332,14 @@ function PricingPageContent() {
 
               <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
                 O gratuito serve para experimentar. O Pro serve para transformar
-                intenção em constância, com mais prática, mais leitura de
-                desempenho e menos travas durante a preparação.
+                intenÃ§Ã£o em constÃ¢ncia, com mais prÃ¡tica, mais leitura de
+                desempenho e menos travas durante a preparaÃ§Ã£o.
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 <MetricCard
                   icon={<TrendingUp className="size-4 text-primary" />}
-                  label="Mais prática"
+                  label="Mais prÃ¡tica"
                   value="sem travas"
                 />
                 <MetricCard
@@ -374,7 +374,7 @@ function PricingPageContent() {
             </div>
 
             <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
-              <p className="text-sm text-muted-foreground">Sua situação atual</p>
+              <p className="text-sm text-muted-foreground">Sua situaÃ§Ã£o atual</p>
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <InfoRow
@@ -396,7 +396,7 @@ function PricingPageContent() {
               </div>
 
               <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                Recursos avançados:{" "}
+                Recursos avanÃ§ados:{" "}
                 <span className="font-semibold text-white">
                   {entitlements?.is_pro ? "liberados" : "bloqueados"}
                 </span>
@@ -404,7 +404,7 @@ function PricingPageContent() {
 
               <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
                 Cada bloqueio no plano gratuito interrompe o seu fluxo. O Pro
-                existe para eliminar essa fricção.
+                existe para eliminar essa fricÃ§Ã£o.
               </div>
             </div>
           </div>
@@ -431,7 +431,7 @@ function PricingPageContent() {
 
             <div className="mt-6 flex items-end gap-3">
               <span className="text-5xl font-bold text-white">R$ 29</span>
-              <span className="pb-2 text-sm text-muted-foreground">/mês</span>
+              <span className="pb-2 text-sm text-muted-foreground">/mÃªs</span>
             </div>
 
             <div className="mt-3 flex items-center gap-2 text-sm text-slate-300">
@@ -444,14 +444,14 @@ function PricingPageContent() {
             </div>
 
             <p className="mt-5 text-sm leading-7 text-slate-300">
-              Para quem quer manter consistência de estudo, sem depender do
-              limite gratuito e sem perder ritmo exatamente quando está focado.
+              Para quem quer manter consistÃªncia de estudo, sem depender do
+              limite gratuito e sem perder ritmo exatamente quando estÃ¡ focado.
             </p>
 
             <div className="mt-8 space-y-3">
               <FeatureItem text="Simulados ilimitados" />
-              <FeatureItem text="Mais prática por dia" />
-              <FeatureItem text="Análise de desempenho completa" />
+              <FeatureItem text="Mais prÃ¡tica por dia" />
+              <FeatureItem text="AnÃ¡lise de desempenho completa" />
               <FeatureItem text="Insights inteligentes" />
               <FeatureItem text="Pagamento recorrente via Mercado Pago" />
             </div>
@@ -460,13 +460,13 @@ function PricingPageContent() {
           <article className="glass-panel rounded-[32px] p-6 md:p-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CreditCard className="size-4" />
-              Assinatura StudyPro Pro
+              Assinatura MinhAprovação Pro
             </div>
 
             {!authToken ? (
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5">
                 <p className="text-sm text-slate-300">
-                  Faça login para assinar o plano Pro.
+                  FaÃ§a login para assinar o plano Pro.
                 </p>
                 <Link
                   href="/login?redirect=/pricing"
@@ -478,20 +478,20 @@ function PricingPageContent() {
             ) : isLoadingConfig ? (
               <div className="mt-6 flex items-center gap-3 text-slate-300">
                 <Loader2 className="size-4 animate-spin" />
-                Carregando configuração do Mercado Pago...
+                Carregando configuraÃ§Ã£o do Mercado Pago...
               </div>
             ) : !publicConfig?.is_configured ? (
               <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200">
-                O backend ainda não recebeu as credenciais do Mercado Pago.
+                O backend ainda nÃ£o recebeu as credenciais do Mercado Pago.
               </div>
             ) : !publicConfig?.stored_plan?.plan_id ? (
               <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-100">
-                O plano do Mercado Pago ainda não foi criado no backend. Execute
+                O plano do Mercado Pago ainda nÃ£o foi criado no backend. Execute
                 primeiro o bootstrap do plano.
               </div>
             ) : isPro ? (
               <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-200">
-                Seu plano PRO já está ativo.
+                Seu plano PRO jÃ¡ estÃ¡ ativo.
               </div>
             ) : canRenderPaymentForm ? (
               <form id="form-checkout" className="mt-6 space-y-4">
@@ -512,7 +512,7 @@ function PricingPageContent() {
 
                   <div className="md:col-span-2">
                     <label className="mb-2 block text-sm text-slate-300">
-                      Titular do cartão
+                      Titular do cartÃ£o
                     </label>
                     <input
                       id="form-checkout__cardholderName"
@@ -520,13 +520,13 @@ function PricingPageContent() {
                       value={cardholderName}
                       onChange={(e) => setCardholderName(e.target.value)}
                       className="h-12 w-full rounded-2xl border border-white/10 bg-[#081224] px-4 text-white outline-none"
-                      placeholder="Nome impresso no cartão"
+                      placeholder="Nome impresso no cartÃ£o"
                     />
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="mb-2 block text-sm text-slate-300">
-                      Número do cartão
+                      NÃºmero do cartÃ£o
                     </label>
                     <div
                       id="form-checkout__cardNumber"
@@ -546,7 +546,7 @@ function PricingPageContent() {
 
                   <div>
                     <label className="mb-2 block text-sm text-slate-300">
-                      Código de segurança
+                      CÃ³digo de seguranÃ§a
                     </label>
                     <div
                       id="form-checkout__securityCode"
@@ -588,7 +588,7 @@ function PricingPageContent() {
 
                   <div>
                     <label className="mb-2 block text-sm text-slate-300">
-                      Número do documento
+                      NÃºmero do documento
                     </label>
                     <input
                       id="form-checkout__identificationNumber"
@@ -602,12 +602,12 @@ function PricingPageContent() {
                 </div>
 
                 <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs leading-6 text-amber-100">
-                  Durante os testes, o Mercado Pago pode recusar a tokenização de assinaturas com a mensagem
+                  Durante os testes, o Mercado Pago pode recusar a tokenizaÃ§Ã£o de assinaturas com a mensagem
                   <span className="mx-1 font-semibold text-white">
                     Card token service not found
                   </span>
-                  . Quando isso ocorrer, a interface está funcionando, mas a validação final precisa ser feita
-                  em produção controlada.
+                  . Quando isso ocorrer, a interface estÃ¡ funcionando, mas a validaÃ§Ã£o final precisa ser feita
+                  em produÃ§Ã£o controlada.
                 </div>
 
                 <button
@@ -621,7 +621,7 @@ function PricingPageContent() {
                 </button>
 
                 <p className="text-xs leading-6 text-slate-400">
-                  Os dados do cartão são tokenizados no navegador via MercadoPago.js.
+                  Os dados do cartÃ£o sÃ£o tokenizados no navegador via MercadoPago.js.
                 </p>
               </form>
             ) : null}
@@ -642,8 +642,8 @@ function PricingPageContent() {
             <ul className="mt-6 space-y-3">
               <FeatureItem text="Conhecer a plataforma" />
               <FeatureItem text="Testar o fluxo do aluno" />
-              <FeatureItem text="Ver correção automática" />
-              <FeatureItem text="Entender a proposta do StudyPro" />
+              <FeatureItem text="Ver correÃ§Ã£o automÃ¡tica" />
+              <FeatureItem text="Entender a proposta do MinhAprovação" />
             </ul>
           </article>
 
@@ -660,8 +660,8 @@ function PricingPageContent() {
             <ul className="mt-6 space-y-3">
               <FeatureItem text="Aumentar volume de treino" />
               <FeatureItem text="Remover travas do gratuito" />
-              <FeatureItem text="Estudar com mais constância" />
-              <FeatureItem text="Ler evolução com mais clareza" />
+              <FeatureItem text="Estudar com mais constÃ¢ncia" />
+              <FeatureItem text="Ler evoluÃ§Ã£o com mais clareza" />
             </ul>
           </article>
         </section>
@@ -676,13 +676,13 @@ function PricingPageFallback() {
       <div className="mx-auto max-w-7xl">
         <div className="glass-panel rounded-[32px] p-6 md:p-8">
           <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-            Monetização ENEM
+            MonetizaÃ§Ã£o ENEM
           </div>
           <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
             Desbloqueie o Pro
           </h1>
           <p className="mt-5 text-sm text-slate-300">
-            Carregando informações de pricing...
+            Carregando informaÃ§Ãµes de pricing...
           </p>
         </div>
       </div>

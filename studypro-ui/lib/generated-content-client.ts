@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -30,7 +30,7 @@ type SaveGeneratedContentPayload = {
 
 function getStoredToken() {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("studypro_auth_token")
+  return localStorage.getItem("MinhAprovação_auth_token")
 }
 
 async function parseApiError(response: Response): Promise<string> {
@@ -45,9 +45,9 @@ async function parseApiError(response: Response): Promise<string> {
       return data.message
     }
 
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   } catch {
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   }
 }
 
@@ -64,7 +64,7 @@ async function request<T>(
     typeof token === "undefined" ? getStoredToken() : token ?? null
 
   if (!resolvedToken) {
-    throw new Error("Sessão não encontrada.")
+    throw new Error("SessÃ£o nÃ£o encontrada.")
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {

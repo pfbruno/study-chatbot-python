@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -24,7 +24,7 @@ type SubjectKey =
   | "matematica"
   | "geral"
 
-type FlashcardDifficulty = "fácil" | "médio" | "difícil"
+type FlashcardDifficulty = "fÃ¡cil" | "mÃ©dio" | "difÃ­cil"
 
 type ReviewCard = {
   id: string
@@ -79,17 +79,17 @@ type MindMapItem = {
   }[]
 }
 
-const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
-const REVIEW_SUMMARY_KEY = "studypro_review_summary"
-const MASTERED_FLASHCARDS_KEY = "studypro_mastered_flashcards"
+const REVIEW_FLASHCARDS_KEY = "MinhAprovação_review_flashcards"
+const REVIEW_SUMMARY_KEY = "MinhAprovação_review_summary"
+const MASTERED_FLASHCARDS_KEY = "MinhAprovação_mastered_flashcards"
 
 function normalizeSubjectKey(subject: string): SubjectKey {
   const value = subject.trim().toLowerCase()
 
   if (value.includes("biolog")) return "biologia"
-  if (value.includes("fís") || value.includes("fis")) return "fisica"
+  if (value.includes("fÃ­s") || value.includes("fis")) return "fisica"
   if (value.includes("hist")) return "historia"
-  if (value.includes("quí") || value.includes("qui")) return "quimica"
+  if (value.includes("quÃ­") || value.includes("qui")) return "quimica"
   if (value.includes("port")) return "portugues"
   if (value.includes("geog")) return "geografia"
   if (value.includes("mate")) return "matematica"
@@ -111,9 +111,9 @@ function formatLocalDate(value?: string) {
 
 function inferDifficulty(text: string): FlashcardDifficulty {
   const size = text.length
-  if (size < 120) return "fácil"
-  if (size < 220) return "médio"
-  return "difícil"
+  if (size < 120) return "fÃ¡cil"
+  if (size < 220) return "mÃ©dio"
+  return "difÃ­cil"
 }
 
 function buildFlashcards(cards: ReviewCard[]): FlashcardItem[] {
@@ -136,7 +136,7 @@ function buildSummaries(summary: ReviewSummaryPayload | null): SummaryItem[] {
     subjectKey: "geral",
     title: summary.title,
     time: "4 min",
-    tags: ["Revisão", "Desempenho", "Plano de ação"],
+    tags: ["RevisÃ£o", "Desempenho", "Plano de aÃ§Ã£o"],
     content: [summary.subtitle, summary.revisionSummary],
   }
 
@@ -144,7 +144,7 @@ function buildSummaries(summary: ReviewSummaryPayload | null): SummaryItem[] {
     id: `summary-${item.subject}-${index}`,
     subject: item.subject,
     subjectKey: normalizeSubjectKey(item.subject),
-    title: `${item.subject} — foco de revisão`,
+    title: `${item.subject} â€” foco de revisÃ£o`,
     time: "3 min",
     tags: [
       `${item.accuracy.toFixed(1)}%`,
@@ -152,9 +152,9 @@ function buildSummaries(summary: ReviewSummaryPayload | null): SummaryItem[] {
       `${item.blank} em branco`,
     ],
     content: [
-      `Disciplina prioritária para revisão imediata: ${item.subject}.`,
-      `Você teve ${item.correct} acerto(s), ${item.wrong} erro(s) e ${item.blank} questão(ões) em branco nesta disciplina.`,
-      "Use os flashcards e um novo simulado direcionado para consolidar essa recuperação.",
+      `Disciplina prioritÃ¡ria para revisÃ£o imediata: ${item.subject}.`,
+      `VocÃª teve ${item.correct} acerto(s), ${item.wrong} erro(s) e ${item.blank} questÃ£o(Ãµes) em branco nesta disciplina.`,
+      "Use os flashcards e um novo simulado direcionado para consolidar essa recuperaÃ§Ã£o.",
     ],
   }))
 
@@ -168,31 +168,31 @@ function buildMindMaps(summary: ReviewSummaryPayload | null): MindMapItem[] {
     id: `mindmap-${item.subject}-${index}`,
     subject: item.subject,
     subjectKey: normalizeSubjectKey(item.subject),
-    title: `${item.subject} — mapa mental de revisão`,
-    subtitle: "3 ramificações principais",
+    title: `${item.subject} â€” mapa mental de revisÃ£o`,
+    subtitle: "3 ramificaÃ§Ãµes principais",
     branches: [
       {
-        label: "Diagnóstico",
+        label: "DiagnÃ³stico",
         children: [
-          `${item.accuracy.toFixed(1)}% de acurácia`,
+          `${item.accuracy.toFixed(1)}% de acurÃ¡cia`,
           `${item.wrong} erro(s)`,
           `${item.blank} em branco`,
         ],
       },
       {
-        label: "Próximo passo",
+        label: "PrÃ³ximo passo",
         children: [
           "Revisar conceitos centrais",
-          "Refazer questões similares",
+          "Refazer questÃµes similares",
           "Conferir alternativas incorretas",
         ],
       },
       {
-        label: "Consolidação",
+        label: "ConsolidaÃ§Ã£o",
         children: [
           "Usar flashcards",
           "Gerar novo simulado focado",
-          "Comparar evolução no resultado seguinte",
+          "Comparar evoluÃ§Ã£o no resultado seguinte",
         ],
       },
     ],
@@ -311,12 +311,12 @@ export function StudyArea() {
     const labels: Record<SubjectKey, string> = {
       todas: "Todas",
       biologia: "Biologia",
-      fisica: "Física",
-      historia: "História",
-      quimica: "Química",
-      portugues: "Português",
+      fisica: "FÃ­sica",
+      historia: "HistÃ³ria",
+      quimica: "QuÃ­mica",
+      portugues: "PortuguÃªs",
       geografia: "Geografia",
-      matematica: "Matemática",
+      matematica: "MatemÃ¡tica",
       geral: "Geral",
     }
 
@@ -496,7 +496,7 @@ export function StudyArea() {
 
           <div>
             <h1 className="text-5xl font-bold tracking-tight text-white">
-              Área de Estudo
+              Ãrea de Estudo
             </h1>
             <p className="mt-4 text-2xl text-white/60">
               Flashcards, resumos inteligentes e mapas mentais para acelerar seu aprendizado
@@ -617,7 +617,7 @@ export function StudyArea() {
 
                     <p className="mt-6 text-lg text-white/55">
                       {showAnswer
-                        ? "Clique para voltar à pergunta"
+                        ? "Clique para voltar Ã  pergunta"
                         : "Clique para ver a resposta"}
                     </p>
                   </>
@@ -667,7 +667,7 @@ export function StudyArea() {
                       className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-lg font-medium text-white transition hover:bg-white/10"
                     >
                       <RotateCcw className="size-4" />
-                      Recomeçar
+                      RecomeÃ§ar
                     </button>
                   </div>
                 </div>
@@ -705,7 +705,7 @@ export function StudyArea() {
 
             {filteredSummaries.length === 0 ? (
               <div className="rounded-[24px] border border-white/10 bg-[#071224] p-8 text-lg text-white/60">
-                Nenhum resumo disponível para este filtro.
+                Nenhum resumo disponÃ­vel para este filtro.
               </div>
             ) : null}
           </div>
@@ -738,7 +738,7 @@ export function StudyArea() {
 
             {filteredMindMaps.length === 0 ? (
               <div className="rounded-[24px] border border-white/10 bg-[#071224] p-8 text-lg text-white/60">
-                Nenhum mapa mental disponível para este filtro.
+                Nenhum mapa mental disponÃ­vel para este filtro.
               </div>
             ) : null}
           </div>

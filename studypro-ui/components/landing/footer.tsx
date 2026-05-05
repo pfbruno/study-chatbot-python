@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { BookOpen } from "lucide-react"
 
 export function Footer() {
@@ -12,7 +12,7 @@ export function Footer() {
                 <BookOpen className="size-5" />
               </div>
               <div>
-                <p className="text-base font-semibold text-white">StudyPro</p>
+                <p className="text-base font-semibold text-white">MinhAprovação</p>
                 <p className="text-sm text-muted-foreground">
                   Plataforma inteligente de estudos
                 </p>
@@ -20,8 +20,8 @@ export function Footer() {
             </div>
 
             <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
-              Experiência focada no aluno, com navegação mais clara, leitura
-              rápida de desempenho e fluxo de estudo mais consistente.
+              ExperiÃªncia focada no aluno, com navegaÃ§Ã£o mais clara, leitura
+              rÃ¡pida de desempenho e fluxo de estudo mais consistente.
             </p>
           </div>
 
@@ -61,7 +61,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t border-white/10 pt-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} StudyPro. Todos os direitos reservados.
+          Â© {new Date().getFullYear()} MinhAprovação. Todos os direitos reservados.
         </div>
       </div>
     </footer>

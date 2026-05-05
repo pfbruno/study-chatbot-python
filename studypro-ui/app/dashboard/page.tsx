@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { trackStudyEvent } from "@/lib/study-events";
 import Link from "next/link";
@@ -89,10 +89,10 @@ type ReviewCard = {
   back: string;
 };
 
-const STUDY_GOAL_KEY = "studypro_goal";
-const SIMULATION_HISTORY_KEY = "studypro_simulation_history";
-const REVIEW_SUMMARY_KEY = "studypro_review_summary";
-const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards";
+const STUDY_GOAL_KEY = "MinhAprovação_goal";
+const SIMULATION_HISTORY_KEY = "MinhAprovação_simulation_history";
+const REVIEW_SUMMARY_KEY = "MinhAprovação_review_summary";
+const REVIEW_FLASHCARDS_KEY = "MinhAprovação_review_flashcards";
 
 function formatDate(value?: string) {
   if (!value) return "Sem data";
@@ -124,15 +124,15 @@ function getGoalLabel(goal: StudyGoal | null) {
 function getGoalDescription(goal: StudyGoal | null) {
   switch (goal) {
     case "enem":
-      return "Foque em questões, simulados e evolução por área do exame.";
+      return "Foque em questÃµes, simulados e evoluÃ§Ã£o por Ã¡rea do exame.";
     case "concursos":
-      return "Priorize constância, revisão e desempenho por disciplina.";
+      return "Priorize constÃ¢ncia, revisÃ£o e desempenho por disciplina.";
     case "vestibular":
-      return "Mantenha ritmo forte em simulados e identificação de lacunas.";
+      return "Mantenha ritmo forte em simulados e identificaÃ§Ã£o de lacunas.";
     case "faculdade":
-      return "Acompanhe seu progresso e avance com revisões inteligentes.";
+      return "Acompanhe seu progresso e avance com revisÃµes inteligentes.";
     default:
-      return "Defina seu objetivo para personalizar sua experiência.";
+      return "Defina seu objetivo para personalizar sua experiÃªncia.";
   }
 }
 
@@ -141,19 +141,19 @@ function getNextAction(goal: StudyGoal | null) {
     case "enem":
       return "Gerar simulado ENEM";
     case "concursos":
-      return "Resolver questões de concurso";
+      return "Resolver questÃµes de concurso";
     case "vestibular":
       return "Fazer simulado vestibular";
     case "faculdade":
-      return "Revisar conteúdo da matéria";
+      return "Revisar conteÃºdo da matÃ©ria";
     default:
-      return "Começar agora";
+      return "ComeÃ§ar agora";
   }
 }
 
 function rarityLabel(value: string) {
-  if (value === "legendary") return "Lendária";
-  if (value === "epic") return "Épica";
+  if (value === "legendary") return "LendÃ¡ria";
+  if (value === "epic") return "Ã‰pica";
   if (value === "rare") return "Rara";
   return "Comum";
 }
@@ -307,13 +307,13 @@ export default function DashboardPage() {
         value: `${accuracyPercent.toFixed(0)}%`,
         subtitle:
           data.questions > 0
-            ? "Calculada com questões registradas"
-            : "Sem questões registradas",
+            ? "Calculada com questÃµes registradas"
+            : "Sem questÃµes registradas",
         icon: <Target className="size-5 text-blue-400" />,
         iconBg: "bg-blue-500/15",
       },
       {
-        title: "Questões feitas",
+        title: "QuestÃµes feitas",
         value: data.questions.toLocaleString("pt-BR"),
         subtitle: `${data.attempts_count} tentativa(s) registradas`,
         icon: <BookOpen className="size-5 text-emerald-400" />,
@@ -333,8 +333,8 @@ export default function DashboardPage() {
             ? `${bestSimulationScore.toFixed(1)}%`
             : "N/D",
         subtitle: latestSimulation
-          ? `Último: ${latestSimulation.score_percentage.toFixed(1)}%`
-          : "Sem histórico local",
+          ? `Ãšltimo: ${latestSimulation.score_percentage.toFixed(1)}%`
+          : "Sem histÃ³rico local",
         icon: <History className="size-5 text-emerald-400" />,
         iconBg: "bg-emerald-500/15",
       },
@@ -402,7 +402,7 @@ export default function DashboardPage() {
   }, [simulationHistory]);
 
   const weeklyData = useMemo(() => {
-    const labels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const labels = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "SÃ¡b"];
     const today = new Date();
     const days = Array.from({ length: 7 }, (_, offset) => {
       const date = new Date(today);
@@ -473,21 +473,21 @@ export default function DashboardPage() {
               </div>
 
               <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-                Qual é o seu objetivo principal?
+                Qual Ã© o seu objetivo principal?
               </h1>
 
               <p className="mt-4 text-lg leading-8 text-slate-300">
                 Escolha um foco inicial para organizar melhor seu painel,
-                direcionar seus estudos e preparar sua experiência.
+                direcionar seus estudos e preparar sua experiÃªncia.
               </p>
             </div>
 
             <div className="rounded-[24px] border border-white/10 bg-[#020b18] px-5 py-5 text-sm text-slate-300 xl:max-w-sm">
               <p className="font-medium text-white">O que muda ao selecionar?</p>
               <ul className="mt-4 space-y-3 text-slate-300">
-                <li>• Dashboard mais orientado para ação</li>
-                <li>• Próximos passos mais claros</li>
-                <li>• Base pronta para analytics e gamificação</li>
+                <li>â€¢ Dashboard mais orientado para aÃ§Ã£o</li>
+                <li>â€¢ PrÃ³ximos passos mais claros</li>
+                <li>â€¢ Base pronta para analytics e gamificaÃ§Ã£o</li>
               </ul>
             </div>
           </div>
@@ -496,22 +496,22 @@ export default function DashboardPage() {
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <GoalCard
             title="ENEM"
-            description="Para quem quer foco em simulados, desempenho por área e ritmo forte de evolução."
+            description="Para quem quer foco em simulados, desempenho por Ã¡rea e ritmo forte de evoluÃ§Ã£o."
             onClick={() => handleSelectGoal("enem")}
           />
           <GoalCard
             title="Concursos"
-            description="Para quem precisa de constância, revisão contínua e acompanhamento por disciplina."
+            description="Para quem precisa de constÃ¢ncia, revisÃ£o contÃ­nua e acompanhamento por disciplina."
             onClick={() => handleSelectGoal("concursos")}
           />
           <GoalCard
             title="Vestibular"
-            description="Ideal para preparação direcionada, identificação de lacunas e treino frequente."
+            description="Ideal para preparaÃ§Ã£o direcionada, identificaÃ§Ã£o de lacunas e treino frequente."
             onClick={() => handleSelectGoal("vestibular")}
           />
           <GoalCard
             title="Faculdade"
-            description="Para organização acadêmica, revisão de conteúdos e acompanhamento de progresso."
+            description="Para organizaÃ§Ã£o acadÃªmica, revisÃ£o de conteÃºdos e acompanhamento de progresso."
             onClick={() => handleSelectGoal("faculdade")}
           />
         </section>
@@ -555,7 +555,7 @@ export default function DashboardPage() {
             </div>
 
             <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-              Continue evoluindo com estratégia
+              Continue evoluindo com estratÃ©gia
             </h1>
 
             <p className="mt-4 text-lg leading-8 text-slate-300">
@@ -593,11 +593,11 @@ export default function DashboardPage() {
                 {todayQuestions}
               </div>
               <p className="mt-2 text-sm text-slate-300">
-                Questões registradas hoje em simulados locais
+                QuestÃµes registradas hoje em simulados locais
               </p>
 
               <p className="mt-5 text-sm leading-6 text-slate-400">
-                Este número usa apenas histórico real salvo após correções de simulados.
+                Este nÃºmero usa apenas histÃ³rico real salvo apÃ³s correÃ§Ãµes de simulados.
               </p>
             </div>
 
@@ -611,10 +611,10 @@ export default function DashboardPage() {
 
                   <p className="mt-2 text-sm leading-6 text-amber-100">
                     {isPro
-                      ? "Seu plano PRO está ativo. Os recursos premium já estão liberados."
+                      ? "Seu plano PRO estÃ¡ ativo. Os recursos premium jÃ¡ estÃ£o liberados."
                       : simulationLimit === null
-                      ? "Seu plano gratuito está ativo."
-                      : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
+                      ? "Seu plano gratuito estÃ¡ ativo."
+                      : `Hoje vocÃª gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
                   </p>
 
                   {!isPro && typeof simulationRemaining === "number" ? (
@@ -648,28 +648,28 @@ export default function DashboardPage() {
           iconBg="bg-orange-500/15"
           title="Streak atual"
           value={hasGamificationData ? `${gameProfile.streakDays} dias` : "N/D"}
-          helper={hasGamificationData ? "Sequência real registrada" : "Sem registros de streak"}
+          helper={hasGamificationData ? "SequÃªncia real registrada" : "Sem registros de streak"}
         />
         <GameStatCard
           icon={<Sparkles className="size-5 text-blue-300" />}
           iconBg="bg-blue-500/15"
           title="XP total"
           value={hasGamificationData ? `${gameProfile.totalXP}` : "N/D"}
-          helper={hasGamificationData ? `Nível ${gameProfile.level}` : "Sem XP registrado"}
+          helper={hasGamificationData ? `NÃ­vel ${gameProfile.level}` : "Sem XP registrado"}
         />
         <GameStatCard
           icon={<Award className="size-5 text-purple-300" />}
           iconBg="bg-purple-500/15"
           title="Conquistas"
           value={hasGamificationData ? `${unlockedAchievementsCount}/${gameAchievements.length}` : "N/D"}
-          helper={hasGamificationData ? "Coleção desbloqueada" : "Sem conquistas registradas"}
+          helper={hasGamificationData ? "ColeÃ§Ã£o desbloqueada" : "Sem conquistas registradas"}
         />
         <GameStatCard
           icon={<Swords className="size-5 text-emerald-300" />}
           iconBg="bg-emerald-500/15"
           title="Desafios"
           value={hasGamificationData ? `${gameProfile.completedChallenges}` : "N/D"}
-          helper={hasGamificationData ? "Concluídos recentemente" : "Sem desafios concluídos"}
+          helper={hasGamificationData ? "ConcluÃ­dos recentemente" : "Sem desafios concluÃ­dos"}
         />
       </section>
 
@@ -682,7 +682,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h2 className="text-2xl font-semibold text-white">
-                  Gamificação
+                  GamificaÃ§Ã£o
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
                   Dados reais integrados ao painel principal
@@ -721,7 +721,7 @@ export default function DashboardPage() {
                 </div>
               ) : !hasGamificationData ? (
                 <div className="text-sm leading-7 text-slate-400">
-                  Nenhum XP real registrado ainda. Conclua atividades para iniciar a progressão.
+                  Nenhum XP real registrado ainda. Conclua atividades para iniciar a progressÃ£o.
                 </div>
               ) : (
                 <>
@@ -733,7 +733,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <div className="rounded-full bg-blue-500/10 px-3 py-1 text-sm font-semibold text-blue-300">
-                      Nível {gameProfile.level}
+                      NÃ­vel {gameProfile.level}
                     </div>
                   </div>
 
@@ -749,7 +749,7 @@ export default function DashboardPage() {
                   </div>
 
                   <p className="mt-3 text-sm text-slate-400">
-                    Progresso até o próximo nível
+                    Progresso atÃ© o prÃ³ximo nÃ­vel
                   </p>
                 </>
               )}
@@ -771,7 +771,7 @@ export default function DashboardPage() {
                 </>
               ) : (
                 <p className="mt-3 text-sm leading-7 text-slate-400">
-                  Sem evolução semanal registrada.
+                  Sem evoluÃ§Ã£o semanal registrada.
                 </p>
               )}
             </div>
@@ -785,10 +785,10 @@ export default function DashboardPage() {
             </div>
             <div>
               <h2 className="text-2xl font-semibold text-white">
-                Próximas wins
+                PrÃ³ximas wins
               </h2>
               <p className="mt-1 text-sm text-slate-400">
-                O que está mais perto de desbloquear
+                O que estÃ¡ mais perto de desbloquear
               </p>
             </div>
           </div>
@@ -810,7 +810,7 @@ export default function DashboardPage() {
                           {item.title}
                         </div>
                         <div className="mt-2 text-sm text-[#7ea0d6]">
-                          {item.progress}/{item.target} • +{item.xpReward} XP
+                          {item.progress}/{item.target} â€¢ +{item.xpReward} XP
                         </div>
                       </div>
 
@@ -853,7 +853,7 @@ export default function DashboardPage() {
                   Conquistas recentes
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  Últimos desbloqueios confirmados
+                  Ãšltimos desbloqueios confirmados
                 </p>
               </div>
             </div>
@@ -909,10 +909,10 @@ export default function DashboardPage() {
               </div>
               <div>
                 <h2 className="text-2xl font-semibold text-white">
-                  Evolução gamificada
+                  EvoluÃ§Ã£o gamificada
                 </h2>
                 <p className="mt-1 text-sm text-slate-400">
-                  XP acumulado na última semana
+                  XP acumulado na Ãºltima semana
                 </p>
               </div>
             </div>
@@ -960,19 +960,19 @@ export default function DashboardPage() {
           href="/dashboard/conquistas"
           icon={<Award className="size-6 text-purple-300" />}
           title="Explorar conquistas"
-          description="Veja o catálogo completo, raridades e desbloqueios mais próximos."
+          description="Veja o catÃ¡logo completo, raridades e desbloqueios mais prÃ³ximos."
         />
         <CrossCtaCard
           href="/dashboard/desafios"
           icon={<Swords className="size-6 text-emerald-300" />}
           title="Acompanhar desafios"
-          description="Missões diárias, semanais e especiais com progresso real."
+          description="MissÃµes diÃ¡rias, semanais e especiais com progresso real."
         />
         <CrossCtaCard
           href="/dashboard/ranking"
           icon={<Trophy className="size-6 text-yellow-300" />}
           title="Subir no ranking"
-          description="Compare seu XP, streak e evolução com os demais usuários."
+          description="Compare seu XP, streak e evoluÃ§Ã£o com os demais usuÃ¡rios."
         />
       </section>
 
@@ -980,16 +980,16 @@ export default function DashboardPage() {
         <section className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm text-slate-400">Último simulado corrigido</p>
+              <p className="text-sm text-slate-400">Ãšltimo simulado corrigido</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">
                 {latestSimulation.title}
               </h2>
               <p className="mt-2 text-sm text-slate-300">
-                {formatDate(latestSimulation.saved_at)} •{" "}
-                {latestSimulation.total_questions} questões •{" "}
+                {formatDate(latestSimulation.saved_at)} â€¢{" "}
+                {latestSimulation.total_questions} questÃµes â€¢{" "}
                 {latestSimulation.mode === "balanced"
                   ? "Balanceado"
-                  : "Aleatório"}
+                  : "AleatÃ³rio"}
               </p>
             </div>
 
@@ -1018,10 +1018,10 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-semibold text-white">
-                    Continuar na Área de Estudo
+                    Continuar na Ãrea de Estudo
                   </h2>
                   <p className="mt-1 text-sm text-slate-400">
-                    Seu hub de revisão já está pronto
+                    Seu hub de revisÃ£o jÃ¡ estÃ¡ pronto
                   </p>
                 </div>
               </div>
@@ -1030,22 +1030,22 @@ export default function DashboardPage() {
                 href="/dashboard/estudo"
                 className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
               >
-                Abrir área
+                Abrir Ã¡rea
               </Link>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <InfoStat
                 label="Resumo salvo"
-                value={reviewSummary ? "Sim" : "Não"}
+                value={reviewSummary ? "Sim" : "NÃ£o"}
               />
               <InfoStat
                 label="Flashcards"
                 value={String(reviewFlashcards.length)}
               />
               <InfoStat
-                label="Último treino"
-                value={latestSimulation ? "Disponível" : "N/D"}
+                label="Ãšltimo treino"
+                value={latestSimulation ? "DisponÃ­vel" : "N/D"}
               />
             </div>
           </article>
@@ -1059,10 +1059,10 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-semibold text-white">
-                      Último resumo
+                      Ãšltimo resumo
                     </h2>
                     <p className="mt-1 text-sm text-slate-400">
-                      Material de revisão salvo localmente
+                      Material de revisÃ£o salvo localmente
                     </p>
                   </div>
                 </div>
@@ -1090,10 +1090,10 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-semibold text-white">
-                      Flashcards disponíveis
+                      Flashcards disponÃ­veis
                     </h2>
                     <p className="mt-1 text-sm text-slate-400">
-                      Revise erros e questões em branco
+                      Revise erros e questÃµes em branco
                     </p>
                   </div>
                 </div>
@@ -1132,7 +1132,7 @@ export default function DashboardPage() {
               Analytics
             </h1>
             <p className="mt-2 text-lg text-slate-300">
-              Acompanhe sua evolução e identifique pontos de melhoria.
+              Acompanhe sua evoluÃ§Ã£o e identifique pontos de melhoria.
             </p>
           </div>
         </div>
@@ -1172,13 +1172,13 @@ export default function DashboardPage() {
             active={activeTab === "evolucao"}
             onClick={() => setActiveTab("evolucao")}
           >
-            Evolução
+            EvoluÃ§Ã£o
           </TabButton>
           <TabButton
             active={activeTab === "materias"}
             onClick={() => setActiveTab("materias")}
           >
-            Matérias
+            MatÃ©rias
           </TabButton>
           <TabButton
             active={activeTab === "simulados"}
@@ -1198,10 +1198,10 @@ export default function DashboardPage() {
           {activeTab === "evolucao" ? (
             <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <h2 className="text-xl font-semibold text-white">
-                Evolução de acertos
+                EvoluÃ§Ã£o de acertos
               </h2>
               <p className="mt-2 text-sm text-slate-400">
-                Gráfico gerado somente a partir do histórico real de simulados corrigidos.
+                GrÃ¡fico gerado somente a partir do histÃ³rico real de simulados corrigidos.
               </p>
 
               <div className="mt-6 h-[320px]">
@@ -1225,7 +1225,7 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-[#071225] p-6 text-center text-sm leading-7 text-slate-400">
-                    Sem histórico suficiente. Resolva e corrija simulados para exibir evolução real.
+                    Sem histÃ³rico suficiente. Resolva e corrija simulados para exibir evoluÃ§Ã£o real.
                   </div>
                 )}
               </div>
@@ -1235,10 +1235,10 @@ export default function DashboardPage() {
           {activeTab === "materias" ? (
             <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <h2 className="text-xl font-semibold text-white">
-                Desempenho por matéria
+                Desempenho por matÃ©ria
               </h2>
               <p className="mt-2 text-sm text-slate-400">
-                Dados agregados a partir dos simulados corrigidos no histórico local.
+                Dados agregados a partir dos simulados corrigidos no histÃ³rico local.
               </p>
 
               <div className="mt-6 h-[360px]">
@@ -1255,7 +1255,7 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-[#071225] p-6 text-center text-sm leading-7 text-slate-400">
-                    Sem dados por matéria. Corrija simulados com disciplinas identificadas para preencher esta seção.
+                    Sem dados por matÃ©ria. Corrija simulados com disciplinas identificadas para preencher esta seÃ§Ã£o.
                   </div>
                 )}
               </div>
@@ -1265,10 +1265,10 @@ export default function DashboardPage() {
           {activeTab === "simulados" ? (
             <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <h2 className="text-xl font-semibold text-white">
-                Questões registradas na semana
+                QuestÃµes registradas na semana
               </h2>
               <p className="mt-2 text-sm text-slate-400">
-                Contabiliza somente questões de simulados salvos no histórico local.
+                Contabiliza somente questÃµes de simulados salvos no histÃ³rico local.
               </p>
 
               <div className="mt-6 h-[360px]">
@@ -1283,14 +1283,14 @@ export default function DashboardPage() {
                       <Bar
                         dataKey="questoes"
                         fill="#2f7cff"
-                        name="Questões"
+                        name="QuestÃµes"
                         radius={[8, 8, 0, 0]}
                       />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-[#071225] p-6 text-center text-sm leading-7 text-slate-400">
-                    Sem questões registradas nesta semana no histórico local.
+                    Sem questÃµes registradas nesta semana no histÃ³rico local.
                   </div>
                 )}
               </div>
@@ -1306,8 +1306,8 @@ export default function DashboardPage() {
                 <p className="mt-4 text-sm leading-7 text-slate-300">
                   {hasSmartInsights
                     ? data.insights ||
-                      "Você ainda não possui tentativas registradas. Resolva uma prova ou simulado para começar a gerar insights."
-                    : "Insights inteligentes fazem parte do fluxo premium. Ative o Pro para desbloquear leitura avançada do seu desempenho."}
+                      "VocÃª ainda nÃ£o possui tentativas registradas. Resolva uma prova ou simulado para comeÃ§ar a gerar insights."
+                    : "Insights inteligentes fazem parte do fluxo premium. Ative o Pro para desbloquear leitura avanÃ§ada do seu desempenho."}
                 </p>
 
                 {!hasSmartInsights ? (
@@ -1322,7 +1322,7 @@ export default function DashboardPage() {
 
               <article className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
                 <h2 className="text-xl font-semibold text-white">
-                  Histórico consolidado
+                  HistÃ³rico consolidado
                 </h2>
 
                 {data.recent_attempts.length === 0 ? (
@@ -1361,8 +1361,8 @@ export default function DashboardPage() {
       </section>
 
       <section className="rounded-[24px] border border-white/10 bg-[#071225] px-5 py-4 text-sm text-slate-400">
-        Dashboard principal sem dados mockados: as métricas exibidas vêm do backend
-        ou do histórico local real de simulados corrigidos.
+        Dashboard principal sem dados mockados: as mÃ©tricas exibidas vÃªm do backend
+        ou do histÃ³rico local real de simulados corrigidos.
       </section>
     </div>
   );

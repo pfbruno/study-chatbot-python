@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
@@ -17,9 +17,9 @@ function safeDecodeError(text: string): string {
     const parsed = JSON.parse(text)
     if (typeof parsed?.detail === "string") return parsed.detail
     if (typeof parsed?.message === "string") return parsed.message
-    return text || "Não foi possível criar a conta."
+    return text || "NÃ£o foi possÃ­vel criar a conta."
   } catch {
-    return text || "Não foi possível criar a conta."
+    return text || "NÃ£o foi possÃ­vel criar a conta."
   }
 }
 
@@ -28,7 +28,7 @@ async function safeReadError(response: Response) {
     const text = await response.text()
     return safeDecodeError(text)
   } catch {
-    return "Não foi possível criar a conta."
+    return "NÃ£o foi possÃ­vel criar a conta."
   }
 }
 
@@ -65,7 +65,7 @@ function RegisterPageContent() {
     setSuccessMessage("")
 
     if (password !== confirmPassword) {
-      setErrorMessage("As senhas não coincidem.")
+      setErrorMessage("As senhas nÃ£o coincidem.")
       return
     }
 
@@ -86,7 +86,7 @@ function RegisterPageContent() {
 
       if (!registerResponse.ok) {
         throw new Error(
-          (await safeReadError(registerResponse)) || "Não foi possível criar a conta."
+          (await safeReadError(registerResponse)) || "NÃ£o foi possÃ­vel criar a conta."
         )
       }
 
@@ -119,29 +119,29 @@ function RegisterPageContent() {
         <div>
           <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
             <BookOpen className="size-4 text-primary" />
-            StudyPro
+            MinhAprovação
           </div>
 
           <h1 className="mt-8 max-w-xl text-4xl font-bold leading-tight tracking-tight text-white xl:text-5xl">
             Comece sua jornada para a{" "}
-            <span className="text-gradient">evolução</span>
+            <span className="text-gradient">evoluÃ§Ã£o</span>
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
-            Organize estudos, acompanhe desempenho e evolua com uma experiência
+            Organize estudos, acompanhe desempenho e evolua com uma experiÃªncia
             visual pensada para o fluxo real do aluno.
           </p>
 
           <ul className="mt-10 space-y-4">
             {[
-              "Simulados com banco oficial de questões",
-              "Dashboard com evolução por disciplina",
-              "Upgrade fácil para plano Pro com Mercado Pago",
-              "Recomendações inteligentes para revisão",
+              "Simulados com banco oficial de questÃµes",
+              "Dashboard com evoluÃ§Ã£o por disciplina",
+              "Upgrade fÃ¡cil para plano Pro com Mercado Pago",
+              "RecomendaÃ§Ãµes inteligentes para revisÃ£o",
             ].map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
                 <div className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-accent/15 text-accent">
-                  ✓
+                  âœ“
                 </div>
                 <span>{item}</span>
               </li>
@@ -150,7 +150,7 @@ function RegisterPageContent() {
         </div>
 
         <div className="mt-10 rounded-[28px] border border-white/10 bg-slate-950/70 p-5">
-          <p className="text-sm text-muted-foreground">Experiência orientada a dados</p>
+          <p className="text-sm text-muted-foreground">ExperiÃªncia orientada a dados</p>
           <p className="mt-3 text-lg font-semibold text-white">
             Crie sua conta e transforme estudo em rotina orientada por desempenho.
           </p>
@@ -162,14 +162,14 @@ function RegisterPageContent() {
           <div className="mb-8">
             <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 lg:hidden">
               <BookOpen className="size-4 text-primary" />
-              StudyPro
+              MinhAprovação
             </div>
 
             <h2 className="mt-5 text-3xl font-bold tracking-tight text-white">
               Criar conta
             </h2>
             <p className="mt-3 text-sm leading-7 text-slate-300">
-              Já possui conta?{" "}
+              JÃ¡ possui conta?{" "}
               <Link href="/login" className="font-medium text-primary hover:underline">
                 Entrar
               </Link>

@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { Check, Crown, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -8,31 +8,31 @@ const plans = [
   {
     name: "Free",
     price: "R$ 0",
-    period: "/mês",
+    period: "/mÃªs",
     description:
-      "Para conhecer a plataforma, começar a resolver questões e validar se o fluxo combina com sua rotina.",
+      "Para conhecer a plataforma, comeÃ§ar a resolver questÃµes e validar se o fluxo combina com sua rotina.",
     features: [
-      "Acesso inicial ao StudyPro",
-      "Simulados com limite diário",
-      "Correção automática",
-      "Dashboard básico",
+      "Acesso inicial ao MinhAprovação",
+      "Simulados com limite diÃ¡rio",
+      "CorreÃ§Ã£o automÃ¡tica",
+      "Dashboard bÃ¡sico",
     ],
-    cta: "Começar grátis",
+    cta: "ComeÃ§ar grÃ¡tis",
     href: "/register",
     highlighted: false,
   },
   {
     name: "Pro",
     price: "R$ 29",
-    period: "/mês",
+    period: "/mÃªs",
     description:
-      "Para quem quer estudar com mais constância, praticar mais e transformar desempenho em evolução real.",
+      "Para quem quer estudar com mais constÃ¢ncia, praticar mais e transformar desempenho em evoluÃ§Ã£o real.",
     features: [
       "Simulados ilimitados",
       "Mais volume de treino",
-      "Análise de desempenho completa",
+      "AnÃ¡lise de desempenho completa",
       "Insights inteligentes",
-      "Fluxo prioritário de evolução",
+      "Fluxo prioritÃ¡rio de evoluÃ§Ã£o",
     ],
     cta: "Desbloquear Pro",
     href: "/pricing",
@@ -46,17 +46,17 @@ export function Pricing() {
       <div className="container-shell">
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-4 py-1 text-sm text-primary">
-            Planos StudyPro
+            Planos MinhAprovação
           </span>
 
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Comece grátis. Evolua quando quiser.
+            Comece grÃ¡tis. Evolua quando quiser.
           </h2>
 
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            O plano Free permite entrar rápido na plataforma e testar o fluxo.
-            O Pro existe para quem quer mais prática, mais leitura de desempenho
-            e menos interrupções durante o estudo.
+            O plano Free permite entrar rÃ¡pido na plataforma e testar o fluxo.
+            O Pro existe para quem quer mais prÃ¡tica, mais leitura de desempenho
+            e menos interrupÃ§Ãµes durante o estudo.
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export function Pricing() {
               {plan.highlighted ? (
                 <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-slate-950 px-3 py-1 text-xs font-semibold text-primary">
                   <Crown className="size-3.5 fill-current" />
-                  Melhor para evolução contínua
+                  Melhor para evoluÃ§Ã£o contÃ­nua
                 </div>
               ) : null}
 

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
@@ -546,7 +546,7 @@ export default function ExamYearDetailPage() {
 
               <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
                 <span className="font-semibold text-white">R$ 29/mês</span>{" "}
-                para continuar com mais prática, mais ritmo e menos fricção no StudyPro.
+                para continuar com mais prática, mais ritmo e menos fricção no MinhAprovação.
               </div>
             </div>
 

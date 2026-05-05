@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type { ReactNode } from "react"
 
@@ -50,10 +50,10 @@ export function DashboardTopbar({
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-white">
-                {user?.name || "Aluno StudyPro"}
+                {user?.name || "Aluno MinhAprovação"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {user?.email || "Área do aluno"}
+                {user?.email || "Ãrea do aluno"}
               </p>
             </div>
 

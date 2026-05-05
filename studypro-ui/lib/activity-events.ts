@@ -1,10 +1,10 @@
-"use client"
+﻿"use client"
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
 
-export const ANALYTICS_REFRESH_EVENT = "studypro:analytics-refresh"
+export const ANALYTICS_REFRESH_EVENT = "MinhAprovação:analytics-refresh"
 
 export type ActivityEventPayload = {
   event_type: string
@@ -17,7 +17,7 @@ export type ActivityEventPayload = {
 
 function getStoredToken() {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("studypro_auth_token")
+  return localStorage.getItem("MinhAprovação_auth_token")
 }
 
 async function parseApiError(response: Response): Promise<string> {

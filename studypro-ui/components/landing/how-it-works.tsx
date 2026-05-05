@@ -1,23 +1,23 @@
-import { Brain, FileText, LineChart } from "lucide-react"
+﻿import { Brain, FileText, LineChart } from "lucide-react"
 
 const steps = [
   {
     icon: FileText,
     title: "Escolha prova ou simulado",
     description:
-      "Entre rápido no treino com provas reais, listas por tema e navegação objetiva por banca, ano e disciplina.",
+      "Entre rÃ¡pido no treino com provas reais, listas por tema e navegaÃ§Ã£o objetiva por banca, ano e disciplina.",
   },
   {
     icon: Brain,
-    title: "Resolva com correção imediata",
+    title: "Resolva com correÃ§Ã£o imediata",
     description:
-      "Veja resultado, erros e oportunidades de revisão sem sair do fluxo principal de estudo.",
+      "Veja resultado, erros e oportunidades de revisÃ£o sem sair do fluxo principal de estudo.",
   },
   {
     icon: LineChart,
     title: "Use os dados para evoluir",
     description:
-      "Acompanhe desempenho, tendências e prioridades para estudar com mais direção e menos desperdício de tempo.",
+      "Acompanhe desempenho, tendÃªncias e prioridades para estudar com mais direÃ§Ã£o e menos desperdÃ­cio de tempo.",
   },
 ]
 
@@ -33,8 +33,8 @@ export function HowItWorks() {
             Um fluxo simples para estudar melhor
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            O StudyPro foi pensado para reduzir atrito, acelerar a prática e
-            transformar desempenho em plano de ação.
+            O MinhAprovação foi pensado para reduzir atrito, acelerar a prÃ¡tica e
+            transformar desempenho em plano de aÃ§Ã£o.
           </p>
         </div>
 

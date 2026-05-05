@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import type {
   GamificationAchievement,
@@ -11,7 +11,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
 
-export const GAMIFICATION_REFRESH_EVENT = "studypro:gamification-refresh"
+export const GAMIFICATION_REFRESH_EVENT = "MinhAprovação:gamification-refresh"
 
 export type PersistedGamificationChallenge = {
   id: string
@@ -45,7 +45,7 @@ export type GamificationChallengeMutationResponse = {
 
 function getStoredToken() {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("studypro_auth_token")
+  return localStorage.getItem("MinhAprovação_auth_token")
 }
 
 async function parseApiError(response: Response) {
@@ -62,14 +62,14 @@ async function parseApiError(response: Response) {
           if (item && typeof item === "object" && "msg" in item) {
             return String((item as { msg: string }).msg)
           }
-          return "Erro de validação."
+          return "Erro de validaÃ§Ã£o."
         })
         .join(" | ")
     }
 
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   } catch {
-    return "Erro na requisição."
+    return "Erro na requisiÃ§Ã£o."
   }
 }
 

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useState } from "react"
@@ -34,21 +34,21 @@ const navItems = [
 
 const painPoints = [
   {
-    title: "Você vê que errou, mas não entende o motivo",
+    title: "VocÃª vÃª que errou, mas nÃ£o entende o motivo",
     description:
-      "A nota aparece, mas o erro continua sem explicação prática para orientar a revisão.",
+      "A nota aparece, mas o erro continua sem explicaÃ§Ã£o prÃ¡tica para orientar a revisÃ£o.",
     icon: XCircle,
   },
   {
-    title: "Você estuda assuntos que talvez nem sejam prioridade",
+    title: "VocÃª estuda assuntos que talvez nem sejam prioridade",
     description:
-      "Sem diagnóstico claro, o tempo vai para conteúdos aleatórios em vez dos pontos fracos reais.",
+      "Sem diagnÃ³stico claro, o tempo vai para conteÃºdos aleatÃ³rios em vez dos pontos fracos reais.",
     icon: AlertTriangle,
   },
   {
-    title: "Você repete erros parecidos em outros simulados",
+    title: "VocÃª repete erros parecidos em outros simulados",
     description:
-      "Quando o erro não vira revisão, ele volta em novas questões com outra aparência.",
+      "Quando o erro nÃ£o vira revisÃ£o, ele volta em novas questÃµes com outra aparÃªncia.",
     icon: Flame,
   },
 ]
@@ -57,25 +57,25 @@ const solutionSteps = [
   {
     title: "Resolva",
     description:
-      "Faça provas oficiais, simulados prontos ou treinos rápidos com poucos cliques.",
+      "FaÃ§a provas oficiais, simulados prontos ou treinos rÃ¡pidos com poucos cliques.",
     icon: FileText,
   },
   {
     title: "Corrija",
     description:
-      "Veja acertos, erros, questões em branco e desempenho por disciplina.",
+      "Veja acertos, erros, questÃµes em branco e desempenho por disciplina.",
     icon: CheckCircle2,
   },
   {
     title: "Entenda",
     description:
-      "Nas questões erradas ou em branco, a IA explica o erro, o conceito cobrado e o raciocínio correto.",
+      "Nas questÃµes erradas ou em branco, a IA explica o erro, o conceito cobrado e o raciocÃ­nio correto.",
     icon: Brain,
   },
   {
     title: "Revise",
     description:
-      "Use o dashboard para transformar sua correção em próximos passos de estudo.",
+      "Use o dashboard para transformar sua correÃ§Ã£o em prÃ³ximos passos de estudo.",
     icon: LineChart,
   },
 ]
@@ -84,7 +84,7 @@ const features = [
   {
     title: "Provas oficiais",
     description:
-      "Resolva provas por exame e ano com correção organizada por questão.",
+      "Resolva provas por exame e ano com correÃ§Ã£o organizada por questÃ£o.",
     icon: GraduationCap,
   },
   {
@@ -96,23 +96,23 @@ const features = [
   {
     title: "Modo Treinar",
     description:
-      "Treinos rápidos com 1 clique para manter constância nos estudos.",
+      "Treinos rÃ¡pidos com 1 clique para manter constÃ¢ncia nos estudos.",
     icon: PlayCircle,
   },
   {
-    title: "Explicação por IA",
+    title: "ExplicaÃ§Ã£o por IA",
     description:
-      "Entenda questões erradas ou em branco com explicações individuais.",
+      "Entenda questÃµes erradas ou em branco com explicaÃ§Ãµes individuais.",
     icon: Sparkles,
   },
   {
     title: "Dashboard real",
     description:
-      "Acompanhe somente dados gerados pelas suas próprias atividades.",
+      "Acompanhe somente dados gerados pelas suas prÃ³prias atividades.",
     icon: BarChart3,
   },
   {
-    title: "Gamificação",
+    title: "GamificaÃ§Ã£o",
     description:
       "Use XP, streak e desafios para transformar estudo em rotina.",
     icon: Trophy,
@@ -120,86 +120,86 @@ const features = [
 ]
 
 const before = [
-  "Você apenas vê que errou.",
-  "Não sabe por que caiu na alternativa errada.",
-  "Não sabe qual conceito revisar.",
+  "VocÃª apenas vÃª que errou.",
+  "NÃ£o sabe por que caiu na alternativa errada.",
+  "NÃ£o sabe qual conceito revisar.",
   "Repete o mesmo erro em outro simulado.",
 ]
 
 const after = [
-  "Você vê o erro com contexto.",
-  "Entende o raciocínio correto.",
+  "VocÃª vÃª o erro com contexto.",
+  "Entende o raciocÃ­nio correto.",
   "Descobre o conceito cobrado.",
-  "Transforma a questão em revisão objetiva.",
+  "Transforma a questÃ£o em revisÃ£o objetiva.",
 ]
 
 const demoBlocks = [
   {
-    label: "Diagnóstico do erro",
-    text: "Você confundiu a interpretação do enunciado com o conceito realmente cobrado pela questão.",
+    label: "DiagnÃ³stico do erro",
+    text: "VocÃª confundiu a interpretaÃ§Ã£o do enunciado com o conceito realmente cobrado pela questÃ£o.",
   },
   {
     label: "Conceito central",
-    text: "A questão exige identificar a relação entre os dados apresentados e o comando final do enunciado.",
+    text: "A questÃ£o exige identificar a relaÃ§Ã£o entre os dados apresentados e o comando final do enunciado.",
   },
   {
     label: "Como resolver",
-    text: "Leia o comando, destaque as informações úteis, elimine alternativas incompatíveis e compare com o conceito cobrado.",
+    text: "Leia o comando, destaque as informaÃ§Ãµes Ãºteis, elimine alternativas incompatÃ­veis e compare com o conceito cobrado.",
   },
   {
     label: "Como revisar",
-    text: "Registre o tipo de erro e refaça questões semelhantes antes de avançar para outro tema.",
+    text: "Registre o tipo de erro e refaÃ§a questÃµes semelhantes antes de avanÃ§ar para outro tema.",
   },
 ]
 
 const audience = [
-  "Quem está se preparando para o ENEM.",
-  "Quem quer estudar por questões e provas.",
-  "Quem faz simulados, mas não sabe o que revisar depois.",
-  "Quem quer usar IA de forma prática, sem depender de prompts complexos.",
+  "Quem estÃ¡ se preparando para o ENEM.",
+  "Quem quer estudar por questÃµes e provas.",
+  "Quem faz simulados, mas nÃ£o sabe o que revisar depois.",
+  "Quem quer usar IA de forma prÃ¡tica, sem depender de prompts complexos.",
 ]
 
 const notFor = [
-  "Quem procura promessa de aprovação garantida.",
+  "Quem procura promessa de aprovaÃ§Ã£o garantida.",
   "Quem quer apenas acumular materiais sem praticar.",
-  "Quem não pretende revisar os próprios erros.",
+  "Quem nÃ£o pretende revisar os prÃ³prios erros.",
 ]
 
 const faqs = [
   {
-    question: "O StudyPro garante minha aprovação?",
+    question: "O MinhAprovação garante minha aprovaÃ§Ã£o?",
     answer:
-      "Não. Nenhuma plataforma séria deve prometer aprovação garantida. O StudyPro ajuda você a praticar, corrigir erros, entender dificuldades e estudar com mais direção.",
+      "NÃ£o. Nenhuma plataforma sÃ©ria deve prometer aprovaÃ§Ã£o garantida. O MinhAprovação ajuda vocÃª a praticar, corrigir erros, entender dificuldades e estudar com mais direÃ§Ã£o.",
   },
   {
     question: "O que a IA faz na plataforma?",
     answer:
-      "A IA ajuda a explicar questões erradas ou em branco, mostrando o conceito cobrado, o raciocínio correto e como revisar aquele tipo de erro.",
+      "A IA ajuda a explicar questÃµes erradas ou em branco, mostrando o conceito cobrado, o raciocÃ­nio correto e como revisar aquele tipo de erro.",
   },
   {
-    question: "Posso começar grátis?",
+    question: "Posso comeÃ§ar grÃ¡tis?",
     answer:
       "Sim. O plano Free permite conhecer a plataforma e usar recursos iniciais com limites.",
   },
   {
-    question: "Qual é a diferença do plano Pro?",
+    question: "Qual Ã© a diferenÃ§a do plano Pro?",
     answer:
-      "O plano Pro libera mais uso, mais liberdade de treino e recursos avançados para quem quer estudar com mais intensidade.",
+      "O plano Pro libera mais uso, mais liberdade de treino e recursos avanÃ§ados para quem quer estudar com mais intensidade.",
   },
   {
-    question: "Os dados do dashboard são reais?",
+    question: "Os dados do dashboard sÃ£o reais?",
     answer:
-      "Sim. O dashboard deve exibir apenas dados gerados pelas atividades do próprio usuário, como provas, simulados e treinos realizados.",
+      "Sim. O dashboard deve exibir apenas dados gerados pelas atividades do prÃ³prio usuÃ¡rio, como provas, simulados e treinos realizados.",
   },
   {
     question: "Preciso saber usar IA?",
     answer:
-      "Não. A IA aparece integrada na correção, principalmente nas questões que você errou ou deixou em branco.",
+      "NÃ£o. A IA aparece integrada na correÃ§Ã£o, principalmente nas questÃµes que vocÃª errou ou deixou em branco.",
   },
   {
     question: "Posso cancelar o Pro?",
     answer:
-      "Sim. O cancelamento deve seguir a política da plataforma, sem promessa de fidelidade forçada.",
+      "Sim. O cancelamento deve seguir a polÃ­tica da plataforma, sem promessa de fidelidade forÃ§ada.",
   },
 ]
 
@@ -260,10 +260,10 @@ function Header() {
 
             <div>
               <div className="text-base font-semibold tracking-tight text-white">
-                StudyPro
+                MinhAprovação
               </div>
               <div className="text-xs text-muted-foreground">
-                Estudo com IA e correção inteligente
+                Estudo com IA e correÃ§Ã£o inteligente
               </div>
             </div>
           </Link>
@@ -288,7 +288,7 @@ function Header() {
               Entrar
             </Link>
 
-            <PrimaryButton href="/register">Começar grátis</PrimaryButton>
+            <PrimaryButton href="/register">ComeÃ§ar grÃ¡tis</PrimaryButton>
           </div>
 
           <button
@@ -317,7 +317,7 @@ function Header() {
 
               <div className="mt-3 grid gap-3">
                 <SecondaryButton href="/login">Entrar</SecondaryButton>
-                <PrimaryButton href="/register">Começar grátis</PrimaryButton>
+                <PrimaryButton href="/register">ComeÃ§ar grÃ¡tis</PrimaryButton>
               </div>
             </nav>
           </div>
@@ -338,10 +338,10 @@ function HeroMockup() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-sm text-muted-foreground">
-                Correção inteligente
+                CorreÃ§Ã£o inteligente
               </p>
               <h2 className="mt-1 text-xl font-semibold text-white">
-                Questão de Matemática
+                QuestÃ£o de MatemÃ¡tica
               </h2>
             </div>
 
@@ -353,7 +353,7 @@ function HeroMockup() {
 
           <p className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-7 text-slate-200">
             Considerando o conceito cobrado no enunciado, qual alternativa
-            representa corretamente a relação entre os dados apresentados?
+            representa corretamente a relaÃ§Ã£o entre os dados apresentados?
           </p>
 
           <div className="mt-4 grid gap-2">
@@ -399,10 +399,10 @@ function HeroMockup() {
 
               <div>
                 <p className="text-sm font-semibold text-white">
-                  Explicação da IA
+                  ExplicaÃ§Ã£o da IA
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Gerada para esta questão
+                  Gerada para esta questÃ£o
                 </p>
               </div>
             </div>
@@ -427,7 +427,7 @@ function HeroMockup() {
       </div>
 
       <div className="absolute -bottom-5 left-6 hidden rounded-2xl border border-accent/20 bg-accent/10 px-4 py-3 text-sm text-accent md:block">
-        O erro vira explicação, e a explicação vira revisão.
+        O erro vira explicaÃ§Ã£o, e a explicaÃ§Ã£o vira revisÃ£o.
       </div>
     </div>
   )
@@ -446,31 +446,31 @@ function Hero() {
 
             <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-7xl">
               Entenda seus erros e estude com{" "}
-              <span className="text-gradient">direção.</span>
+              <span className="text-gradient">direÃ§Ã£o.</span>
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 md:text-xl">
-              Resolva provas, faça simulados e receba explicações por IA nas
-              questões que você errou ou deixou em branco. O StudyPro mostra o
+              Resolva provas, faÃ§a simulados e receba explicaÃ§Ãµes por IA nas
+              questÃµes que vocÃª errou ou deixou em branco. O MinhAprovação mostra o
               que revisar sem prometer atalhos irreais.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <PrimaryButton href="/register">Começar grátis</PrimaryButton>
+              <PrimaryButton href="/register">ComeÃ§ar grÃ¡tis</PrimaryButton>
               <SecondaryButton href="#como-funciona">
                 Ver como funciona
               </SecondaryButton>
             </div>
 
             <p className="mt-5 max-w-xl text-sm leading-7 text-slate-400">
-              Sem promessa falsa de aprovação. Apenas prática, correção,
-              explicação dos erros e dados reais da sua jornada.
+              Sem promessa falsa de aprovaÃ§Ã£o. Apenas prÃ¡tica, correÃ§Ã£o,
+              explicaÃ§Ã£o dos erros e dados reais da sua jornada.
             </p>
 
             <div className="mt-10 grid gap-3 sm:grid-cols-3">
               {[
                 "Provas e simulados",
-                "Explicação por IA",
+                "ExplicaÃ§Ã£o por IA",
                 "Dashboard real",
               ].map((item) => (
                 <div
@@ -499,11 +499,11 @@ function Problem() {
           <SectionBadge>O problema</SectionBadge>
 
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Fazer questões sem entender os erros não é estratégia.
+            Fazer questÃµes sem entender os erros nÃ£o Ã© estratÃ©gia.
           </h2>
 
           <p className="mt-4 text-lg leading-8 text-slate-300">
-            A correção precisa virar diagnóstico. Caso contrário, o aluno apenas
+            A correÃ§Ã£o precisa virar diagnÃ³stico. Caso contrÃ¡rio, o aluno apenas
             acumula tentativas sem saber o que revisar.
           </p>
         </div>
@@ -547,12 +547,12 @@ function Solution() {
           <SectionBadge>Como funciona</SectionBadge>
 
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            O StudyPro transforma sua correção em direção de estudo.
+            O MinhAprovação transforma sua correÃ§Ã£o em direÃ§Ã£o de estudo.
           </h2>
 
           <p className="mt-4 text-lg leading-8 text-slate-300">
-            O fluxo foi pensado para tirar o aluno do “acertei ou errei” e
-            levar para “o que eu preciso revisar agora?”.
+            O fluxo foi pensado para tirar o aluno do â€œacertei ou erreiâ€ e
+            levar para â€œo que eu preciso revisar agora?â€.
           </p>
         </div>
 
@@ -597,8 +597,8 @@ function Differential() {
           <SectionBadge>Diferencial</SectionBadge>
 
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Não é só correção.{" "}
-            <span className="text-gradient">É explicação do erro.</span>
+            NÃ£o Ã© sÃ³ correÃ§Ã£o.{" "}
+            <span className="text-gradient">Ã‰ explicaÃ§Ã£o do erro.</span>
           </h2>
         </div>
 
@@ -607,7 +607,7 @@ function Differential() {
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-rose-500/70 to-transparent" />
 
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-rose-300">
-              Antes do StudyPro
+              Antes do MinhAprovação
             </p>
 
             <ul className="mt-6 space-y-4">
@@ -626,7 +626,7 @@ function Differential() {
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
 
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">
-              Com o StudyPro
+              Com o MinhAprovação
             </p>
 
             <ul className="mt-6 space-y-4">
@@ -654,12 +654,12 @@ function Features() {
           <SectionBadge>Recursos</SectionBadge>
 
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Tudo que você precisa para estudar com foco.
+            Tudo que vocÃª precisa para estudar com foco.
           </h2>
 
           <p className="mt-4 text-lg leading-8 text-slate-300">
-            O StudyPro une prática, correção, IA explicativa e acompanhamento de
-            evolução em uma experiência direta.
+            O MinhAprovação une prÃ¡tica, correÃ§Ã£o, IA explicativa e acompanhamento de
+            evoluÃ§Ã£o em uma experiÃªncia direta.
           </p>
         </div>
 
@@ -699,15 +699,15 @@ function Demo() {
 
       <div className="container-shell">
         <div className="max-w-3xl">
-          <SectionBadge>Demonstração</SectionBadge>
+          <SectionBadge>DemonstraÃ§Ã£o</SectionBadge>
 
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Veja a explicação por IA em ação.
+            Veja a explicaÃ§Ã£o por IA em aÃ§Ã£o.
           </h2>
 
           <p className="mt-4 text-lg leading-8 text-slate-300">
-            Quando você erra ou deixa em branco, o StudyPro abre o erro em
-            camadas e mostra o caminho da próxima revisão.
+            Quando vocÃª erra ou deixa em branco, o MinhAprovação abre o erro em
+            camadas e mostra o caminho da prÃ³xima revisÃ£o.
           </p>
         </div>
 
@@ -715,7 +715,7 @@ function Demo() {
           <article className="glass-panel rounded-[28px] p-6">
             <div className="flex items-center justify-between gap-4">
               <span className="text-sm text-muted-foreground">
-                Questão · Ciências da Natureza
+                QuestÃ£o Â· CiÃªncias da Natureza
               </span>
 
               <span className="inline-flex items-center gap-2 rounded-full border border-rose-500/30 bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-300">
@@ -725,14 +725,14 @@ function Demo() {
             </div>
 
             <p className="mt-5 text-base leading-8 text-slate-200">
-              Uma questão apresenta dados, alternativas próximas e um comando
-              específico. O aluno marca uma alternativa plausível, mas que não
+              Uma questÃ£o apresenta dados, alternativas prÃ³ximas e um comando
+              especÃ­fico. O aluno marca uma alternativa plausÃ­vel, mas que nÃ£o
               responde exatamente ao conceito pedido.
             </p>
 
             <div className="mt-5 grid gap-2">
               {[
-                { letter: "A", text: "Alternativa incompatível" },
+                { letter: "A", text: "Alternativa incompatÃ­vel" },
                 { letter: "B", text: "Sua resposta", wrong: true },
                 { letter: "C", text: "Alternativa incompleta" },
                 { letter: "D", text: "Gabarito correto", right: true },
@@ -764,9 +764,9 @@ function Demo() {
               </div>
 
               <div>
-                <p className="font-semibold text-white">Explicação da IA</p>
+                <p className="font-semibold text-white">ExplicaÃ§Ã£o da IA</p>
                 <p className="text-xs text-muted-foreground">
-                  Gerada para esta questão
+                  Gerada para esta questÃ£o
                 </p>
               </div>
             </div>
@@ -799,10 +799,10 @@ function ForWho() {
       <div className="container-shell">
         <div className="grid gap-5 lg:grid-cols-2">
           <article className="rounded-[32px] border border-white/10 bg-card/70 p-7">
-            <SectionBadge>Para quem é</SectionBadge>
+            <SectionBadge>Para quem Ã©</SectionBadge>
 
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Criado para quem quer estudar por prática e revisão.
+              Criado para quem quer estudar por prÃ¡tica e revisÃ£o.
             </h2>
 
             <div className="mt-8 space-y-4">
@@ -816,10 +816,10 @@ function ForWho() {
           </article>
 
           <article className="rounded-[32px] border border-white/10 bg-card/70 p-7">
-            <SectionBadge>Talvez não seja para você</SectionBadge>
+            <SectionBadge>Talvez nÃ£o seja para vocÃª</SectionBadge>
 
             <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Transparência também faz parte do produto.
+              TransparÃªncia tambÃ©m faz parte do produto.
             </h2>
 
             <div className="mt-8 space-y-4">
@@ -845,12 +845,12 @@ function Pricing() {
           <SectionBadge>Planos</SectionBadge>
 
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Comece grátis. Evolua quando precisar de mais intensidade.
+            Comece grÃ¡tis. Evolua quando precisar de mais intensidade.
           </h2>
 
           <p className="mt-4 text-lg leading-8 text-slate-300">
-            A landing não usa métricas falsas nem promessas irreais. O valor
-            está na prática, correção e explicação dos seus erros.
+            A landing nÃ£o usa mÃ©tricas falsas nem promessas irreais. O valor
+            estÃ¡ na prÃ¡tica, correÃ§Ã£o e explicaÃ§Ã£o dos seus erros.
           </p>
         </div>
 
@@ -861,7 +861,7 @@ function Pricing() {
             </p>
 
             <h3 className="mt-4 text-3xl font-bold text-white">
-              Para começar agora
+              Para comeÃ§ar agora
             </h3>
 
             <p className="mt-3 text-sm leading-7 text-slate-400">
@@ -871,10 +871,10 @@ function Pricing() {
 
             <ul className="mt-7 space-y-4 text-sm text-slate-300">
               {[
-                "Acesso inicial à plataforma",
+                "Acesso inicial Ã  plataforma",
                 "Treinos e simulados com limite",
-                "Correção automática",
-                "Visualização básica de desempenho",
+                "CorreÃ§Ã£o automÃ¡tica",
+                "VisualizaÃ§Ã£o bÃ¡sica de desempenho",
               ].map((item) => (
                 <li key={item} className="flex gap-3">
                   <Check className="mt-0.5 size-4 shrink-0 text-accent" />
@@ -884,7 +884,7 @@ function Pricing() {
             </ul>
 
             <div className="mt-8">
-              <SecondaryButton href="/register">Começar grátis</SecondaryButton>
+              <SecondaryButton href="/register">ComeÃ§ar grÃ¡tis</SecondaryButton>
             </div>
           </article>
 
@@ -902,16 +902,16 @@ function Pricing() {
             </h3>
 
             <p className="mt-3 text-sm leading-7 text-slate-200">
-              Pensado para quem quer mais volume de prática, mais explicações e
-              uma experiência de estudo mais intensa.
+              Pensado para quem quer mais volume de prÃ¡tica, mais explicaÃ§Ãµes e
+              uma experiÃªncia de estudo mais intensa.
             </p>
 
             <ul className="mt-7 space-y-4 text-sm text-slate-100">
               {[
                 "Mais uso de simulados e treinos",
-                "Explicações por IA ampliadas",
-                "Dashboard de evolução",
-                "Recursos avançados conforme expansão da plataforma",
+                "ExplicaÃ§Ãµes por IA ampliadas",
+                "Dashboard de evoluÃ§Ã£o",
+                "Recursos avanÃ§ados conforme expansÃ£o da plataforma",
               ].map((item) => (
                 <li key={item} className="flex gap-3">
                   <Check className="mt-0.5 size-4 shrink-0 text-accent" />
@@ -991,16 +991,16 @@ function FinalCta() {
           <SectionBadge>Comece pelo que mais importa</SectionBadge>
 
           <h2 className="mx-auto mt-5 max-w-4xl text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Transforme sua próxima questão errada em uma revisão objetiva.
+            Transforme sua prÃ³xima questÃ£o errada em uma revisÃ£o objetiva.
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            Resolva uma prova, faça um treino ou gere um simulado. O StudyPro
-            ajuda você a transformar a correção em próximo passo.
+            Resolva uma prova, faÃ§a um treino ou gere um simulado. O MinhAprovação
+            ajuda vocÃª a transformar a correÃ§Ã£o em prÃ³ximo passo.
           </p>
 
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <PrimaryButton href="/register">Começar grátis</PrimaryButton>
+            <PrimaryButton href="/register">ComeÃ§ar grÃ¡tis</PrimaryButton>
             <SecondaryButton href="/pricing">Ver planos</SecondaryButton>
           </div>
         </div>
@@ -1021,16 +1021,16 @@ function Footer() {
               </div>
 
               <div>
-                <p className="font-semibold text-white">StudyPro</p>
+                <p className="font-semibold text-white">MinhAprovação</p>
                 <p className="text-sm text-muted-foreground">
-                  Estudo com IA e correção inteligente.
+                  Estudo com IA e correÃ§Ã£o inteligente.
                 </p>
               </div>
             </div>
 
             <p className="mt-4 max-w-xl text-sm leading-7 text-slate-500">
-              StudyPro é uma plataforma independente de estudos. Não garante
-              aprovação e não substitui dedicação, planejamento e prática
+              MinhAprovação Ã© uma plataforma independente de estudos. NÃ£o garante
+              aprovaÃ§Ã£o e nÃ£o substitui dedicaÃ§Ã£o, planejamento e prÃ¡tica
               constante.
             </p>
           </div>
@@ -1055,7 +1055,7 @@ function Footer() {
   )
 }
 
-export function StudyProLanding() {
+export function MinhAprovaçãoLanding() {
   return (
     <main className="min-h-screen overflow-hidden">
       <Header />

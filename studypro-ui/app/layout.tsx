@@ -1,10 +1,10 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 import { Analytics } from "@vercel/analytics/next"
 
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "StudyPro - Conquiste sua vaga",
+  title: "MinhAprovação - Conquiste sua vaga",
   description:
     "Pratique com ENEM e vestibulares, acompanhe seu desempenho e evolua com feedback inteligente.",
   generator: "Next.js",

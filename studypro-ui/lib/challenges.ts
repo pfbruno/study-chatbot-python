@@ -1,7 +1,7 @@
-"use client"
+﻿"use client"
 
 import type { GamificationProfile } from "@/lib/api"
-import type { StudyProgressSnapshot } from "@/lib/study-progress"
+import type { MinhAprovaçãogressSnapshot } from "@/lib/study-progress"
 
 export type ChallengeStatus =
   | "active"
@@ -35,8 +35,8 @@ export type LocalChallengeState = {
   updatedAt: string | null
 }
 
-export const LOCAL_CHALLENGE_STATE_KEY = "studypro_local_challenge_state_v1"
-export const STUDY_CHALLENGES_UPDATED_EVENT = "studypro:challenges-updated"
+export const LOCAL_CHALLENGE_STATE_KEY = "MinhAprovação_local_challenge_state_v1"
+export const STUDY_CHALLENGES_UPDATED_EVENT = "MinhAprovação:challenges-updated"
 
 const EMPTY_STATE: LocalChallengeState = {
   trackedChallengeId: null,
@@ -109,29 +109,29 @@ export function setTrackedChallenge(challengeId: string | null) {
   return updateState(next)
 }
 
-function baseDefinitions(progress: StudyProgressSnapshot) {
+function baseDefinitions(progress: MinhAprovaçãogressSnapshot) {
   const questions = progress.totalAnsweredQuestions
   const simulations = progress.totalCompletedSimulations
 
   return [
     {
       id: "daily-questions-20",
-      title: "Sprint de 20 questões",
+      title: "Sprint de 20 questÃµes",
       description:
-        "Resolva 20 questões em simulados para começar a subir seu volume de treino.",
+        "Resolva 20 questÃµes em simulados para comeÃ§ar a subir seu volume de treino.",
       type: "daily" as const,
       difficulty: "easy" as const,
       progress: questions,
       target: 20,
       xpReward: 90,
-      rewardLabel: "Bônus de consistência",
+      rewardLabel: "BÃ´nus de consistÃªncia",
       icon: "target" as const,
     },
     {
       id: "weekly-questions-50",
-      title: "Volume de 50 questões",
+      title: "Volume de 50 questÃµes",
       description:
-        "Acumule 50 respostas em simulados para consolidar ritmo de resolução.",
+        "Acumule 50 respostas em simulados para consolidar ritmo de resoluÃ§Ã£o.",
       type: "weekly" as const,
       difficulty: "medium" as const,
       progress: questions,
@@ -142,9 +142,9 @@ function baseDefinitions(progress: StudyProgressSnapshot) {
     },
     {
       id: "weekly-simulado-1",
-      title: "Primeiro simulado concluído",
+      title: "Primeiro simulado concluÃ­do",
       description:
-        "Finalize um simulado completo para registrar histórico e desempenho.",
+        "Finalize um simulado completo para registrar histÃ³rico e desempenho.",
       type: "weekly" as const,
       difficulty: "easy" as const,
       progress: simulations,
@@ -157,33 +157,33 @@ function baseDefinitions(progress: StudyProgressSnapshot) {
       id: "weekly-simulado-3",
       title: "Trilogia de simulados",
       description:
-        "Conclua 3 simulados para construir regularidade e base estatística de desempenho.",
+        "Conclua 3 simulados para construir regularidade e base estatÃ­stica de desempenho.",
       type: "weekly" as const,
       difficulty: "medium" as const,
       progress: simulations,
       target: 3,
       xpReward: 260,
-      rewardLabel: "Selo de persistência",
+      rewardLabel: "Selo de persistÃªncia",
       icon: "flame" as const,
     },
     {
       id: "special-simulado-5",
       title: "Maratona de simulados",
       description:
-        "Chegue a 5 simulados concluídos e entre na zona alta da progressão gamificada.",
+        "Chegue a 5 simulados concluÃ­dos e entre na zona alta da progressÃ£o gamificada.",
       type: "special" as const,
       difficulty: "hard" as const,
       progress: simulations,
       target: 5,
       xpReward: 420,
-      rewardLabel: "Baú premium",
+      rewardLabel: "BaÃº premium",
       icon: "trophy" as const,
     },
     {
       id: "special-questions-100",
       title: "Centena resolvida",
       description:
-        "Resolva 100 questões em simulados para desbloquear um marco de volume avançado.",
+        "Resolva 100 questÃµes em simulados para desbloquear um marco de volume avanÃ§ado.",
       type: "special" as const,
       difficulty: "hard" as const,
       progress: questions,
@@ -196,7 +196,7 @@ function baseDefinitions(progress: StudyProgressSnapshot) {
 }
 
 export function buildChallengeCatalog(
-  progress: StudyProgressSnapshot,
+  progress: MinhAprovaçãogressSnapshot,
   state: LocalChallengeState = getChallengeState()
 ): ChallengeItem[] {
   return baseDefinitions(progress).map((item) => {
@@ -223,7 +223,7 @@ export function buildChallengeCatalog(
 
 export function claimChallengeReward(
   challengeId: string,
-  progress: StudyProgressSnapshot
+  progress: MinhAprovaçãogressSnapshot
 ) {
   const current = getChallengeState()
   const challenge = buildChallengeCatalog(progress, current).find(
@@ -233,7 +233,7 @@ export function claimChallengeReward(
   if (!challenge) {
     return {
       success: false,
-      message: "Desafio não encontrado.",
+      message: "Desafio nÃ£o encontrado.",
       challenge: null,
       state: current,
     }
@@ -242,7 +242,7 @@ export function claimChallengeReward(
   if (challenge.status === "claimed") {
     return {
       success: false,
-      message: "Este desafio já foi resgatado.",
+      message: "Este desafio jÃ¡ foi resgatado.",
       challenge,
       state: current,
     }
@@ -251,7 +251,7 @@ export function claimChallengeReward(
   if (challenge.status !== "ready_to_claim") {
     return {
       success: false,
-      message: "Este desafio ainda não está pronto para resgate.",
+      message: "Este desafio ainda nÃ£o estÃ¡ pronto para resgate.",
       challenge,
       state: current,
     }

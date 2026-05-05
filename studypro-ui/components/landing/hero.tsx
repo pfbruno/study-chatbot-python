@@ -1,4 +1,4 @@
-import Link from "next/link"
+﻿import Link from "next/link"
 import { ArrowRight, BookOpen, Brain, ShieldCheck, Zap } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -6,9 +6,9 @@ import { Badge } from "@/components/ui/badge"
 
 const stats = [
   { icon: BookOpen, value: "Provas oficiais", label: "por exame e ano" },
-  { icon: Brain, value: "Questões", label: "para prática e revisão" },
-  { icon: ShieldCheck, value: "Plano Free", label: "para começar agora" },
-  { icon: Zap, value: "Fluxo rápido", label: "do treino à correção" },
+  { icon: Brain, value: "QuestÃµes", label: "para prÃ¡tica e revisÃ£o" },
+  { icon: ShieldCheck, value: "Plano Free", label: "para comeÃ§ar agora" },
+  { icon: Zap, value: "Fluxo rÃ¡pido", label: "do treino Ã  correÃ§Ã£o" },
 ]
 
 export function Hero() {
@@ -33,8 +33,8 @@ export function Hero() {
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
               Resolva provas e simulados, acompanhe seu desempenho, identifique
-              pontos fracos e transforme prática em evolução com uma plataforma
-              feita para estudo consistente e tomada de decisão rápida.
+              pontos fracos e transforme prÃ¡tica em evoluÃ§Ã£o com uma plataforma
+              feita para estudo consistente e tomada de decisÃ£o rÃ¡pida.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -44,7 +44,7 @@ export function Hero() {
                 className="rounded-2xl px-6 text-sm font-semibold shadow-[0_16px_50px_-18px_rgba(59,130,246,0.85)]"
               >
                 <Link href="/register">
-                  Criar conta grátis
+                  Criar conta grÃ¡tis
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -60,10 +60,10 @@ export function Hero() {
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-slate-400">
-              <span>Sem cartão para começar</span>
-              <span>•</span>
-              <span>Plano Free disponível</span>
-              <span>•</span>
+              <span>Sem cartÃ£o para comeÃ§ar</span>
+              <span>â€¢</span>
+              <span>Plano Free disponÃ­vel</span>
+              <span>â€¢</span>
               <span>Upgrade quando quiser</span>
             </div>
 
@@ -102,7 +102,7 @@ export function Hero() {
                   <div>
                     <p className="text-sm text-muted-foreground">Painel do aluno</p>
                     <h2 className="mt-1 text-xl font-semibold text-white">
-                      Visão consolidada de desempenho
+                      VisÃ£o consolidada de desempenho
                     </h2>
                   </div>
                   <div className="rounded-full bg-accent/15 px-3 py-1 text-xs font-medium text-accent">
@@ -113,7 +113,7 @@ export function Hero() {
                 <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <p className="text-sm text-muted-foreground">Aproveitamento</p>
-                    <p className="mt-3 text-3xl font-bold text-white">Seu histórico</p>
+                    <p className="mt-3 text-3xl font-bold text-white">Seu histÃ³rico</p>
                     <p className="mt-2 text-sm text-emerald-300">
                       leitura clara por prova e disciplina
                     </p>
@@ -123,7 +123,7 @@ export function Hero() {
                     <p className="text-sm text-muted-foreground">Simulados</p>
                     <p className="mt-3 text-3xl font-bold text-white">Seu ritmo</p>
                     <p className="mt-2 text-sm text-sky-300">
-                      treino contínuo com correção automática
+                      treino contÃ­nuo com correÃ§Ã£o automÃ¡tica
                     </p>
                   </div>
                 </div>
@@ -134,12 +134,12 @@ export function Hero() {
                     <span className="text-sm font-medium text-primary">Hoje</span>
                   </div>
                   <p className="mt-3 text-base text-white">
-                    Priorize os pontos em que você mais erra e use o StudyPro
-                    para transformar erros recentes em revisão prática.
+                    Priorize os pontos em que vocÃª mais erra e use o MinhAprovação
+                    para transformar erros recentes em revisÃ£o prÃ¡tica.
                   </p>
 
                   <div className="mt-5 grid grid-cols-3 gap-3">
-                    {["Matemática", "Linguagens", "Humanas"].map((item) => (
+                    {["MatemÃ¡tica", "Linguagens", "Humanas"].map((item) => (
                       <div
                         key={item}
                         className="rounded-xl border border-white/10 bg-slate-900/80 px-3 py-3 text-center text-sm text-slate-300"
@@ -153,7 +153,7 @@ export function Hero() {
             </div>
 
             <div className="absolute -bottom-4 -left-4 hidden rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary md:block">
-              Prática, leitura de desempenho e próximos passos em uma única experiência
+              PrÃ¡tica, leitura de desempenho e prÃ³ximos passos em uma Ãºnica experiÃªncia
             </div>
           </div>
         </div>

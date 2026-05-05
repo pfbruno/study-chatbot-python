@@ -1,19 +1,19 @@
-import type { Metadata } from "next"
+﻿import type { Metadata } from "next"
 
-import { StudyProLanding } from "@/components/landing/studypro-landing"
+import { MinhAprovaçãoLanding } from "@/components/landing/MinhAprovação-landing"
 
 export const metadata: Metadata = {
-  title: "StudyPro — Entenda seus erros e estude com direção",
+  title: "MinhAprovação â€” Entenda seus erros e estude com direÃ§Ã£o",
   description:
-    "Plataforma de estudos com IA para ENEM. Resolva provas, faça simulados e receba explicações por IA nas questões que você errou ou deixou em branco.",
+    "Plataforma de estudos com IA para ENEM. Resolva provas, faÃ§a simulados e receba explicaÃ§Ãµes por IA nas questÃµes que vocÃª errou ou deixou em branco.",
   openGraph: {
-    title: "StudyPro — Entenda seus erros e estude com direção",
+    title: "MinhAprovação â€” Entenda seus erros e estude com direÃ§Ã£o",
     description:
-      "Transforme cada correção em direção de estudo. Provas oficiais, simulados, IA explicativa e dashboard de evolução.",
+      "Transforme cada correÃ§Ã£o em direÃ§Ã£o de estudo. Provas oficiais, simulados, IA explicativa e dashboard de evoluÃ§Ã£o.",
     type: "website",
   },
 }
 
 export default function Home() {
-  return <StudyProLanding />
+  return <MinhAprovaçãoLanding />
 }

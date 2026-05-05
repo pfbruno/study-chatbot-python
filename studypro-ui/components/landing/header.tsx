@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useState } from "react"
@@ -25,7 +25,7 @@ export function Header() {
             </div>
             <div className="flex flex-col">
               <span className="text-base font-semibold tracking-tight text-white">
-                StudyPro
+                MinhAprovação
               </span>
               <span className="text-xs text-muted-foreground">
                 Plataforma inteligente de estudos

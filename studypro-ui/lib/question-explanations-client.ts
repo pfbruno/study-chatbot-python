@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -46,7 +46,7 @@ export type QuestionExplanationItem = {
 
 function getStoredToken() {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("studypro_auth_token")
+  return localStorage.getItem("MinhAprovação_auth_token")
 }
 
 async function parseApiError(response: Response): Promise<string> {
@@ -56,9 +56,9 @@ async function parseApiError(response: Response): Promise<string> {
     if (typeof data?.detail === "string") return data.detail
     if (typeof data?.message === "string") return data.message
 
-    return "Erro ao gerar explicação."
+    return "Erro ao gerar explicaÃ§Ã£o."
   } catch {
-    return "Erro ao gerar explicação."
+    return "Erro ao gerar explicaÃ§Ã£o."
   }
 }
 
@@ -70,7 +70,7 @@ export async function generateQuestionExplanation(
     typeof token === "undefined" ? getStoredToken() : token ?? null
 
   if (!resolvedToken) {
-    throw new Error("Sessão não encontrada. Faça login para gerar explicações.")
+    throw new Error("SessÃ£o nÃ£o encontrada. FaÃ§a login para gerar explicaÃ§Ãµes.")
   }
 
   const response = await fetch(`${API_URL}/question-explanations/generate`, {
@@ -101,7 +101,7 @@ export async function listQuestionExplanationsByAttempt(
     typeof token === "undefined" ? getStoredToken() : token ?? null
 
   if (!resolvedToken) {
-    throw new Error("Sessão não encontrada.")
+    throw new Error("SessÃ£o nÃ£o encontrada.")
   }
 
   const response = await fetch(
