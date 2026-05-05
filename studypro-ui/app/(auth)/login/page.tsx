@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { FormEvent, ReactNode, Suspense, useMemo, useState } from "react"
-import { BookOpen, Lock, Mail } from "lucide-react"
+import { BookOpen, Lock, Mail, Send } from "lucide-react"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -14,7 +14,14 @@ const AUTH_USER_KEY = "studypro_auth_user"
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<AuthFallback title="Entrar na sua conta" description="Carregando página de login..." />}>
+    <Suspense
+      fallback={
+        <AuthFallback
+          title="Entrar na sua conta"
+          description="Carregando página de login..."
+        />
+      }
+    >
       <LoginPageContent />
     </Suspense>
   )
@@ -24,17 +31,27 @@ function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const redirectTo = useMemo(() => searchParams.get("redirect") || "/dashboard", [searchParams])
+  const redirectTo = useMemo(
+    () => searchParams.get("redirect") || "/dashboard",
+    [searchParams]
+  )
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isResending, setIsResending] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
+  const [resendMessage, setResendMessage] = useState("")
+
+  const canResendVerification =
+    errorMessage.toLowerCase().includes("e-mail ainda não foi confirmado") ||
+    errorMessage.toLowerCase().includes("email ainda não foi confirmado")
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setIsSubmitting(true)
     setErrorMessage("")
+    setResendMessage("")
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -44,7 +61,9 @@ function LoginPageContent() {
       })
 
       if (!response.ok) {
-        throw new Error((await safeReadError(response)) || "Não foi possível realizar o login.")
+        throw new Error(
+          (await safeReadError(response)) || "Não foi possível realizar o login."
+        )
       }
 
       const data = await response.json()
@@ -52,9 +71,48 @@ function LoginPageContent() {
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user))
       router.push(redirectTo)
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Erro inesperado ao realizar login.")
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao realizar login."
+      )
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  async function handleResendVerification() {
+    setIsResending(true)
+    setResendMessage("")
+    setErrorMessage("")
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          (await safeReadError(response)) ||
+            "Não foi possível reenviar o e-mail de confirmação."
+        )
+      }
+
+      const data = await response.json()
+      setResendMessage(
+        data?.message ||
+          "E-mail de confirmação reenviado. Verifique sua caixa de entrada."
+      )
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Erro inesperado ao reenviar e-mail de confirmação."
+      )
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -63,28 +121,37 @@ function LoginPageContent() {
       <div className="grid min-h-screen lg:grid-cols-2">
         <aside className="relative hidden overflow-hidden border-r border-white/10 lg:flex">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-transparent to-cyan-500/20" />
-          <div className="absolute -top-20 -left-20 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
+          <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
           <div className="absolute bottom-10 right-10 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
+
           <div className="relative z-10 m-auto max-w-lg space-y-6 px-10">
             <Link href="/" className="inline-flex items-center gap-2 text-emerald-300">
               <BookOpen className="h-6 w-6" />
               <span className="text-xl font-semibold">MinhAprovação</span>
             </Link>
+
             <h1 className="text-4xl font-semibold leading-tight">
               Volte para a plataforma e acompanhe seu progresso com mais clareza.
             </h1>
+
             <p className="text-neutral-300">
-              Simulados, histórico e evolução reunidos em uma experiência SaaS moderna,
-              sem métricas infladas e com foco real no estudo.
+              Simulados, histórico e evolução reunidos em uma experiência SaaS
+              moderna, sem métricas infladas e com foco real no estudo.
             </p>
+
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
                 { label: "Provas", value: "Oficiais" },
                 { label: "Plano", value: "Free + Pro" },
                 { label: "Foco", value: "Desempenho" },
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-lg font-semibold text-emerald-300">{item.value}</p>
+                <div
+                  key={item.label}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4"
+                >
+                  <p className="text-lg font-semibold text-emerald-300">
+                    {item.value}
+                  </p>
                   <p className="text-xs text-neutral-300">{item.label}</p>
                 </div>
               ))}
@@ -95,21 +162,66 @@ function LoginPageContent() {
         <section className="flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30">
             <h2 className="text-2xl font-semibold">Entrar</h2>
+
             <p className="mt-2 text-sm text-neutral-400">
-              Não tem conta? <Link href="/register" className="text-emerald-300">Criar agora</Link>
+              Não tem conta?{" "}
+              <Link href="/register" className="text-emerald-300">
+                Criar agora
+              </Link>
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <Field icon={<Mail className="h-4 w-4 text-neutral-400" />}>
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" className={inputClassName} />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="seu@email.com"
+                  className={inputClassName}
+                />
               </Field>
+
               <Field icon={<Lock className="h-4 w-4 text-neutral-400" />}>
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" className={inputClassName} />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Sua senha"
+                  className={inputClassName}
+                />
               </Field>
 
-              {errorMessage ? <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">{errorMessage}</div> : null}
+              {errorMessage ? (
+                <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">
+                  {errorMessage}
 
-              <button type="submit" disabled={isSubmitting} className="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-black hover:brightness-95 disabled:opacity-60">
+                  {canResendVerification ? (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={isResending || !email || !password}
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Send className="h-3.5 w-3.5" />
+                      {isResending ? "Reenviando..." : "Reenviar confirmação"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {resendMessage ? (
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                  {resendMessage}
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-black hover:brightness-95 disabled:opacity-60"
+              >
                 {isSubmitting ? "Entrando..." : "Entrar"}
               </button>
             </form>
@@ -123,13 +235,21 @@ function LoginPageContent() {
 function Field({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">{icon}</span>
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+        {icon}
+      </span>
       {children}
     </div>
   )
 }
 
-function AuthFallback({ title, description }: { title: string; description: string }) {
+function AuthFallback({
+  title,
+  description,
+}: {
+  title: string
+  description: string
+}) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-6 text-white">
       <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8">
@@ -141,21 +261,26 @@ function AuthFallback({ title, description }: { title: string; description: stri
 }
 
 const inputClassName =
-  "w-full rounded-xl border border-white/10 bg-neutral-950 py-3 pr-4 pl-10 text-sm text-white outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20"
+  "w-full rounded-xl border border-white/10 bg-neutral-950 py-3 pl-10 pr-4 text-sm text-white outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20"
 
 async function safeReadError(response: Response): Promise<string> {
   try {
     const data = await response.json()
+
     if (typeof data?.detail === "string") return data.detail
+
     if (Array.isArray(data?.detail)) {
       return data.detail
         .map((item: unknown) => {
           if (typeof item === "string") return item
-          if (item && typeof item === "object" && "msg" in item) return String((item as { msg: string }).msg)
+          if (item && typeof item === "object" && "msg" in item) {
+            return String((item as { msg: string }).msg)
+          }
           return "Erro de validação."
         })
         .join(" | ")
     }
+
     return "Erro na requisição."
   } catch {
     return "Erro na requisição."
