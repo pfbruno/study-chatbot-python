@@ -83,9 +83,9 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
 
-const ACTIVE_SIMULATION_KEY = "MinhAprovação_active_simulation"
-const ACTIVE_SIMULATION_ANSWERS_KEY = "MinhAprovação_active_simulation_answers"
-const LAST_SIMULATION_RESULT_KEY = "MinhAprovação_last_simulation_result"
+const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
+const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
+const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
 const OPTION_ORDER = ["A", "B", "C", "D", "E"] as const
 
 export default function ResolverSimuladoPage() {
@@ -103,7 +103,7 @@ export default function ResolverSimuladoPage() {
       const rawSimulation = sessionStorage.getItem(ACTIVE_SIMULATION_KEY)
 
       if (!rawSimulation) {
-        setLoadError("Nenhum simulado ativo foi encontrado nesta sessÃ£o.")
+        setLoadError("Nenhum simulado ativo foi encontrado nesta sessão.")
         return
       }
 
@@ -116,7 +116,7 @@ export default function ResolverSimuladoPage() {
         setAnswers(parsedAnswers)
       }
     } catch {
-      setLoadError("NÃ£o foi possÃ­vel carregar o simulado salvo localmente.")
+      setLoadError("Não foi possível carregar o simulado salvo localmente.")
     }
   }, [])
 
@@ -167,7 +167,7 @@ export default function ResolverSimuladoPage() {
     if (!simulation) return
 
     const confirmed = window.confirm(
-      "Deseja finalizar o simulado e enviar para correÃ§Ã£o?"
+      "Deseja finalizar o simulado e enviar para correção?"
     )
 
     if (!confirmed) return
@@ -176,7 +176,7 @@ export default function ResolverSimuladoPage() {
     setSubmitError("")
 
     try {
-      const token = localStorage.getItem("MinhAprovação_auth_token")
+      const token = localStorage.getItem("studypro_auth_token")
 
       const payload =
         simulationSource === "library"
@@ -217,7 +217,7 @@ export default function ResolverSimuladoPage() {
 
       if (!response.ok) {
         const errorMessage = await safeReadError(response)
-        throw new Error(errorMessage || "NÃ£o foi possÃ­vel corrigir o simulado.")
+        throw new Error(errorMessage || "Não foi possível corrigir o simulado.")
       }
 
       const result = (await response.json()) as SimulationSubmissionResponse
@@ -249,7 +249,7 @@ export default function ResolverSimuladoPage() {
   if (loadError) {
     return (
       <div className="rounded-[28px] border border-white/10 bg-[#071225] p-8">
-        <h1 className="text-2xl font-bold text-white">Simulado nÃ£o encontrado</h1>
+        <h1 className="text-2xl font-bold text-white">Simulado não encontrado</h1>
         <p className="mt-3 text-slate-300">{loadError}</p>
         <Link
           href="/dashboard/simulados"
@@ -282,10 +282,10 @@ export default function ResolverSimuladoPage() {
         <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-300">
           <span>{simulation.exam_type.toUpperCase()}</span>
           <span>{simulation.year_label || String(simulation.year)}</span>
-          <span>{simulation.mode === "balanced" ? "Balanceado" : "AleatÃ³rio"}</span>
-          <span>{simulation.generated_question_count} questÃµes</span>
+          <span>{simulation.mode === "balanced" ? "Balanceado" : "Aleatório"}</span>
+          <span>{simulation.generated_question_count} questões</span>
           <span>
-            {simulationSource === "library" ? "Biblioteca multi-ano" : "Ano Ãºnico"}
+            {simulationSource === "library" ? "Biblioteca multi-ano" : "Ano único"}
           </span>
         </div>
 
@@ -309,10 +309,10 @@ export default function ResolverSimuladoPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm text-slate-400">
-              QuestÃ£o {currentIndex + 1} de {totalQuestions}
+              Questão {currentIndex + 1} de {totalQuestions}
             </p>
             <h2 className="mt-2 text-3xl font-bold text-white">
-              NÂº {currentQuestion.number}
+              Nº {currentQuestion.number}
             </h2>
             <p className="mt-2 text-sm text-[#7ea0d6]">
               Disciplina: {currentQuestion.subject}
@@ -320,14 +320,14 @@ export default function ResolverSimuladoPage() {
 
             {currentQuestion.source_year || currentQuestion.source_number ? (
               <p className="mt-1 text-xs text-slate-500">
-                Origem: {currentQuestion.source_year ?? "â€”"} â€¢ questÃ£o{" "}
+                Origem: {currentQuestion.source_year ?? "—"} • questão{" "}
                 {currentQuestion.source_number ?? currentQuestion.number}
               </p>
             ) : null}
 
             {currentQuestion.source_pdf_label ? (
               <p className="mt-1 text-xs text-slate-500">
-                ReferÃªncia: {currentQuestion.source_pdf_label}
+                Referência: {currentQuestion.source_pdf_label}
               </p>
             ) : null}
           </div>
@@ -378,7 +378,7 @@ export default function ResolverSimuladoPage() {
             disabled={currentIndex === 0}
             className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            QuestÃ£o anterior
+            Questão anterior
           </button>
 
           <button
@@ -396,7 +396,7 @@ export default function ResolverSimuladoPage() {
             disabled={currentIndex === totalQuestions - 1}
             className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            PrÃ³xima questÃ£o
+            Próxima questão
           </button>
         </div>
 
@@ -408,9 +408,9 @@ export default function ResolverSimuladoPage() {
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-        <h3 className="text-2xl font-bold text-white">Mapa de questÃµes</h3>
+        <h3 className="text-2xl font-bold text-white">Mapa de questões</h3>
         <p className="mt-2 text-sm text-[#7ea0d6]">
-          Clique em uma questÃ£o para navegar rapidamente.
+          Clique em uma questão para navegar rapidamente.
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2">
@@ -439,7 +439,7 @@ export default function ResolverSimuladoPage() {
         </div>
 
         <div className="mt-6 text-sm text-slate-400">
-          As respostas sÃ£o mantidas localmente durante esta sessÃ£o para evitar
+          As respostas são mantidas localmente durante esta sessão para evitar
           perda acidental de progresso.
         </div>
       </section>
@@ -471,13 +471,13 @@ async function safeReadError(response: Response): Promise<string> {
           if (item && typeof item === "object" && "msg" in item) {
             return String((item as { msg: string }).msg)
           }
-          return "Erro de validaÃ§Ã£o."
+          return "Erro de validação."
         })
         .join(" | ")
     }
 
-    return "Erro na requisiÃ§Ã£o."
+    return "Erro na requisição."
   } catch {
-    return "Erro na requisiÃ§Ã£o."
+    return "Erro na requisição."
   }
 }

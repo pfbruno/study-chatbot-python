@@ -48,7 +48,7 @@ const mainItems: SidebarItem[] = [
     label: "Treinar",
     href: "/dashboard/treinar",
     icon: Target,
-    badge: "rÃ¡pido",
+    badge: "rápido",
   },
   {
     label: "Chat IA",
@@ -198,7 +198,7 @@ function SidebarNav({
         />
 
         <NavSection
-          title="GamificaÃ§Ã£o"
+          title="Gamificação"
           items={gamificationItems}
           pathname={pathname}
           onNavigate={onNavigate}
@@ -219,7 +219,7 @@ function SidebarNav({
           </div>
           <div className="mt-2 text-lg font-semibold text-white">Free</div>
           <p className="mt-2 text-sm leading-6 text-amber-50/90">
-            Desbloqueie analytics avanÃ§ado, simulados premium, ranking e evoluÃ§Ã£o gamificada.
+            Desbloqueie analytics avançado, simulados premium, ranking e evolução gamificada.
           </p>
           <Link
             href="/pricing"

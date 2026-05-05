@@ -17,7 +17,7 @@ export type ActivityEventPayload = {
 
 function getStoredToken() {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("MinhAprovação_auth_token")
+  return localStorage.getItem("studypro_auth_token")
 }
 
 async function parseApiError(response: Response): Promise<string> {

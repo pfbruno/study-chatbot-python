@@ -5,19 +5,19 @@ const steps = [
     icon: FileText,
     title: "Escolha prova ou simulado",
     description:
-      "Entre rÃ¡pido no treino com provas reais, listas por tema e navegaÃ§Ã£o objetiva por banca, ano e disciplina.",
+      "Entre rápido no treino com provas reais, listas por tema e navegação objetiva por banca, ano e disciplina.",
   },
   {
     icon: Brain,
-    title: "Resolva com correÃ§Ã£o imediata",
+    title: "Resolva com correção imediata",
     description:
-      "Veja resultado, erros e oportunidades de revisÃ£o sem sair do fluxo principal de estudo.",
+      "Veja resultado, erros e oportunidades de revisão sem sair do fluxo principal de estudo.",
   },
   {
     icon: LineChart,
     title: "Use os dados para evoluir",
     description:
-      "Acompanhe desempenho, tendÃªncias e prioridades para estudar com mais direÃ§Ã£o e menos desperdÃ­cio de tempo.",
+      "Acompanhe desempenho, tendências e prioridades para estudar com mais direção e menos desperdício de tempo.",
   },
 ]
 
@@ -33,8 +33,8 @@ export function HowItWorks() {
             Um fluxo simples para estudar melhor
           </h2>
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            O MinhAprovação foi pensado para reduzir atrito, acelerar a prÃ¡tica e
-            transformar desempenho em plano de aÃ§Ã£o.
+            O MinhAprovação foi pensado para reduzir atrito, acelerar a prática e
+            transformar desempenho em plano de ação.
           </p>
         </div>
 

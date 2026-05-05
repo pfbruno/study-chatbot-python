@@ -12,7 +12,7 @@ import {
 import { getLatestGeneratedContent } from "@/lib/generated-content-client"
 import type { ReviewSummaryPayload } from "@/lib/review-content"
 
-const REVIEW_SUMMARY_KEY = "MinhAprovação_review_summary"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
 
 function formatLocalDate(value: string) {
   const date = new Date(value)
@@ -42,7 +42,7 @@ export default function ResumosPage() {
 
           if (parsed?.title && parsed?.revisionSummary) {
             setSummary(parsed)
-            setSourceLabel("Carregado do conteÃºdo gerado nesta sessÃ£o.")
+            setSourceLabel("Carregado do conteúdo gerado nesta sessão.")
             return
           }
         }
@@ -54,14 +54,14 @@ export default function ResumosPage() {
         const payload = persisted?.item?.payload
 
         if (!payload?.title || !payload?.revisionSummary) {
-          setLoadError("Nenhum resumo de revisÃ£o foi encontrado.")
+          setLoadError("Nenhum resumo de revisão foi encontrado.")
           return
         }
 
         setSummary(payload)
-        setSourceLabel("Carregado do conteÃºdo salvo na sua conta.")
+        setSourceLabel("Carregado do conteúdo salvo na sua conta.")
       } catch {
-        setLoadError("Nenhum resumo de revisÃ£o foi encontrado.")
+        setLoadError("Nenhum resumo de revisão foi encontrado.")
       }
     }
 
@@ -77,7 +77,7 @@ export default function ResumosPage() {
       <div className="space-y-6">
         <section className="rounded-[32px] border border-rose-500/20 bg-rose-500/10 p-6">
           <h1 className="text-2xl font-semibold text-white">
-            Resumo nÃ£o encontrado
+            Resumo não encontrado
           </h1>
           <p className="mt-3 text-sm text-rose-100">{loadError}</p>
 
@@ -139,8 +139,8 @@ export default function ResumosPage() {
                 {formatLocalDate(summary.generatedAt)}
               </div>
               <p className="mt-3 text-sm text-slate-300">
-                Texto baseado nas questÃµes com erro ou em branco e no gabarito do
-                Ãºltimo simulado.
+                Texto baseado nas questões com erro ou em branco e no gabarito do
+                último simulado.
               </p>
             </div>
           </div>
@@ -156,10 +156,10 @@ export default function ResumosPage() {
 
             <div>
               <h2 className="text-2xl font-semibold text-white">
-                ExplicaÃ§Ã£o principal
+                Explicação principal
               </h2>
               <p className="mt-1 text-sm text-slate-400">
-                Resumo em linguagem direta, sem orientaÃ§Ã£o genÃ©rica de estudo.
+                Resumo em linguagem direta, sem orientação genérica de estudo.
               </p>
             </div>
           </div>
@@ -172,13 +172,13 @@ export default function ResumosPage() {
         <aside className="rounded-[32px] border border-white/10 bg-[#071225] p-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
             <FileText className="size-4" />
-            Disciplinas com menor acurÃ¡cia
+            Disciplinas com menor acurácia
           </div>
 
           <div className="mt-6 space-y-4">
             {summary.weakestSubjects.length === 0 ? (
               <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm text-slate-300">
-                NÃ£o houve disciplinas suficientes para destacar prioridade.
+                Não houve disciplinas suficientes para destacar prioridade.
               </div>
             ) : (
               summary.weakestSubjects.map((subject, index) => (
@@ -201,7 +201,7 @@ export default function ResumosPage() {
                       <div className="text-2xl font-bold text-white">
                         {subject.accuracy.toFixed(1)}%
                       </div>
-                      <div className="text-sm text-slate-400">acurÃ¡cia</div>
+                      <div className="text-sm text-slate-400">acurácia</div>
                     </div>
                   </div>
                 </div>

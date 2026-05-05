@@ -32,14 +32,14 @@ export default function AuthLayout({
             href="/"
             className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
           >
-            Voltar ao inÃ­cio
+            Voltar ao início
           </Link>
         </header>
 
         <main className="flex flex-1 items-center py-6 md:py-10">{children}</main>
 
         <footer className="py-6 text-center text-sm text-muted-foreground">
-          Â© {new Date().getFullYear()} MinhAprovação. Todos os direitos reservados.
+          © {new Date().getFullYear()} MinhAprovação. Todos os direitos reservados.
         </footer>
       </div>
     </div>

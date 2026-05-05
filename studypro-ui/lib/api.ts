@@ -2,8 +2,8 @@
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com";
 
-export const AUTH_TOKEN_KEY = "MinhAprovação_auth_token";
-export const AUTH_USER_KEY = "MinhAprovação_auth_user";
+export const AUTH_TOKEN_KEY = "studypro_auth_token";
+export const AUTH_USER_KEY = "studypro_auth_user";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -311,7 +311,7 @@ async function parseApiError(response: Response): Promise<string> {
           if (item && typeof item === "object" && "msg" in item) {
             return String((item as { msg: string }).msg);
           }
-          return "Erro de validaÃ§Ã£o.";
+          return "Erro de validação.";
         })
         .join(" | ");
     }
@@ -320,10 +320,10 @@ async function parseApiError(response: Response): Promise<string> {
       return data.message;
     }
 
-    return "Erro na requisiÃ§Ã£o.";
+    return "Erro na requisição.";
   } catch {
     const text = await response.text().catch(() => "");
-    return text || "Erro na requisiÃ§Ã£o.";
+    return text || "Erro na requisição.";
   }
 }
 
@@ -401,7 +401,7 @@ export async function getSimulationEntitlement(token?: string | null) {
 
 export async function createCheckoutSession(token?: string | null) {
   return {
-    message: "Redirecionando para a pÃ¡gina de assinatura do Mercado Pago.",
+    message: "Redirecionando para a página de assinatura do Mercado Pago.",
     checkout_session_id: "mercadopago-pricing-redirect",
     checkout_url: "/pricing",
   }

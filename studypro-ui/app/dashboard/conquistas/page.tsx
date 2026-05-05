@@ -30,7 +30,7 @@ function rarityStyles(rarity: GamificationAchievement["rarity"]) {
     return {
       badge: "border-yellow-400/30 bg-yellow-400/10 text-yellow-300",
       ring: "from-yellow-400/30 via-amber-300/20 to-orange-400/20",
-      label: "LendÃ¡ria",
+      label: "Lendária",
     };
   }
 
@@ -38,7 +38,7 @@ function rarityStyles(rarity: GamificationAchievement["rarity"]) {
     return {
       badge: "border-purple-400/30 bg-purple-400/10 text-purple-300",
       ring: "from-purple-400/30 via-fuchsia-400/20 to-violet-400/20",
-      label: "Ã‰pica",
+      label: "Épica",
     };
   }
 
@@ -85,10 +85,10 @@ function iconForAchievement(icon: string) {
 }
 
 function formatDate(value?: string | null) {
-  if (!value) return "â€”";
+  if (!value) return "—";
 
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "â€”";
+  if (Number.isNaN(date.getTime())) return "—";
 
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
@@ -275,13 +275,13 @@ export default function ConquistasPage() {
             Conquistas
           </h1>
           <p className="mt-4 text-lg leading-8 text-slate-300">
-            FaÃ§a login para acompanhar conquistas, XP e streaks reais.
+            Faça login para acompanhar conquistas, XP e streaks reais.
           </p>
         </section>
 
         <EmptyState
-          title="SessÃ£o nÃ£o encontrada"
-          description="A Ã¡rea de conquistas nÃ£o exibe dados de exemplo. Entre na sua conta para visualizar apenas informaÃ§Ãµes reais."
+          title="Sessão não encontrada"
+          description="A área de conquistas não exibe dados de exemplo. Entre na sua conta para visualizar apenas informações reais."
         />
       </div>
     );
@@ -312,7 +312,7 @@ export default function ConquistasPage() {
         <section className="rounded-[32px] border border-white/10 bg-[#071225] p-8">
           <div className="inline-flex items-center gap-2 rounded-full border border-[#7c8cff]/25 bg-[#7c8cff]/10 px-4 py-2 text-sm text-[#b7c0ff]">
             <Trophy className="size-4" />
-            GamificaÃ§Ã£o MinhAprovação
+            Gamificação MinhAprovação
           </div>
 
           <h1 className="mt-6 text-5xl font-bold tracking-tight text-white">
@@ -320,13 +320,13 @@ export default function ConquistasPage() {
           </h1>
 
           <p className="mt-4 max-w-3xl text-xl leading-9 text-[#7ea0d6]">
-            Esta Ã¡rea exibirÃ¡ somente dados reais registrados pela sua conta.
+            Esta área exibirá somente dados reais registrados pela sua conta.
           </p>
         </section>
 
         <EmptyState
           title="Nenhuma conquista registrada ainda"
-          description="Resolva simulados, revise conteÃºdos e conclua atividades para gerar XP e desbloquear conquistas reais."
+          description="Resolva simulados, revise conteúdos e conclua atividades para gerar XP e desbloquear conquistas reais."
         />
       </div>
     );
@@ -339,7 +339,7 @@ export default function ConquistasPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#7c8cff]/25 bg-[#7c8cff]/10 px-4 py-2 text-sm text-[#b7c0ff]">
               <Trophy className="size-4" />
-              GamificaÃ§Ã£o MinhAprovação
+              Gamificação MinhAprovação
             </div>
 
             <h1 className="mt-6 text-5xl font-bold tracking-tight text-white">
@@ -351,7 +351,7 @@ export default function ConquistasPage() {
             </p>
 
             <div className="mt-8 grid gap-4 md:grid-cols-4">
-              <MetricCard label="NÃ­vel" value={String(profile.level)} />
+              <MetricCard label="Nível" value={String(profile.level)} />
               <MetricCard label="Streak" value={`${profile.streakDays} dias`} />
               <MetricCard
                 label="Conquistas"
@@ -362,13 +362,13 @@ export default function ConquistasPage() {
           </div>
 
           <div className="rounded-[28px] border border-white/10 bg-[#030b1d] p-6">
-            <p className="text-sm text-slate-400">Perfil de evoluÃ§Ã£o</p>
+            <p className="text-sm text-slate-400">Perfil de evolução</p>
             <div className="mt-3 text-4xl font-bold text-white">
               {profile.userName}
             </div>
 
             <p className="mt-4 text-lg leading-8 text-slate-300">
-              Os dados abaixo vÃªm da atividade real registrada na sua conta.
+              Os dados abaixo vêm da atividade real registrada na sua conta.
             </p>
 
             <div className="mt-6">
@@ -380,7 +380,7 @@ export default function ConquistasPage() {
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-400">ColeÃ§Ã£o desbloqueada</span>
+                <span className="text-slate-400">Coleção desbloqueada</span>
                 <span className="font-semibold text-white">{unlockedPercent}%</span>
               </div>
               <div className="mt-3">
@@ -402,7 +402,7 @@ export default function ConquistasPage() {
                 Streak atual
               </h2>
               <p className="mt-1 text-sm text-[#7ea0d6]">
-                SequÃªncia registrada
+                Sequência registrada
               </p>
             </div>
           </div>
@@ -412,7 +412,7 @@ export default function ConquistasPage() {
           </div>
 
           <p className="mt-3 text-base leading-7 text-[#7ea0d6]">
-            Este valor Ã© calculado a partir das atividades registradas.
+            Este valor é calculado a partir das atividades registradas.
           </p>
         </article>
 
@@ -436,7 +436,7 @@ export default function ConquistasPage() {
           <p className="mt-3 text-base leading-7 text-[#7ea0d6]">
             Melhor dia:{" "}
             <span className="font-semibold text-white">
-              {bestDay?.label ?? "â€”"}
+              {bestDay?.label ?? "—"}
             </span>{" "}
             com {bestDay?.xp ?? 0} XP.
           </p>
@@ -449,7 +449,7 @@ export default function ConquistasPage() {
             </div>
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-white">
-                PrÃ³ximas vitÃ³rias
+                Próximas vitórias
               </h2>
               <p className="mt-1 text-sm text-[#7ea0d6]">
                 Conquistas em progresso
@@ -471,7 +471,7 @@ export default function ConquistasPage() {
                       {item.title}
                     </div>
                     <div className="mt-2 text-sm text-[#7ea0d6]">
-                      {item.progress}/{item.target} â€¢ +{item.xpReward} XP
+                      {item.progress}/{item.target} • +{item.xpReward} XP
                     </div>
                   </div>
                 ))
@@ -489,7 +489,7 @@ export default function ConquistasPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-3xl font-bold tracking-tight text-white">
-                CatÃ¡logo de conquistas
+                Catálogo de conquistas
               </h2>
               <p className="mt-2 text-base text-[#7ea0d6]">
                 Filtre e acompanhe desbloqueios reais
@@ -517,7 +517,7 @@ export default function ConquistasPage() {
               >
                 <option value="all">Todas as categorias</option>
                 <option value="study">Estudo</option>
-                <option value="consistency">ConstÃ¢ncia</option>
+                <option value="consistency">Constância</option>
                 <option value="performance">Desempenho</option>
                 <option value="social">Social</option>
               </select>
@@ -546,7 +546,7 @@ export default function ConquistasPage() {
               Desbloqueios recentes
             </h2>
             <p className="mt-2 text-base text-[#7ea0d6]">
-              Ãšltimas conquistas confirmadas
+              Últimas conquistas confirmadas
             </p>
 
             <div className="mt-6 space-y-4">
@@ -581,7 +581,7 @@ export default function ConquistasPage() {
               ) : (
                 <EmptyState
                   title="Nenhum desbloqueio recente"
-                  description="As conquistas desbloqueadas aparecerÃ£o aqui."
+                  description="As conquistas desbloqueadas aparecerão aqui."
                 />
               )}
             </div>
@@ -589,10 +589,10 @@ export default function ConquistasPage() {
 
           <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
             <h2 className="text-3xl font-bold tracking-tight text-white">
-              EvoluÃ§Ã£o semanal
+              Evolução semanal
             </h2>
             <p className="mt-2 text-base text-[#7ea0d6]">
-              DistribuiÃ§Ã£o do XP acumulado
+              Distribuição do XP acumulado
             </p>
 
             <div className="mt-6 space-y-4">
@@ -621,8 +621,8 @@ export default function ConquistasPage() {
                 })
               ) : (
                 <EmptyState
-                  title="Sem evoluÃ§Ã£o semanal"
-                  description="O grÃ¡fico serÃ¡ exibido quando houver eventos de XP registrados."
+                  title="Sem evolução semanal"
+                  description="O gráfico será exibido quando houver eventos de XP registrados."
                 />
               )}
             </div>

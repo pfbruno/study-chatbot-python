@@ -24,7 +24,7 @@ type SubjectKey =
   | "matematica"
   | "geral"
 
-type FlashcardDifficulty = "fÃ¡cil" | "mÃ©dio" | "difÃ­cil"
+type FlashcardDifficulty = "fácil" | "médio" | "difícil"
 
 type ReviewCard = {
   id: string
@@ -79,17 +79,17 @@ type MindMapItem = {
   }[]
 }
 
-const REVIEW_FLASHCARDS_KEY = "MinhAprovação_review_flashcards"
-const REVIEW_SUMMARY_KEY = "MinhAprovação_review_summary"
-const MASTERED_FLASHCARDS_KEY = "MinhAprovação_mastered_flashcards"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
+const REVIEW_SUMMARY_KEY = "studypro_review_summary"
+const MASTERED_FLASHCARDS_KEY = "studypro_mastered_flashcards"
 
 function normalizeSubjectKey(subject: string): SubjectKey {
   const value = subject.trim().toLowerCase()
 
   if (value.includes("biolog")) return "biologia"
-  if (value.includes("fÃ­s") || value.includes("fis")) return "fisica"
+  if (value.includes("fís") || value.includes("fis")) return "fisica"
   if (value.includes("hist")) return "historia"
-  if (value.includes("quÃ­") || value.includes("qui")) return "quimica"
+  if (value.includes("quí") || value.includes("qui")) return "quimica"
   if (value.includes("port")) return "portugues"
   if (value.includes("geog")) return "geografia"
   if (value.includes("mate")) return "matematica"
@@ -111,9 +111,9 @@ function formatLocalDate(value?: string) {
 
 function inferDifficulty(text: string): FlashcardDifficulty {
   const size = text.length
-  if (size < 120) return "fÃ¡cil"
-  if (size < 220) return "mÃ©dio"
-  return "difÃ­cil"
+  if (size < 120) return "fácil"
+  if (size < 220) return "médio"
+  return "difícil"
 }
 
 function buildFlashcards(cards: ReviewCard[]): FlashcardItem[] {
@@ -136,7 +136,7 @@ function buildSummaries(summary: ReviewSummaryPayload | null): SummaryItem[] {
     subjectKey: "geral",
     title: summary.title,
     time: "4 min",
-    tags: ["RevisÃ£o", "Desempenho", "Plano de aÃ§Ã£o"],
+    tags: ["Revisão", "Desempenho", "Plano de ação"],
     content: [summary.subtitle, summary.revisionSummary],
   }
 
@@ -144,7 +144,7 @@ function buildSummaries(summary: ReviewSummaryPayload | null): SummaryItem[] {
     id: `summary-${item.subject}-${index}`,
     subject: item.subject,
     subjectKey: normalizeSubjectKey(item.subject),
-    title: `${item.subject} â€” foco de revisÃ£o`,
+    title: `${item.subject} — foco de revisão`,
     time: "3 min",
     tags: [
       `${item.accuracy.toFixed(1)}%`,
@@ -152,9 +152,9 @@ function buildSummaries(summary: ReviewSummaryPayload | null): SummaryItem[] {
       `${item.blank} em branco`,
     ],
     content: [
-      `Disciplina prioritÃ¡ria para revisÃ£o imediata: ${item.subject}.`,
-      `VocÃª teve ${item.correct} acerto(s), ${item.wrong} erro(s) e ${item.blank} questÃ£o(Ãµes) em branco nesta disciplina.`,
-      "Use os flashcards e um novo simulado direcionado para consolidar essa recuperaÃ§Ã£o.",
+      `Disciplina prioritária para revisão imediata: ${item.subject}.`,
+      `Você teve ${item.correct} acerto(s), ${item.wrong} erro(s) e ${item.blank} questão(ões) em branco nesta disciplina.`,
+      "Use os flashcards e um novo simulado direcionado para consolidar essa recuperação.",
     ],
   }))
 
@@ -168,31 +168,31 @@ function buildMindMaps(summary: ReviewSummaryPayload | null): MindMapItem[] {
     id: `mindmap-${item.subject}-${index}`,
     subject: item.subject,
     subjectKey: normalizeSubjectKey(item.subject),
-    title: `${item.subject} â€” mapa mental de revisÃ£o`,
-    subtitle: "3 ramificaÃ§Ãµes principais",
+    title: `${item.subject} — mapa mental de revisão`,
+    subtitle: "3 ramificações principais",
     branches: [
       {
-        label: "DiagnÃ³stico",
+        label: "Diagnóstico",
         children: [
-          `${item.accuracy.toFixed(1)}% de acurÃ¡cia`,
+          `${item.accuracy.toFixed(1)}% de acurácia`,
           `${item.wrong} erro(s)`,
           `${item.blank} em branco`,
         ],
       },
       {
-        label: "PrÃ³ximo passo",
+        label: "Próximo passo",
         children: [
           "Revisar conceitos centrais",
-          "Refazer questÃµes similares",
+          "Refazer questões similares",
           "Conferir alternativas incorretas",
         ],
       },
       {
-        label: "ConsolidaÃ§Ã£o",
+        label: "Consolidação",
         children: [
           "Usar flashcards",
           "Gerar novo simulado focado",
-          "Comparar evoluÃ§Ã£o no resultado seguinte",
+          "Comparar evolução no resultado seguinte",
         ],
       },
     ],
@@ -311,12 +311,12 @@ export function StudyArea() {
     const labels: Record<SubjectKey, string> = {
       todas: "Todas",
       biologia: "Biologia",
-      fisica: "FÃ­sica",
-      historia: "HistÃ³ria",
-      quimica: "QuÃ­mica",
-      portugues: "PortuguÃªs",
+      fisica: "Física",
+      historia: "História",
+      quimica: "Química",
+      portugues: "Português",
       geografia: "Geografia",
-      matematica: "MatemÃ¡tica",
+      matematica: "Matemática",
       geral: "Geral",
     }
 
@@ -667,7 +667,7 @@ export function StudyArea() {
                       className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-lg font-medium text-white transition hover:bg-white/10"
                     >
                       <RotateCcw className="size-4" />
-                      RecomeÃ§ar
+                      Recomeçar
                     </button>
                   </div>
                 </div>
@@ -705,7 +705,7 @@ export function StudyArea() {
 
             {filteredSummaries.length === 0 ? (
               <div className="rounded-[24px] border border-white/10 bg-[#071224] p-8 text-lg text-white/60">
-                Nenhum resumo disponÃ­vel para este filtro.
+                Nenhum resumo disponível para este filtro.
               </div>
             ) : null}
           </div>
@@ -738,7 +738,7 @@ export function StudyArea() {
 
             {filteredMindMaps.length === 0 ? (
               <div className="rounded-[24px] border border-white/10 bg-[#071224] p-8 text-lg text-white/60">
-                Nenhum mapa mental disponÃ­vel para este filtro.
+                Nenhum mapa mental disponível para este filtro.
               </div>
             ) : null}
           </div>

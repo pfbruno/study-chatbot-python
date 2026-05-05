@@ -14,7 +14,7 @@
 
 import { trackAttemptSaved } from "@/lib/study-events"
 
-const STORAGE_KEY = "MinhAprovação_recent_attempts"
+const STORAGE_KEY = "studypro_recent_attempts"
 
 function readAttempts(): StoredAttempt[] {
   if (typeof window === "undefined") return []

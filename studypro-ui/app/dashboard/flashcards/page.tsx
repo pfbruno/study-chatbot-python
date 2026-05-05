@@ -14,7 +14,7 @@ import {
 import { getLatestGeneratedContent } from "@/lib/generated-content-client"
 import type { ReviewCard } from "@/lib/review-content"
 
-const REVIEW_FLASHCARDS_KEY = "MinhAprovação_review_flashcards"
+const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards"
 
 export default function FlashcardsPage() {
   const [cards, setCards] = useState<ReviewCard[]>([])
@@ -33,7 +33,7 @@ export default function FlashcardsPage() {
 
           if (Array.isArray(parsed) && parsed.length > 0) {
             setCards(parsed)
-            setSourceLabel("Carregado do conteÃºdo gerado nesta sessÃ£o.")
+            setSourceLabel("Carregado do conteúdo gerado nesta sessão.")
             return
           }
         }
@@ -42,14 +42,14 @@ export default function FlashcardsPage() {
         const payload = persisted?.item?.payload
 
         if (!Array.isArray(payload) || payload.length === 0) {
-          setLoadError("Nenhum flashcard de revisÃ£o foi encontrado.")
+          setLoadError("Nenhum flashcard de revisão foi encontrado.")
           return
         }
 
         setCards(payload)
-        setSourceLabel("Carregado do conteÃºdo salvo na sua conta.")
+        setSourceLabel("Carregado do conteúdo salvo na sua conta.")
       } catch {
-        setLoadError("Nenhum flashcard de revisÃ£o foi encontrado.")
+        setLoadError("Nenhum flashcard de revisão foi encontrado.")
       }
     }
 
@@ -85,7 +85,7 @@ export default function FlashcardsPage() {
       <div className="space-y-6">
         <section className="rounded-[32px] border border-rose-500/20 bg-rose-500/10 p-6">
           <h1 className="text-2xl font-semibold text-white">
-            Flashcards nÃ£o encontrados
+            Flashcards não encontrados
           </h1>
           <p className="mt-3 text-sm text-rose-100">{loadError}</p>
 
@@ -128,11 +128,11 @@ export default function FlashcardsPage() {
             </div>
 
             <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-              Flashcards de revisÃ£o do seu simulado
+              Flashcards de revisão do seu simulado
             </h1>
 
             <p className="mt-4 text-lg leading-8 text-slate-300">
-              CartÃµes curtos para memorizaÃ§Ã£o direta: frente com a pergunta ou
+              Cartões curtos para memorização direta: frente com a pergunta ou
               conceito, verso com a resposta objetiva.
             </p>
 
@@ -148,7 +148,7 @@ export default function FlashcardsPage() {
                 {progressLabel}
               </div>
               <p className="mt-3 text-sm text-slate-300">
-                {cards.length} flashcard(s) disponÃ­veis para revisÃ£o
+                {cards.length} flashcard(s) disponíveis para revisão
               </p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export default function FlashcardsPage() {
             </div>
 
             <div className="text-right">
-              <p className="text-sm text-slate-400">QuestÃ£o</p>
+              <p className="text-sm text-slate-400">Questão</p>
               <h2 className="mt-2 text-2xl font-semibold text-white">
                 {currentCard.questionNumber}
               </h2>
@@ -187,7 +187,7 @@ export default function FlashcardsPage() {
               onClick={() => setShowBack((prev) => !prev)}
               className="mt-6 rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
             >
-              {showBack ? "Ver frente" : "Virar cartÃ£o"}
+              {showBack ? "Ver frente" : "Virar cartão"}
             </button>
           </div>
         </article>
@@ -200,10 +200,10 @@ export default function FlashcardsPage() {
 
             <div>
               <h2 className="text-2xl font-semibold text-white">
-                Controles de revisÃ£o
+                Controles de revisão
               </h2>
               <p className="mt-1 text-sm text-slate-400">
-                Navegue pelos cartÃµes e repita atÃ© fixar o conteÃºdo.
+                Navegue pelos cartões e repita até fixar o conteúdo.
               </p>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function FlashcardsPage() {
               disabled={currentIndex >= cards.length - 1}
               className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              PrÃ³ximo
+              Próximo
               <ChevronRight className="size-4" />
             </button>
 
@@ -235,13 +235,13 @@ export default function FlashcardsPage() {
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
             >
               <RotateCcw className="size-4" />
-              Reiniciar revisÃ£o
+              Reiniciar revisão
             </button>
           </div>
 
           <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
-            Use estes cartÃµes como vocÃª usaria um flashcard feito Ã  mÃ£o: leia a
-            frente, tente responder mentalmente e sÃ³ depois vire o cartÃ£o.
+            Use estes cartões como você usaria um flashcard feito Ã  mão: leia a
+            frente, tente responder mentalmente e só depois vire o cartão.
           </div>
 
           <div className="mt-6 flex flex-col gap-3">

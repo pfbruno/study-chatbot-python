@@ -32,8 +32,8 @@ export type MinhAprovaçãogressSnapshot = {
   updatedAt: string | null
 }
 
-export const SIMULATION_HISTORY_KEY = "MinhAprovação_simulation_history"
-export const STUDY_PROGRESS_KEY = "MinhAprovação_study_progress"
+export const SIMULATION_HISTORY_KEY = "studypro_simulation_history"
+export const STUDY_PROGRESS_KEY = "studypro_study_progress"
 export const STUDY_PROGRESS_UPDATED_EVENT = "MinhAprovação:progress-updated"
 export const SIMULATION_HISTORY_UPDATED_EVENT = "MinhAprovação:simulation-history-updated"
 

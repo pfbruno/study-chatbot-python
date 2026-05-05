@@ -37,8 +37,8 @@ type SavedExamProgress = {
 
 const FALLBACK_YEARS = [2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011, 2010]
 
-const OFFICIAL_EXAM_RESULT_PREFIX = "MinhAprovação_official_exam_result_"
-const OFFICIAL_EXAM_PROGRESS_PREFIX = "MinhAprovação_official_exam_progress_"
+const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
+const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
 
 function ProgressBar({ value }: { value: number }) {
   return (
@@ -54,7 +54,7 @@ function ProgressBar({ value }: { value: number }) {
 function getStatusBadge(status: ExamEditionStatus) {
   if (status === "completed") {
     return {
-      label: "ConcluÃ­da",
+      label: "Concluída",
       className:
         "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
     }
@@ -68,7 +68,7 @@ function getStatusBadge(status: ExamEditionStatus) {
   }
 
   return {
-    label: "DisponÃ­vel",
+    label: "Disponível",
     className: "border-white/10 bg-white/5 text-slate-300",
   }
 }
@@ -162,7 +162,7 @@ export default function EnemHubPage() {
 
         if (!Array.isArray(data?.years) || data.years.length === 0) {
           setWarning(
-            "A API nÃ£o retornou a listagem de anos. Foram exibidas as ediÃ§Ãµes vÃ¡lidas locais: 2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011 e 2010."
+            "A API não retornou a listagem de anos. Foram exibidas as edições válidas locais: 2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011 e 2010."
           )
         }
       } catch {
@@ -183,7 +183,7 @@ export default function EnemHubPage() {
 
         setEditions(mapped)
         setWarning(
-          "A API nÃ£o retornou a listagem de anos. Foram exibidas as ediÃ§Ãµes vÃ¡lidas locais: 2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011 e 2010."
+          "A API não retornou a listagem de anos. Foram exibidas as edições válidas locais: 2022, 2021, 2017, 2016, 2014, 2013, 2012, 2011 e 2010."
         )
       } finally {
         setLoading(false)
@@ -227,7 +227,7 @@ export default function EnemHubPage() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
               <GraduationCap className="size-4" />
-              InstituiÃ§Ã£o em destaque
+              Instituição em destaque
             </div>
 
             <div className="mt-6 flex items-start gap-4">
@@ -240,9 +240,9 @@ export default function EnemHubPage() {
                   ENEM
                 </h1>
                 <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
-                  O ENEM Ã© a maior avaliaÃ§Ã£o educacional do Brasil, aplicada
+                  O ENEM é a maior avaliação educacional do Brasil, aplicada
                   anualmente pelo INEP. Resolva provas oficiais completas com
-                  gabarito e anÃ¡lise de desempenho por Ã¡rea de conhecimento.
+                  gabarito e análise de desempenho por área de conhecimento.
                 </p>
               </div>
             </div>
@@ -251,8 +251,8 @@ export default function EnemHubPage() {
               <span className="inline-flex items-center gap-2">
                 <FileText className="size-4" />
                 {loading
-                  ? "Carregando ediÃ§Ãµes..."
-                  : `${editions.length} ediÃ§Ã£o(Ãµes) disponÃ­vel(is)`}
+                  ? "Carregando edições..."
+                  : `${editions.length} edição(ões) disponível(is)`}
               </span>
               <span className="inline-flex items-center gap-2">
                 <Trophy className="size-4" />
@@ -263,23 +263,23 @@ export default function EnemHubPage() {
 
           <div className="rounded-[28px] border border-white/10 bg-[#030b1d] p-6">
             <div className="text-sm uppercase tracking-[0.18em] text-[#7ea0d6]">
-              CatÃ¡logo ENEM
+              Catálogo ENEM
             </div>
 
             <h2 className="mt-4 text-3xl font-bold text-white">
-              Todas as ediÃ§Ãµes vÃ¡lidas ficam listadas abaixo
+              Todas as edições válidas ficam listadas abaixo
             </h2>
 
             <p className="mt-4 text-base leading-8 text-slate-300">
-              A seÃ§Ã£o inferior jÃ¡ mostra todas as ediÃ§Ãµes disponÃ­veis. Aqui vocÃª
-              sÃ³ vÃª o resumo da instituiÃ§Ã£o e o acesso rÃ¡pido ao catÃ¡logo.
+              A seção inferior já mostra todas as edições disponíveis. Aqui você
+              só vê o resumo da instituição e o acesso rápido ao catálogo.
             </p>
 
             <Link
               href="#edicoes-enem"
               className="mt-6 inline-flex items-center justify-center rounded-2xl bg-[#4b8df7] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
             >
-              Ir para ediÃ§Ãµes
+              Ir para edições
             </Link>
           </div>
         </div>
@@ -300,7 +300,7 @@ export default function EnemHubPage() {
                 </h2>
                 <p className="mt-3 max-w-3xl text-xl leading-8 text-[#7ea0d6]">
                   Prova oficial aplicada em novembro de {inProgressEdition.year}.
-                  Inclui ambos os dias da aplicaÃ§Ã£o.
+                  Inclui ambos os dias da aplicação.
                 </p>
               </div>
 
@@ -333,7 +333,7 @@ export default function EnemHubPage() {
       >
         <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <h2 className="text-3xl font-bold tracking-tight text-white">
-            EdiÃ§Ãµes disponÃ­veis
+            Edições disponíveis
           </h2>
 
           <div className="text-sm text-[#7ea0d6]">{sort}</div>
@@ -345,7 +345,7 @@ export default function EnemHubPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar ediÃ§Ã£o..."
+              placeholder="Buscar edição..."
               className="h-14 w-full rounded-2xl border border-white/10 bg-[#081224] pl-12 pr-4 text-base text-white outline-none placeholder:text-[#6f8dbd] focus:border-[#2f7cff]/50"
             />
           </div>
@@ -363,7 +363,7 @@ export default function EnemHubPage() {
         {loading ? (
           <div className="mt-8 flex items-center gap-3 text-slate-300">
             <Loader2 className="size-4 animate-spin" />
-            Carregando catÃ¡logo...
+            Carregando catálogo...
           </div>
         ) : (
           <div className="mt-8 grid gap-5 xl:grid-cols-2">
@@ -378,7 +378,7 @@ export default function EnemHubPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="text-sm uppercase tracking-[0.16em] text-[#7ea0d6]">
-                        EdiÃ§Ã£o
+                        Edição
                       </div>
                       <div className="mt-2 text-6xl font-bold tracking-tight text-white">
                         {edition.year}
@@ -395,7 +395,7 @@ export default function EnemHubPage() {
                   <div className="mt-5 flex flex-wrap gap-4 text-sm text-[#7ea0d6]">
                     <span className="inline-flex items-center gap-2">
                       <FileText className="size-4" />
-                      {edition.questionCount} questÃµes
+                      {edition.questionCount} questões
                     </span>
 
                     {edition.lastAccessLabel ? (

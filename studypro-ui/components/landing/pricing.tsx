@@ -8,31 +8,31 @@ const plans = [
   {
     name: "Free",
     price: "R$ 0",
-    period: "/mÃªs",
+    period: "/mês",
     description:
-      "Para conhecer a plataforma, comeÃ§ar a resolver questÃµes e validar se o fluxo combina com sua rotina.",
+      "Para conhecer a plataforma, começar a resolver questões e validar se o fluxo combina com sua rotina.",
     features: [
       "Acesso inicial ao MinhAprovação",
-      "Simulados com limite diÃ¡rio",
-      "CorreÃ§Ã£o automÃ¡tica",
-      "Dashboard bÃ¡sico",
+      "Simulados com limite diário",
+      "Correção automática",
+      "Dashboard básico",
     ],
-    cta: "ComeÃ§ar grÃ¡tis",
+    cta: "Começar grátis",
     href: "/register",
     highlighted: false,
   },
   {
     name: "Pro",
     price: "R$ 29",
-    period: "/mÃªs",
+    period: "/mês",
     description:
-      "Para quem quer estudar com mais constÃ¢ncia, praticar mais e transformar desempenho em evoluÃ§Ã£o real.",
+      "Para quem quer estudar com mais constância, praticar mais e transformar desempenho em evolução real.",
     features: [
       "Simulados ilimitados",
       "Mais volume de treino",
-      "AnÃ¡lise de desempenho completa",
+      "Análise de desempenho completa",
       "Insights inteligentes",
-      "Fluxo prioritÃ¡rio de evoluÃ§Ã£o",
+      "Fluxo prioritário de evolução",
     ],
     cta: "Desbloquear Pro",
     href: "/pricing",
@@ -50,13 +50,13 @@ export function Pricing() {
           </span>
 
           <h2 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Comece grÃ¡tis. Evolua quando quiser.
+            Comece grátis. Evolua quando quiser.
           </h2>
 
           <p className="mt-5 text-base leading-8 text-slate-300 md:text-lg">
-            O plano Free permite entrar rÃ¡pido na plataforma e testar o fluxo.
-            O Pro existe para quem quer mais prÃ¡tica, mais leitura de desempenho
-            e menos interrupÃ§Ãµes durante o estudo.
+            O plano Free permite entrar rápido na plataforma e testar o fluxo.
+            O Pro existe para quem quer mais prática, mais leitura de desempenho
+            e menos interrupções durante o estudo.
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export function Pricing() {
               {plan.highlighted ? (
                 <div className="absolute -top-3 left-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-slate-950 px-3 py-1 text-xs font-semibold text-primary">
                   <Crown className="size-3.5 fill-current" />
-                  Melhor para evoluÃ§Ã£o contÃ­nua
+                  Melhor para evolução contínua
                 </div>
               ) : null}
 

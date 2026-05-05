@@ -13,7 +13,7 @@ import {
   type SimulationHistoryEntry,
 } from "@/lib/study-progress"
 
-const RESULT_KEY = "MinhAprovação_last_simulation_result"
+const RESULT_KEY = "studypro_last_simulation_result"
 
 type ResultQuestion = {
   number: number
@@ -187,9 +187,9 @@ export default function ResultadoSimuladoPage() {
         </h1>
 
         <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
-          A correÃ§Ã£o agora mostra explicaÃ§Ãµes individuais nas questÃµes erradas
-          ou em branco. Resumos e flashcards automÃ¡ticos foram removidos desta
-          tela para concentrar a revisÃ£o no erro real.
+          A correção agora mostra explicações individuais nas questões erradas
+          ou em branco. Resumos e flashcards automáticos foram removidos desta
+          tela para concentrar a revisão no erro real.
         </p>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
@@ -245,7 +245,7 @@ export default function ResultadoSimuladoPage() {
       </section>
 
       <section className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-        <h2 className="text-2xl font-bold text-white">CorreÃ§Ã£o detalhada</h2>
+        <h2 className="text-2xl font-bold text-white">Correção detalhada</h2>
 
         <div className="mt-6 space-y-4">
           {result.results_by_question.map((questionResult) => {
@@ -280,7 +280,7 @@ export default function ResultadoSimuladoPage() {
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold text-white">
-                    QuestÃ£o {questionResult.question_number}
+                    Questão {questionResult.question_number}
                   </h3>
 
                   <span
@@ -316,7 +316,7 @@ export default function ResultadoSimuladoPage() {
                     </p>
 
                     <p className="mt-2 text-sm text-white">
-                      {questionResult.user_answer || "â€”"}
+                      {questionResult.user_answer || "—"}
                     </p>
 
                     {selectedOptionContent ? (

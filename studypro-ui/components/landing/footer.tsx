@@ -20,8 +20,8 @@ export function Footer() {
             </div>
 
             <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
-              ExperiÃªncia focada no aluno, com navegaÃ§Ã£o mais clara, leitura
-              rÃ¡pida de desempenho e fluxo de estudo mais consistente.
+              Experiência focada no aluno, com navegação mais clara, leitura
+              rápida de desempenho e fluxo de estudo mais consistente.
             </p>
           </div>
 
@@ -61,7 +61,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t border-white/10 pt-6 text-sm text-muted-foreground">
-          Â© {new Date().getFullYear()} MinhAprovação. Todos os direitos reservados.
+          © {new Date().getFullYear()} MinhAprovação. Todos os direitos reservados.
         </div>
       </div>
     </footer>

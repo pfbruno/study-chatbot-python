@@ -9,7 +9,7 @@ export type StoredExamProgress = {
   scorePercentage?: number
 }
 
-const KEY = "MinhAprovação_exam_progress"
+const KEY = "studypro_exam_progress"
 
 function readAll(): StoredExamProgress[] {
   if (typeof window === "undefined") return []

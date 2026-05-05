@@ -9,12 +9,12 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
 
-const AUTH_TOKEN_KEY = "MinhAprovação_auth_token"
-const AUTH_USER_KEY = "MinhAprovação_auth_user"
+const AUTH_TOKEN_KEY = "studypro_auth_token"
+const AUTH_USER_KEY = "studypro_auth_user"
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<AuthFallback title="Entrar na sua conta" description="Carregando pÃ¡gina de login..." />}>
+    <Suspense fallback={<AuthFallback title="Entrar na sua conta" description="Carregando página de login..." />}>
       <LoginPageContent />
     </Suspense>
   )
@@ -44,7 +44,7 @@ function LoginPageContent() {
       })
 
       if (!response.ok) {
-        throw new Error((await safeReadError(response)) || "NÃ£o foi possÃ­vel realizar o login.")
+        throw new Error((await safeReadError(response)) || "Não foi possível realizar o login.")
       }
 
       const data = await response.json()
@@ -74,8 +74,8 @@ function LoginPageContent() {
               Volte para a plataforma e acompanhe seu progresso com mais clareza.
             </h1>
             <p className="text-neutral-300">
-              Simulados, histÃ³rico e evoluÃ§Ã£o reunidos em uma experiÃªncia SaaS moderna,
-              sem mÃ©tricas infladas e com foco real no estudo.
+              Simulados, histórico e evolução reunidos em uma experiência SaaS moderna,
+              sem métricas infladas e com foco real no estudo.
             </p>
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
@@ -96,7 +96,7 @@ function LoginPageContent() {
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30">
             <h2 className="text-2xl font-semibold">Entrar</h2>
             <p className="mt-2 text-sm text-neutral-400">
-              NÃ£o tem conta? <Link href="/register" className="text-emerald-300">Criar agora</Link>
+              Não tem conta? <Link href="/register" className="text-emerald-300">Criar agora</Link>
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -152,12 +152,12 @@ async function safeReadError(response: Response): Promise<string> {
         .map((item: unknown) => {
           if (typeof item === "string") return item
           if (item && typeof item === "object" && "msg" in item) return String((item as { msg: string }).msg)
-          return "Erro de validaÃ§Ã£o."
+          return "Erro de validação."
         })
         .join(" | ")
     }
-    return "Erro na requisiÃ§Ã£o."
+    return "Erro na requisição."
   } catch {
-    return "Erro na requisiÃ§Ã£o."
+    return "Erro na requisição."
   }
 }

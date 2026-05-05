@@ -30,7 +30,7 @@ type SaveGeneratedContentPayload = {
 
 function getStoredToken() {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("MinhAprovação_auth_token")
+  return localStorage.getItem("studypro_auth_token")
 }
 
 async function parseApiError(response: Response): Promise<string> {
@@ -45,9 +45,9 @@ async function parseApiError(response: Response): Promise<string> {
       return data.message
     }
 
-    return "Erro na requisiÃ§Ã£o."
+    return "Erro na requisição."
   } catch {
-    return "Erro na requisiÃ§Ã£o."
+    return "Erro na requisição."
   }
 }
 
@@ -64,7 +64,7 @@ async function request<T>(
     typeof token === "undefined" ? getStoredToken() : token ?? null
 
   if (!resolvedToken) {
-    throw new Error("SessÃ£o nÃ£o encontrada.")
+    throw new Error("Sessão não encontrada.")
   }
 
   const response = await fetch(`${API_URL}${endpoint}`, {

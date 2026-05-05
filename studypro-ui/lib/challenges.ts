@@ -35,7 +35,7 @@ export type LocalChallengeState = {
   updatedAt: string | null
 }
 
-export const LOCAL_CHALLENGE_STATE_KEY = "MinhAprovação_local_challenge_state_v1"
+export const LOCAL_CHALLENGE_STATE_KEY = "studypro_local_challenge_state_v1"
 export const STUDY_CHALLENGES_UPDATED_EVENT = "MinhAprovação:challenges-updated"
 
 const EMPTY_STATE: LocalChallengeState = {
@@ -116,22 +116,22 @@ function baseDefinitions(progress: MinhAprovaçãogressSnapshot) {
   return [
     {
       id: "daily-questions-20",
-      title: "Sprint de 20 questÃµes",
+      title: "Sprint de 20 questões",
       description:
-        "Resolva 20 questÃµes em simulados para comeÃ§ar a subir seu volume de treino.",
+        "Resolva 20 questões em simulados para começar a subir seu volume de treino.",
       type: "daily" as const,
       difficulty: "easy" as const,
       progress: questions,
       target: 20,
       xpReward: 90,
-      rewardLabel: "BÃ´nus de consistÃªncia",
+      rewardLabel: "Bônus de consistência",
       icon: "target" as const,
     },
     {
       id: "weekly-questions-50",
-      title: "Volume de 50 questÃµes",
+      title: "Volume de 50 questões",
       description:
-        "Acumule 50 respostas em simulados para consolidar ritmo de resoluÃ§Ã£o.",
+        "Acumule 50 respostas em simulados para consolidar ritmo de resolução.",
       type: "weekly" as const,
       difficulty: "medium" as const,
       progress: questions,
@@ -142,9 +142,9 @@ function baseDefinitions(progress: MinhAprovaçãogressSnapshot) {
     },
     {
       id: "weekly-simulado-1",
-      title: "Primeiro simulado concluÃ­do",
+      title: "Primeiro simulado concluído",
       description:
-        "Finalize um simulado completo para registrar histÃ³rico e desempenho.",
+        "Finalize um simulado completo para registrar histórico e desempenho.",
       type: "weekly" as const,
       difficulty: "easy" as const,
       progress: simulations,
@@ -157,33 +157,33 @@ function baseDefinitions(progress: MinhAprovaçãogressSnapshot) {
       id: "weekly-simulado-3",
       title: "Trilogia de simulados",
       description:
-        "Conclua 3 simulados para construir regularidade e base estatÃ­stica de desempenho.",
+        "Conclua 3 simulados para construir regularidade e base estatística de desempenho.",
       type: "weekly" as const,
       difficulty: "medium" as const,
       progress: simulations,
       target: 3,
       xpReward: 260,
-      rewardLabel: "Selo de persistÃªncia",
+      rewardLabel: "Selo de persistência",
       icon: "flame" as const,
     },
     {
       id: "special-simulado-5",
       title: "Maratona de simulados",
       description:
-        "Chegue a 5 simulados concluÃ­dos e entre na zona alta da progressÃ£o gamificada.",
+        "Chegue a 5 simulados concluídos e entre na zona alta da progressão gamificada.",
       type: "special" as const,
       difficulty: "hard" as const,
       progress: simulations,
       target: 5,
       xpReward: 420,
-      rewardLabel: "BaÃº premium",
+      rewardLabel: "Baú premium",
       icon: "trophy" as const,
     },
     {
       id: "special-questions-100",
       title: "Centena resolvida",
       description:
-        "Resolva 100 questÃµes em simulados para desbloquear um marco de volume avanÃ§ado.",
+        "Resolva 100 questões em simulados para desbloquear um marco de volume avançado.",
       type: "special" as const,
       difficulty: "hard" as const,
       progress: questions,
@@ -233,7 +233,7 @@ export function claimChallengeReward(
   if (!challenge) {
     return {
       success: false,
-      message: "Desafio nÃ£o encontrado.",
+      message: "Desafio não encontrado.",
       challenge: null,
       state: current,
     }
@@ -242,7 +242,7 @@ export function claimChallengeReward(
   if (challenge.status === "claimed") {
     return {
       success: false,
-      message: "Este desafio jÃ¡ foi resgatado.",
+      message: "Este desafio já foi resgatado.",
       challenge,
       state: current,
     }
@@ -251,7 +251,7 @@ export function claimChallengeReward(
   if (challenge.status !== "ready_to_claim") {
     return {
       success: false,
-      message: "Este desafio ainda nÃ£o estÃ¡ pronto para resgate.",
+      message: "Este desafio ainda não está pronto para resgate.",
       challenge,
       state: current,
     }
