@@ -67,32 +67,8 @@ type SimulationHistoryEntry = {
   }>;
 };
 
-type ReviewSummaryPayload = {
-  title: string;
-  subtitle: string;
-  revisionSummary: string;
-  weakestSubjects: Array<{
-    subject: string;
-    accuracy: number;
-    correct: number;
-    wrong: number;
-    blank: number;
-  }>;
-  generatedAt: string;
-};
-
-type ReviewCard = {
-  id: string;
-  subject: string;
-  questionNumber: number;
-  front: string;
-  back: string;
-};
-
 const STUDY_GOAL_KEY = "studypro_goal";
 const SIMULATION_HISTORY_KEY = "studypro_simulation_history";
-const REVIEW_SUMMARY_KEY = "studypro_review_summary";
-const REVIEW_FLASHCARDS_KEY = "studypro_review_flashcards";
 
 function formatDate(value?: string) {
   if (!value) return "Sem data";
@@ -179,16 +155,11 @@ export default function DashboardPage() {
   const [simulationHistory, setSimulationHistory] = useState<
     SimulationHistoryEntry[]
   >([]);
-  const [reviewSummary, setReviewSummary] =
-    useState<ReviewSummaryPayload | null>(null);
-  const [reviewFlashcards, setReviewFlashcards] = useState<ReviewCard[]>([]);
 
   useEffect(() => {
     const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
     const savedGoal = localStorage.getItem(STUDY_GOAL_KEY) as StudyGoal | null;
     const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY);
-    const rawSummary = localStorage.getItem(REVIEW_SUMMARY_KEY);
-    const rawFlashcards = localStorage.getItem(REVIEW_FLASHCARDS_KEY);
 
     setToken(savedToken);
     setGoal(savedGoal);
@@ -203,23 +174,7 @@ export default function DashboardPage() {
       }
     }
 
-    if (rawSummary) {
-      try {
-        const parsed = JSON.parse(rawSummary) as ReviewSummaryPayload;
-        if (parsed?.title && parsed?.revisionSummary) setReviewSummary(parsed);
-      } catch {
-        localStorage.removeItem(REVIEW_SUMMARY_KEY);
-      }
-    }
 
-    if (rawFlashcards) {
-      try {
-        const parsed = JSON.parse(rawFlashcards) as ReviewCard[];
-        if (Array.isArray(parsed)) setReviewFlashcards(parsed);
-      } catch {
-        localStorage.removeItem(REVIEW_FLASHCARDS_KEY);
-      }
-    }
   }, []);
 
   const { data, loading, error } = useDashboardData(token);
@@ -1008,118 +963,6 @@ export default function DashboardPage() {
         </section>
       ) : null}
 
-      {(reviewSummary || reviewFlashcards.length > 0) && (
-        <section className="grid gap-6 xl:grid-cols-2">
-          <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                  <GraduationCap className="size-5 text-blue-300" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-semibold text-white">
-                    Continuar na Ãrea de Estudo
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Seu hub de revisão já está pronto
-                  </p>
-                </div>
-              </div>
-
-              <Link
-                href="/dashboard/estudo"
-                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-              >
-                Abrir área
-              </Link>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              <InfoStat
-                label="Resumo salvo"
-                value={reviewSummary ? "Sim" : "Não"}
-              />
-              <InfoStat
-                label="Flashcards"
-                value={String(reviewFlashcards.length)}
-              />
-              <InfoStat
-                label="Último treino"
-                value={latestSimulation ? "Disponível" : "N/D"}
-              />
-            </div>
-          </article>
-
-          {reviewSummary ? (
-            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <FileText className="size-5 text-blue-300" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white">
-                      Último resumo
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Material de revisão salvo localmente
-                    </p>
-                  </div>
-                </div>
-
-                <Link
-                  href="/dashboard/resumos"
-                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                >
-                  Abrir resumo
-                </Link>
-              </div>
-
-              <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5 text-sm leading-7 text-slate-300">
-                {reviewSummary.revisionSummary}
-              </div>
-            </article>
-          ) : null}
-
-          {reviewFlashcards.length > 0 ? (
-            <article className="rounded-[24px] border border-white/10 bg-[#071225] p-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-                    <Layers3 className="size-5 text-blue-300" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white">
-                      Flashcards disponíveis
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-400">
-                      Revise erros e questões em branco
-                    </p>
-                  </div>
-                </div>
-
-                <Link
-                  href="/dashboard/flashcards"
-                  className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                >
-                  Abrir flashcards
-                </Link>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <InfoStat
-                  label="Total de cards"
-                  value={String(reviewFlashcards.length)}
-                />
-                <InfoStat
-                  label="Foco principal"
-                  value={reviewFlashcards[0]?.subject ?? "N/D"}
-                />
-              </div>
-            </article>
-          ) : null}
-        </section>
-      )}
 
       <section>
         <div className="flex items-start gap-3">
