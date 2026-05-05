@@ -1055,7 +1055,7 @@ function Footer() {
   )
 }
 
-export function MinhAprovaçãoLanding() {
+export function StudyProLanding() {
   return (
     <main className="min-h-screen overflow-hidden">
       <Header />
