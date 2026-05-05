@@ -85,7 +85,7 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "").strip()
 
 FRONTEND_BASE_URL = os.getenv(
     "FRONTEND_BASE_URL",
-    "https://study-chatbot-python-uksv.vercel.app",
+    "https://www.minhaprovacao.com.br",
 ).rstrip("/")
 
 if STRIPE_SECRET_KEY:
@@ -101,11 +101,26 @@ app = FastAPI(
 
 configure_cors(app)
 
-allowed_origins = [
-    "https://study-chatbot-python-uksv.vercel.app",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+def _get_allowed_origins() -> list[str]:
+    default_origins = [
+        "https://www.minhaprovacao.com.br",
+        "https://minhaprovacao.com.br",
+        "https://study-chatbot-python-uksv.vercel.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+    extra_origins_raw = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+    extra_origins = [
+        origin.strip().rstrip("/")
+        for origin in extra_origins_raw.split(",")
+        if origin.strip()
+    ]
+
+    return list(dict.fromkeys([*default_origins, *extra_origins]))
+
+
+allowed_origins = _get_allowed_origins()
 
 app.add_middleware(
     CORSMiddleware,
