@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 import stripe
+from app.cors_config import configure_cors
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.simulation_library_router import router as simulation_library_router
@@ -97,6 +98,8 @@ app = FastAPI(
     version="1.3.0",
     description="API do StudyPro para chat, provas, simulados e monetização com Stripe.",
 )
+
+configure_cors(app)
 
 allowed_origins = [
     "https://study-chatbot-python-uksv.vercel.app",
