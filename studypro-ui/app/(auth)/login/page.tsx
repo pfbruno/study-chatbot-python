@@ -45,10 +45,12 @@ function LoginPageContent() {
 
   const canResendVerification =
     errorMessage.toLowerCase().includes("e-mail ainda não foi confirmado") ||
-    errorMessage.toLowerCase().includes("email ainda não foi confirmado")
+    errorMessage.toLowerCase().includes("email ainda não foi confirmado") ||
+    errorMessage.toLowerCase().includes("não foi confirmado")
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
     setIsSubmitting(true)
     setErrorMessage("")
     setResendMessage("")
@@ -56,19 +58,24 @@ function LoginPageContent() {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, password }),
       })
 
       if (!response.ok) {
         throw new Error(
-          (await safeReadError(response)) || "Não foi possível realizar o login."
+          (await safeReadError(response)) ||
+            "Não foi possível realizar o login."
         )
       }
 
       const data = await response.json()
+
       localStorage.setItem(AUTH_TOKEN_KEY, data.access_token)
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user))
+
       router.push(redirectTo)
     } catch (error) {
       setErrorMessage(
@@ -83,13 +90,15 @@ function LoginPageContent() {
 
   async function handleResendVerification() {
     setIsResending(true)
-    setResendMessage("")
     setErrorMessage("")
+    setResendMessage("")
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ email, password }),
       })
 
@@ -101,6 +110,7 @@ function LoginPageContent() {
       }
 
       const data = await response.json()
+
       setResendMessage(
         data?.message ||
           "E-mail de confirmação reenviado. Verifique sua caixa de entrada."
@@ -195,7 +205,7 @@ function LoginPageContent() {
 
               {errorMessage ? (
                 <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">
-                  {errorMessage}
+                  <p>{errorMessage}</p>
 
                   {canResendVerification ? (
                     <button
@@ -273,9 +283,11 @@ async function safeReadError(response: Response): Promise<string> {
       return data.detail
         .map((item: unknown) => {
           if (typeof item === "string") return item
+
           if (item && typeof item === "object" && "msg" in item) {
             return String((item as { msg: string }).msg)
           }
+
           return "Erro de validação."
         })
         .join(" | ")
