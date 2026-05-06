@@ -1,5 +1,4 @@
-﻿import Link from "next/link"
-import { BookOpen } from "lucide-react"
+import Link from "next/link"
 
 export default function AuthLayout({
   children,
@@ -15,9 +14,11 @@ export default function AuthLayout({
       <div className="container-shell flex min-h-screen flex-col">
         <header className="flex items-center justify-between py-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/25">
-              <BookOpen className="size-5" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="MinhAprovação"
+              className="size-11 shrink-0 rounded-2xl object-cover ring-1 ring-primary/25"
+            />
             <div className="flex flex-col">
               <span className="text-base font-semibold tracking-tight text-white">
                 MinhAprovação

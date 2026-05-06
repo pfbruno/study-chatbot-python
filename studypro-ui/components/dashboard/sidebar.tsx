@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -159,9 +159,11 @@ function SidebarNav({
           onClick={onNavigate}
           className="flex items-center gap-3"
         >
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 text-white shadow-[0_14px_40px_-18px_rgba(59,130,246,0.95)]">
-            <GraduationCap className="size-5" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="MinhAprovação"
+            className="size-10 shrink-0 rounded-2xl object-cover shadow-[0_14px_40px_-18px_rgba(59,130,246,0.95)]"
+          />
           <div>
             <div className="text-base font-semibold text-white">
               MinhAprovação
