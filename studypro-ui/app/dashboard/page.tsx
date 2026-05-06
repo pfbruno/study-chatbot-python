@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { trackStudyEvent } from "@/lib/study-events";
 import Link from "next/link";
@@ -42,7 +42,7 @@ import { useBillingStatus } from "@/hooks/use-billing-status";
 import { useGamificationSummary } from "@/hooks/use-gamification";
 
 type DashboardTab = "evolucao" | "materias" | "simulados" | "detalhes";
-type StudyGoal = "enem" | "concursos" | "vestibular" | "faculdade";
+type StudyGoal = "enem";
 type SimulationMode = "balanced" | "random";
 
 type SimulationHistoryEntry = {
@@ -83,48 +83,15 @@ function formatDate(value?: string) {
 }
 
 function getGoalLabel(goal: StudyGoal | null) {
-  switch (goal) {
-    case "enem":
-      return "ENEM";
-    case "concursos":
-      return "Concursos";
-    case "vestibular":
-      return "Vestibular";
-    case "faculdade":
-      return "Faculdade";
-    default:
-      return "Estudos";
-  }
+  return goal === "enem" ? "ENEM" : "ENEM";
 }
 
-function getGoalDescription(goal: StudyGoal | null) {
-  switch (goal) {
-    case "enem":
-      return "Foque em questões, simulados e evolução por área do exame.";
-    case "concursos":
-      return "Priorize constância, revisão e desempenho por disciplina.";
-    case "vestibular":
-      return "Mantenha ritmo forte em simulados e identificação de lacunas.";
-    case "faculdade":
-      return "Acompanhe seu progresso e avance com revisões inteligentes.";
-    default:
-      return "Defina seu objetivo para personalizar sua experiência.";
-  }
+function getGoalDescription(_goal: StudyGoal | null) {
+  return "Foque em provas, simulados, treino rápido, correção detalhada e evolução por área do ENEM.";
 }
 
-function getNextAction(goal: StudyGoal | null) {
-  switch (goal) {
-    case "enem":
-      return "Gerar simulado ENEM";
-    case "concursos":
-      return "Resolver questões de concurso";
-    case "vestibular":
-      return "Fazer simulado vestibular";
-    case "faculdade":
-      return "Revisar conteúdo da matéria";
-    default:
-      return "Começar agora";
-  }
+function getNextAction(_goal: StudyGoal | null) {
+  return "Gerar simulado ENEM";
 }
 
 function rarityLabel(value: string) {
@@ -158,11 +125,11 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
-    const savedGoal = localStorage.getItem(STUDY_GOAL_KEY) as StudyGoal | null;
     const rawHistory = localStorage.getItem(SIMULATION_HISTORY_KEY);
 
     setToken(savedToken);
-    setGoal(savedGoal);
+    localStorage.setItem(STUDY_GOAL_KEY, "enem");
+    setGoal("enem");
     setGoalLoaded(true);
 
     if (rawHistory) {
@@ -399,12 +366,6 @@ export default function DashboardPage() {
     },
   });
 }
-
-  function handleResetGoal() {
-    localStorage.removeItem(STUDY_GOAL_KEY);
-    setGoal(null);
-  }
-
   if (!goalLoaded) {
     return (
       <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
@@ -424,120 +385,16 @@ export default function DashboardPage() {
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
                 <Sparkles className="size-4" />
-                Personalize sua jornada
+                Foco disponível
               </div>
 
               <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-                Qual é o seu objetivo principal?
+                Seu painel está preparado para o ENEM.
               </h1>
 
               <p className="mt-4 text-lg leading-8 text-slate-300">
-                Escolha um foco inicial para organizar melhor seu painel,
-                direcionar seus estudos e preparar sua experiência.
+                A MinhAprovação está focada inicialmente em ENEM. Assim, seu dashboard será organizado para provas, simulados, treinos e evolução por área desse exame.
               </p>
-            </div>
-
-            <div className="rounded-[24px] border border-white/10 bg-[#020b18] px-5 py-5 text-sm text-slate-300 xl:max-w-sm">
-              <p className="font-medium text-white">O que muda ao selecionar?</p>
-              <ul className="mt-4 space-y-3 text-slate-300">
-                <li>• Dashboard mais orientado para ação</li>
-                <li>• Próximos passos mais claros</li>
-                <li>• Base pronta para analytics e gamificação</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <GoalCard
-            title="ENEM"
-            description="Para quem quer foco em simulados, desempenho por área e ritmo forte de evolução."
-            onClick={() => handleSelectGoal("enem")}
-          />
-          <GoalCard
-            title="Concursos"
-            description="Para quem precisa de constância, revisão contínua e acompanhamento por disciplina."
-            onClick={() => handleSelectGoal("concursos")}
-          />
-          <GoalCard
-            title="Vestibular"
-            description="Ideal para preparação direcionada, identificação de lacunas e treino frequente."
-            onClick={() => handleSelectGoal("vestibular")}
-          />
-          <GoalCard
-            title="Faculdade"
-            description="Para organização acadêmica, revisão de conteúdos e acompanhamento de progresso."
-            onClick={() => handleSelectGoal("faculdade")}
-          />
-        </section>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
-        <div className="flex items-center gap-3">
-          <Loader2 className="size-4 animate-spin" />
-          Carregando analytics do dashboard...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-        {error}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {(gamificationError || billingError) ? (
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          {[gamificationError, billingError].filter(Boolean).join(" | ")}
-        </div>
-      ) : null}
-
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-              <Target className="size-4" />
-              Foco atual: {getGoalLabel(goal)}
-            </div>
-
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-              Continue evoluindo com estratégia
-            </h1>
-
-            <p className="mt-4 text-lg leading-8 text-slate-300">
-              {getGoalDescription(goal)}
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href={
-                  !isPro && !canGenerateSimulation
-                    ? "/pricing"
-                    : "/dashboard/simulados"
-                }
-                className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
-              >
-                {!isPro && !canGenerateSimulation
-                  ? "Desbloquear Pro"
-                  : getNextAction(goal)}
-              </Link>
-
-              <button
-                type="button"
-                onClick={handleResetGoal}
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:text-white"
-              >
-                Trocar objetivo
-              </button>
             </div>
           </div>
 
