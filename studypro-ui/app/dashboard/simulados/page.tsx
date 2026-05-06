@@ -10,10 +10,8 @@ import {
   Filter,
   GraduationCap,
   Loader2,
-  Lock,
   Play,
   Search,
-  Sparkles,
   Star,
   TrendingUp,
   Users,
@@ -362,99 +360,6 @@ async function generateLibrarySimulation(
   return response.json()
 }
 
-function FreeUsageCard({
-  entitlement,
-  loading,
-}: {
-  entitlement: SimulationEntitlementResponse | null
-  loading: boolean
-}) {
-  const isPro = entitlement?.entitlements.is_pro ?? false
-  const remaining = entitlement?.usage.remaining_today
-  const dailyLimit = entitlement?.usage.daily_limit
-
-  return (
-    <div className="rounded-[24px] border border-white/10 bg-[#081224] p-5">
-      <div className="flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-          <Sparkles className="size-4 text-blue-300" />
-        </div>
-        <div>
-          <p className="text-sm text-slate-400">Seu acesso hoje</p>
-          <h3 className="text-lg font-semibold text-white">
-            {loading
-              ? "Carregando..."
-              : isPro
-              ? "Plano PRO ativo"
-              : typeof remaining === "number" && typeof dailyLimit === "number"
-              ? `${remaining} de ${dailyLimit} uso(s) gratuitos restantes hoje`
-              : "Plano Free"}
-          </h3>
-        </div>
-      </div>
-
-      <p className="mt-4 text-sm leading-7 text-slate-300">
-        {loading
-          ? "Verificando status da sua conta."
-          : isPro
-          ? "Seu plano já está liberado para gerar mais simulados e estudar sem interrupções."
-          : "Os simulados prontos agora usam o banco consolidado de todas as provas disponíveis no site."}
-      </p>
-
-      {!isPro ? (
-        <div className="mt-4">
-          <Link
-            href="/upgrade?context=general&from=simulados"
-            className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-          >
-            Desbloquear Pro
-          </Link>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-function PaywallCard() {
-  return (
-    <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5">
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
-          <Lock className="size-4 text-amber-200" />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/80">
-            Biblioteca pronta
-          </p>
-          <h3 className="mt-2 text-lg font-semibold text-white">
-            Mais volume com o Pro
-          </h3>
-          <p className="mt-3 text-sm leading-7 text-amber-100">
-            No gratuito você já acessa a biblioteca pronta. No Pro você amplia
-            o volume e reduz as travas diárias.
-          </p>
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link
-              href="/upgrade?context=general&from=simulados"
-              className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-            >
-              Ver opções Pro
-            </Link>
-
-            <Link
-              href="/dashboard/provas/enem"
-              className="inline-flex rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-            >
-              Resolver prova oficial
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function SimuladoActionButton({
   card,
@@ -682,14 +587,6 @@ export default function SimuladosPage() {
             <Crown className="size-4" />
             Ver plano Pro
           </Link>
-        </div>
-
-        <div className="mt-8 grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <FreeUsageCard
-            entitlement={entitlement}
-            loading={loadingEntitlement}
-          />
-          {!isPro ? <PaywallCard /> : null}
         </div>
 
         <div className="mt-8 rounded-[22px] border border-white/10 bg-[#0a1428] p-3">
