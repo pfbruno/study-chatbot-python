@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -13,9 +13,7 @@ import {
   Bot,
   Check,
   Copy,
-  FileText,
   History,
-  Layers3,
   PanelLeft,
   Plus,
   Search,
@@ -854,7 +852,7 @@ export function ChatIA() {
                     </h2>
 
                     <p className="mt-2 text-sm leading-7 text-slate-300">
-                      Tire dúvidas, peça resumos, gere questões, monte cronogramas
+                      Tire dúvidas, gere questões, monte cronogramas
                       e crie simulados em linguagem natural.
                     </p>
                   </div>
@@ -927,22 +925,6 @@ export function ChatIA() {
                             <Copy className="size-3.5" />
                           )}
                           Copiar
-                        </button>
-
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                        >
-                          <FileText className="size-3.5" />
-                          Resumo
-                        </button>
-
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-slate-300 transition hover:bg-white/10 hover:text-white"
-                        >
-                          <Layers3 className="size-3.5" />
-                          Flashcards
                         </button>
 
                         <div className="ml-auto flex items-center gap-1">
