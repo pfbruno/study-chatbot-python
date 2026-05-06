@@ -6,24 +6,17 @@ import "./globals.css"
 export const metadata: Metadata = {
   title: "MinhAprovação - Conquiste sua vaga",
   description:
-    "Pratique com ENEM e vestibulares, acompanhe seu desempenho e evolua com feedback inteligente.",
+    "Pratique com ENEM, acompanhe seu desempenho e evolua com feedback inteligente.",
   generator: "Next.js",
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/icon.png",
+        type: "image/png",
       },
     ],
-    apple: "/apple-icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 }
 
