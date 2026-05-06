@@ -162,7 +162,7 @@ function SidebarNav({
           <img
             src="/logo.png"
             alt="MinhAprovação"
-            className="size-10 shrink-0 rounded-2xl object-cover shadow-[0_14px_40px_-18px_rgba(59,130,246,0.95)]"
+            className="size-10 shrink-0 rounded-2xl object-contain shadow-[0_14px_40px_-18px_rgba(59,130,246,0.95)]"
           />
           <div>
             <div className="text-base font-semibold text-white">

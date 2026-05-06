@@ -17,7 +17,7 @@ export default function AuthLayout({
             <img
               src="/logo.png"
               alt="MinhAprovação"
-              className="size-11 shrink-0 rounded-2xl object-cover ring-1 ring-primary/25"
+              className="size-11 shrink-0 rounded-2xl object-contain ring-1 ring-primary/25"
             />
             <div className="flex flex-col">
               <span className="text-base font-semibold tracking-tight text-white">
