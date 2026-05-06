@@ -23,6 +23,7 @@ READY_SIMULATION_LIBRARY = [
         "description": "Treino rápido com questões aleatórias do banco inteiro disponível.",
         "question_count": 10,
         "subjects": None,
+        "years": None,
         "mode": "random",
         "difficulty": "easy",
         "duration_minutes": 20,
@@ -35,6 +36,7 @@ READY_SIMULATION_LIBRARY = [
         "description": "Treino pronto só de matemática usando todas as provas disponíveis.",
         "question_count": 15,
         "subjects": ["Matemática"],
+        "years": None,
         "mode": "random",
         "difficulty": "medium",
         "duration_minutes": 30,
@@ -47,6 +49,7 @@ READY_SIMULATION_LIBRARY = [
         "description": "Treino pronto de Ciências Humanas usando todos os anos disponíveis.",
         "question_count": 15,
         "subjects": ["Ciências Humanas"],
+        "years": None,
         "mode": "random",
         "difficulty": "medium",
         "duration_minutes": 30,
@@ -59,6 +62,7 @@ READY_SIMULATION_LIBRARY = [
         "description": "Treino pronto de Ciências da Natureza com mistura de todas as provas.",
         "question_count": 15,
         "subjects": ["Ciências da Natureza"],
+        "years": None,
         "mode": "random",
         "difficulty": "medium",
         "duration_minutes": 30,
@@ -71,6 +75,7 @@ READY_SIMULATION_LIBRARY = [
         "description": "Treino pronto de Linguagens misturando questões de todos os anos disponíveis.",
         "question_count": 15,
         "subjects": ["Linguagens"],
+        "years": None,
         "mode": "random",
         "difficulty": "medium",
         "duration_minutes": 30,
@@ -83,6 +88,7 @@ READY_SIMULATION_LIBRARY = [
         "description": "Sessão pronta e balanceada entre disciplinas usando o banco consolidado.",
         "question_count": 20,
         "subjects": None,
+        "years": None,
         "mode": "balanced",
         "difficulty": "medium",
         "duration_minutes": 40,
@@ -95,11 +101,43 @@ READY_SIMULATION_LIBRARY = [
         "description": "Treino mais longo com mistura de todas as provas já cadastradas no site.",
         "question_count": 30,
         "subjects": None,
+        "years": None,
         "mode": "balanced",
         "difficulty": "hard",
         "duration_minutes": 60,
         "tags": ["Misto", "Intensivo", "Biblioteca"],
-        "is_premium": True,
+        "is_premium": False,
+    },
+]
+
+YEAR_SPECIFIC_SUBJECT_PRESETS = [
+    {
+        "slug": "matematica",
+        "title": "Matemática",
+        "subjects": ["Matemática"],
+        "difficulty": "medium",
+        "tags": ["Matemática", "ENEM", "Ano específico"],
+    },
+    {
+        "slug": "humanas",
+        "title": "Humanas",
+        "subjects": ["Ciências Humanas"],
+        "difficulty": "medium",
+        "tags": ["Humanas", "ENEM", "Ano específico"],
+    },
+    {
+        "slug": "natureza",
+        "title": "Natureza",
+        "subjects": ["Ciências da Natureza"],
+        "difficulty": "medium",
+        "tags": ["Natureza", "ENEM", "Ano específico"],
+    },
+    {
+        "slug": "linguagens",
+        "title": "Linguagens",
+        "subjects": ["Linguagens"],
+        "difficulty": "medium",
+        "tags": ["Linguagens", "ENEM", "Ano específico"],
     },
 ]
 
@@ -131,6 +169,28 @@ def _sanitize_subjects(subjects: list[str] | None) -> list[str] | None:
         sanitized.append(normalized)
 
     return sanitized or None
+
+
+def _sanitize_years(years: list[int] | None) -> list[int] | None:
+    if not years:
+        return None
+
+    sanitized: list[int] = []
+    seen: set[int] = set()
+
+    for year in years:
+        try:
+            value = int(year)
+        except (TypeError, ValueError):
+            continue
+
+        if value in seen:
+            continue
+
+        seen.add(value)
+        sanitized.append(value)
+
+    return sorted(sanitized) or None
 
 
 def _normalize_answer(answer: str | None) -> str | None:
@@ -237,6 +297,22 @@ def _filter_questions_by_subjects(
     ]
 
 
+def _filter_questions_by_years(
+    questions: list[dict],
+    selected_years: list[int] | None,
+) -> list[dict]:
+    if not selected_years:
+        return questions
+
+    selected_year_set = set(selected_years)
+
+    return [
+        question
+        for question in questions
+        if int(question.get("source_year") or 0) in selected_year_set
+    ]
+
+
 def _select_questions(
     valid_questions: list[dict],
     question_count: int,
@@ -303,11 +379,50 @@ def _select_questions(
     return selected_questions
 
 
-def _get_ready_simulation_preset(preset_id: str) -> dict:
+def _build_year_specific_library_presets(exam_type: str) -> list[dict]:
+    normalized_exam_type = _normalize_exam_type(exam_type)
+    years = list_available_question_bank_years(normalized_exam_type)
+
+    presets: list[dict] = []
+
+    for year in years:
+        for area in YEAR_SPECIFIC_SUBJECT_PRESETS:
+            presets.append(
+                {
+                    "id": f"{normalized_exam_type}-{year}-{area['slug']}-15",
+                    "title": f"{normalized_exam_type.upper()} {year} • {area['title']} • 15 questões",
+                    "description": (
+                        f"Simulado pronto com 15 questões de {area['title']} "
+                        f"usando exclusivamente a base do {normalized_exam_type.upper()} {year}."
+                    ),
+                    "question_count": 15,
+                    "subjects": area["subjects"],
+                    "years": [year],
+                    "mode": "random",
+                    "difficulty": area["difficulty"],
+                    "duration_minutes": 30,
+                    "tags": [str(year), *area["tags"]],
+                    "is_premium": False,
+                }
+            )
+
+    return presets
+
+
+def _get_library_presets(exam_type: str) -> list[dict]:
+    return [
+        *READY_SIMULATION_LIBRARY,
+        *_build_year_specific_library_presets(exam_type),
+    ]
+
+
+def _get_ready_simulation_preset(preset_id: str, exam_type: str = "enem") -> dict:
     normalized_id = preset_id.strip().lower()
-    for preset in READY_SIMULATION_LIBRARY:
+
+    for preset in _get_library_presets(exam_type):
         if preset["id"] == normalized_id:
             return preset
+
     raise ValueError("Preset de simulado pronto não encontrado.")
 
 
@@ -318,8 +433,17 @@ def get_ready_simulation_library(exam_type: str = "enem") -> dict:
     available_subjects = get_all_available_subjects(normalized_exam_type)
 
     items = []
-    for preset in READY_SIMULATION_LIBRARY:
-        filtered_pool = _filter_questions_by_subjects(all_questions, preset["subjects"])
+
+    for preset in _get_library_presets(normalized_exam_type):
+        preset_years = _sanitize_years(preset.get("years")) or years
+        selected_subjects = _sanitize_subjects(preset["subjects"])
+
+        _validate_requested_subjects(selected_subjects, available_subjects)
+        resolved_subjects = _resolve_subject_filter(selected_subjects, available_subjects)
+
+        filtered_pool = _filter_questions_by_subjects(all_questions, resolved_subjects)
+        filtered_pool = _filter_questions_by_years(filtered_pool, preset_years)
+
         items.append(
             {
                 "id": preset["id"],
@@ -334,7 +458,7 @@ def get_ready_simulation_library(exam_type: str = "enem") -> dict:
                 "tags": preset["tags"],
                 "is_premium": preset["is_premium"],
                 "total_questions_pool": len(filtered_pool),
-                "years_pool": years,
+                "years_pool": preset_years,
                 "available_subjects": available_subjects,
                 "is_available": len(filtered_pool) >= preset["question_count"],
             }
@@ -412,16 +536,20 @@ def generate_library_simulation(
     seed: int | None = None,
 ) -> dict:
     normalized_exam_type = _normalize_exam_type(exam_type)
-    preset = _get_ready_simulation_preset(preset_id)
+    preset = _get_ready_simulation_preset(preset_id, normalized_exam_type)
 
-    years = list_available_question_bank_years(normalized_exam_type)
+    all_years = list_available_question_bank_years(normalized_exam_type)
     valid_questions = get_all_questions(normalized_exam_type, include_annulled=False)
     available_subjects = get_all_available_subjects(normalized_exam_type)
 
+    preset_years = _sanitize_years(preset.get("years")) or all_years
     selected_subjects = _sanitize_subjects(preset["subjects"])
+
     _validate_requested_subjects(selected_subjects, available_subjects)
     resolved_subjects = _resolve_subject_filter(selected_subjects, available_subjects)
+
     valid_questions = _filter_questions_by_subjects(valid_questions, resolved_subjects)
+    valid_questions = _filter_questions_by_years(valid_questions, preset_years)
 
     selected_questions = _select_questions(
         valid_questions=valid_questions,
@@ -438,15 +566,21 @@ def generate_library_simulation(
         for index, question in enumerate(selected_questions)
     ]
 
+    year_label = (
+        str(preset_years[0])
+        if len(preset_years) == 1
+        else f"{preset_years[0]}–{preset_years[-1]}"
+    )
+
     return {
         "simulation_id": str(uuid4()),
         "simulation_source": "library",
         "source_preset_id": preset["id"],
         "generated_at": datetime.now(UTC).isoformat(),
         "exam_type": normalized_exam_type,
-        "year": years[-1],
-        "year_label": f"{years[0]}–{years[-1]}" if len(years) > 1 else str(years[0]),
-        "years_pool": years,
+        "year": preset_years[-1],
+        "year_label": year_label,
+        "years_pool": preset_years,
         "title": preset["title"],
         "description": preset["description"],
         "mode": preset["mode"],
