@@ -31,6 +31,7 @@ def _send_email_via_resend(to_email: str, subject: str, html: str) -> bool:
         headers={
             "Authorization": f"Bearer {RESEND_API_KEY}",
             "Content-Type": "application/json",
+            "User-Agent": "minhaprovacao-backend/1.0",
         },
         method="POST",
     )
