@@ -8,7 +8,7 @@ LOGGER = logging.getLogger(__name__)
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "").strip()
 EMAIL_FROM = os.getenv(
     "EMAIL_FROM",
-    "MinhAprovação <noreply@minhaprovacao.com.br>",
+    "noreply@emails.minhaprovacao.com.br",
 ).strip()
 APP_NAME = os.getenv("APP_NAME", "MinhAprovação").strip()
 
@@ -38,15 +38,25 @@ def _send_email_via_resend(to_email: str, subject: str, html: str) -> bool:
     try:
         with request.urlopen(req, timeout=20) as response:
             status_code = getattr(response, "status", 200)
+            response_body = response.read().decode("utf-8", errors="ignore")
+
             if 200 <= status_code < 300:
-                LOGGER.info("email.resend.sent", extra={"to_email": to_email})
+                LOGGER.info(
+                    "email.resend.sent status_code=%s to_email=%s response_body=%s",
+                    status_code,
+                    to_email,
+                    response_body,
+                )
                 return True
 
             LOGGER.warning(
-                "email.resend.bad_status",
-                extra={"to_email": to_email, "status_code": status_code},
+                "email.resend.bad_status status_code=%s to_email=%s response_body=%s",
+                status_code,
+                to_email,
+                response_body,
             )
             return False
+
     except error.HTTPError as exc:
         try:
             response_body = exc.read().decode("utf-8", errors="ignore")
@@ -54,18 +64,20 @@ def _send_email_via_resend(to_email: str, subject: str, html: str) -> bool:
             response_body = ""
 
         LOGGER.warning(
-            "email.resend.http_error",
-            extra={
-                "to_email": to_email,
-                "status_code": exc.code,
-                "response_body": response_body,
-            },
+            "email.resend.http_error status_code=%s to_email=%s email_from=%s response_body=%s",
+            exc.code,
+            to_email,
+            EMAIL_FROM,
+            response_body,
         )
         return False
+
     except Exception as exc:  # noqa: BLE001
         LOGGER.warning(
-            "email.resend.unexpected_error",
-            extra={"to_email": to_email, "error": str(exc)},
+            "email.resend.unexpected_error to_email=%s email_from=%s error=%s",
+            to_email,
+            EMAIL_FROM,
+            str(exc),
         )
         return False
 
