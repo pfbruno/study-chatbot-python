@@ -1,6 +1,5 @@
 "use client";
 
-import { trackStudyEvent } from "@/lib/study-events";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -353,19 +352,6 @@ export default function DashboardPage() {
 
   const bestGameDay = [...gameWeeklyEvolution].sort((a, b) => b.xp - a.xp)[0];
   const totalWeekXP = gameWeeklyEvolution.reduce((acc, item) => acc + item.xp, 0);
-
-  function handleSelectGoal(selectedGoal: StudyGoal) {
-  localStorage.setItem(STUDY_GOAL_KEY, selectedGoal);
-  setGoal(selectedGoal);
-
-  void trackStudyEvent({
-    eventType: "study_goal_selected",
-    module: "dashboard",
-    metadata: {
-      goal: selectedGoal,
-    },
-  });
-}
   if (!goalLoaded) {
     return (
       <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
@@ -377,24 +363,69 @@ export default function DashboardPage() {
     );
   }
 
-  if (!goal) {
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <section className="rounded-[32px] border border-white/10 bg-[#071225] p-8 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-center xl:justify-between">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-                <Sparkles className="size-4" />
-                Foco disponível
-              </div>
+      <div className="glass-panel rounded-[32px] p-6 text-sm text-muted-foreground">
+        <div className="flex items-center gap-3">
+          <Loader2 className="size-4 animate-spin" />
+          Carregando analytics do dashboard...
+        </div>
+      </div>
+    );
+  }
 
-              <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
-                Seu painel está preparado para o ENEM.
-              </h1>
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+        {error}
+      </div>
+    );
+  }
 
-              <p className="mt-4 text-lg leading-8 text-slate-300">
-                A MinhAprovação está focada inicialmente em ENEM. Assim, seu dashboard será organizado para provas, simulados, treinos e evolução por área desse exame.
-              </p>
+  return (
+    <div className="space-y-6">
+      {gamificationError || billingError ? (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          {[gamificationError, billingError].filter(Boolean).join(" | ")}
+        </div>
+      ) : null}
+
+      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
+              <Target className="size-4" />
+              Foco atual: ENEM
+            </div>
+
+            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
+              Continue evoluindo com estratégia
+            </h1>
+
+            <p className="mt-4 text-lg leading-8 text-slate-300">
+              Foque em provas, simulados, treino rápido, correção detalhada e evolução por área do ENEM.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href={
+                  !isPro && !canGenerateSimulation
+                    ? "/pricing"
+                    : "/dashboard/simulados"
+                }
+                className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+              >
+                {!isPro && !canGenerateSimulation
+                  ? "Desbloquear Pro"
+                  : "Gerar simulado ENEM"}
+              </Link>
+
+              <Link
+                href="/dashboard/treinar"
+                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:text-white"
+              >
+                Treinar agora
+              </Link>
             </div>
           </div>
 
@@ -425,8 +456,8 @@ export default function DashboardPage() {
                     {isPro
                       ? "Seu plano PRO está ativo. Os recursos premium já estão liberados."
                       : simulationLimit === null
-                      ? "Seu plano gratuito está ativo."
-                      : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
+                        ? "Seu plano gratuito está ativo."
+                        : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
                   </p>
 
                   {!isPro && typeof simulationRemaining === "number" ? (
