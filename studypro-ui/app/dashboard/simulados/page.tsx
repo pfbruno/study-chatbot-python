@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
@@ -387,7 +387,7 @@ function FreeUsageCard({
               : isPro
               ? "Plano PRO ativo"
               : typeof remaining === "number" && typeof dailyLimit === "number"
-              ? `${remaining} de ${dailyLimit} geração(ões) restantes`
+              ? `${remaining} de ${dailyLimit} uso(s) gratuitos restantes hoje`
               : "Plano Free"}
           </h3>
         </div>
@@ -404,7 +404,7 @@ function FreeUsageCard({
       {!isPro ? (
         <div className="mt-4">
           <Link
-            href="/pricing"
+            href="/upgrade?context=general&from=simulados"
             className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
           >
             Desbloquear Pro
@@ -432,15 +432,15 @@ function PaywallCard() {
           </h3>
           <p className="mt-3 text-sm leading-7 text-amber-100">
             No gratuito você já acessa a biblioteca pronta. No Pro você amplia
-            o volume e reduz as travas diárias de geração.
+            o volume e reduz as travas diárias.
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
-              href="/pricing"
+              href="/upgrade?context=general&from=simulados"
               className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
             >
-              Ver plano Pro
+              Ver opções Pro
             </Link>
 
             <Link
@@ -468,8 +468,6 @@ function SimuladoActionButton({
   onStart: (card: SimuladoCard) => void
 }) {
   const isGenerating = generatingId === card.id
-  const isLocked = card.isPremium && !isPro
-
   if (card.kind === "history") {
     return (
       <Link
@@ -477,17 +475,6 @@ function SimuladoActionButton({
         className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
       >
         Ver último resultado
-      </Link>
-    )
-  }
-
-  if (isLocked) {
-    return (
-      <Link
-        href="/pricing"
-        className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-      >
-        Ver plano Pro
       </Link>
     )
   }
@@ -633,9 +620,7 @@ export default function SimuladosPage() {
     if (card.kind !== "library" || !card.presetId) return
 
     if (!canGenerate && !isPro) {
-      setActionError(
-        "Você atingiu o limite diário do plano gratuito. Vá para o Pro ou tente novamente no próximo dia."
-      )
+      router.push("/upgrade?context=general&from=simulados")
       return
     }
 
@@ -652,11 +637,21 @@ export default function SimuladosPage() {
 
       router.push("/dashboard/simulados/resolver")
     } catch (err) {
-      setActionError(
+      const message =
         err instanceof Error
           ? err.message
           : "Não foi possível preparar este simulado agora."
-      )
+
+      if (
+        message.toLowerCase().includes("limite") ||
+        message.toLowerCase().includes("limit") ||
+        message.toLowerCase().includes("plano gratuito")
+      ) {
+        router.push("/upgrade?context=general&from=simulados")
+        return
+      }
+
+      setActionError(message)
     } finally {
       setGeneratingId(null)
     }
@@ -681,7 +676,7 @@ export default function SimuladosPage() {
           </div>
 
           <Link
-            href="/pricing"
+            href="/upgrade?context=general&from=simulados"
             className="inline-flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/15"
           >
             <Crown className="size-4" />
