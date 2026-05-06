@@ -1,7 +1,7 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
 import {
   Check,
@@ -22,6 +22,8 @@ import {
   getBillingStatus,
   type AuthUser,
   type BillingEntitlements,
+  type BillingPlanKey,
+  type BillingPlanOption,
   type BillingPublicConfigResponse,
   type BillingUsage,
 } from "@/lib/api"
@@ -35,6 +37,53 @@ declare global {
   }
 }
 
+const PLAN_COPY: Record<
+  BillingPlanKey,
+  {
+    name: string
+    price: string
+    period: string
+    description: string
+    badge: string
+    helper: string
+  }
+> = {
+  monthly: {
+    name: "Pro Mensal",
+    price: "R$ 19,90",
+    period: "/mês",
+    description: "Para continuar estudando agora sem esperar o próximo dia.",
+    badge: "Baixa barreira de entrada",
+    helper: "Ideal para testar o Pro com assinatura mensal.",
+  },
+  annual: {
+    name: "Pro Anual",
+    price: "R$ 149,90",
+    period: "/ano",
+    description: "Para estudar com constância durante a preparação.",
+    badge: "Melhor custo-benefício",
+    helper: "Equivale a aproximadamente R$ 12,49/mês.",
+  },
+}
+
+function normalizePlanFromQuery(value: string | null): BillingPlanKey {
+  return value === "annual" ? "annual" : "monthly"
+}
+
+function getPlanOption(
+  publicConfig: BillingPublicConfigResponse | null,
+  planKey: BillingPlanKey
+): BillingPlanOption | null {
+  const option = publicConfig?.plan_options?.[planKey]
+  if (option) return option
+
+  if (planKey === "monthly" && publicConfig?.stored_plan) {
+    return publicConfig.stored_plan
+  }
+
+  return null
+}
+
 export default function PricingPage() {
   return (
     <Suspense fallback={<PricingPageFallback />}>
@@ -45,7 +94,12 @@ export default function PricingPage() {
 
 function PricingPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const selectedPlanKey = normalizePlanFromQuery(searchParams.get("plan"))
+  const selectedPlanCopy = PLAN_COPY[selectedPlanKey]
+
   const formReadyRef = useRef(false)
+  const cardFormRef = useRef<any>(null)
 
   const [authToken, setAuthToken] = useState<string | null>(null)
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -66,7 +120,16 @@ function PricingPageContent() {
   const [identificationType, setIdentificationType] = useState("CPF")
   const [mercadoPagoLoaded, setMercadoPagoLoaded] = useState(false)
 
-  const cardFormRef = useRef<any>(null)
+  const selectedPlan = useMemo(
+    () => getPlanOption(publicConfig, selectedPlanKey),
+    [publicConfig, selectedPlanKey]
+  )
+
+  const selectedAmount =
+    selectedPlan?.transaction_amount ??
+    (selectedPlanKey === "annual" ? 149.9 : 19.9)
+
+  const selectedPlanId = selectedPlan?.plan_id ?? null
 
   useEffect(() => {
     const storedToken = localStorage.getItem(AUTH_TOKEN_KEY)
@@ -137,9 +200,7 @@ function PricingPageContent() {
   }, [])
 
   useEffect(() => {
-    if (!publicConfig?.public_key) {
-      return
-    }
+    if (!publicConfig?.public_key) return
 
     if (window.MercadoPago) {
       setMercadoPagoLoaded(true)
@@ -165,18 +226,16 @@ function PricingPageContent() {
     if (
       !mercadoPagoLoaded ||
       !publicConfig?.public_key ||
-      !publicConfig?.plan_defaults ||
+      !selectedPlanId ||
       formReadyRef.current
     ) {
       return
     }
 
-    if (!window.MercadoPago) {
-      return
-    }
+    if (!window.MercadoPago) return
 
     const mp = new window.MercadoPago(publicConfig.public_key)
-    const amount = String(publicConfig.plan_defaults.transaction_amount)
+    const amount = String(selectedAmount)
 
     cardFormRef.current = mp.cardForm({
       amount,
@@ -229,13 +288,14 @@ function PricingPageContent() {
             )
             return
           }
+
           formReadyRef.current = true
         },
         onSubmit: async (event: Event) => {
           event.preventDefault()
 
           if (!authToken) {
-            router.push("/login?redirect=/pricing")
+            router.push(`/login?redirect=/pricing?plan=${selectedPlanKey}`)
             return
           }
 
@@ -262,6 +322,7 @@ function PricingPageContent() {
 
             const response = await createMercadoPagoSubscription(
               {
+                plan_key: selectedPlanKey,
                 card_token_id: token,
                 payer_email: cardholderEmail || payerEmail,
                 identification_type:
@@ -278,7 +339,7 @@ function PricingPageContent() {
               "Assinatura criada com sucesso. Seu plano já foi atualizado."
             )
 
-            window.location.href = "/success?provider=mercadopago"
+            window.location.href = `/success?provider=mercadopago&plan=${selectedPlanKey}`
           } catch (error) {
             setErrorMessage(normalizeBillingErrorMessage(error))
           } finally {
@@ -296,15 +357,18 @@ function PricingPageContent() {
     identificationType,
     mercadoPagoLoaded,
     payerEmail,
-    publicConfig,
+    publicConfig?.public_key,
     router,
+    selectedAmount,
+    selectedPlanId,
+    selectedPlanKey,
     user?.plan,
   ])
 
   const isPro = user?.plan === "pro"
   const freeUsageText =
     usage?.daily_limit && usage?.remaining_today !== null
-      ? `${usage.remaining_today} de ${usage.daily_limit} geração(ões) restantes hoje`
+      ? `${usage.remaining_today} de ${usage.daily_limit} uso(s) gratuitos restantes hoje`
       : "Uso liberado"
 
   const canRenderPaymentForm = useMemo(() => {
@@ -312,9 +376,9 @@ function PricingPageContent() {
       !!authToken &&
       !isPro &&
       !!publicConfig?.is_configured &&
-      !!publicConfig?.stored_plan?.plan_id
+      !!selectedPlanId
     )
-  }, [authToken, isPro, publicConfig])
+  }, [authToken, isPro, publicConfig?.is_configured, selectedPlanId])
 
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
@@ -323,24 +387,24 @@ function PricingPageContent() {
           <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
             <div>
               <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-                Monetização ENEM
+                Assinatura MinhAprovação
               </div>
 
               <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-                Desbloqueie o Pro e mantenha seu ritmo de estudo
+                Escolha seu plano Pro
               </h1>
 
               <p className="mt-5 max-w-2xl text-base leading-8 text-slate-300">
-                O gratuito serve para experimentar. O Pro serve para transformar
-                intenção em constância, com mais prática, mais leitura de
-                desempenho e menos travas durante a preparação.
+                O gratuito serve para experimentar. O Pro serve para estudar com
+                mais constância, mais prática e menos interrupções durante a
+                preparação.
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 <MetricCard
                   icon={<TrendingUp className="size-4 text-primary" />}
                   label="Mais prática"
-                  value="sem travas"
+                  value="uso ampliado"
                 />
                 <MetricCard
                   icon={<Clock3 className="size-4 text-primary" />}
@@ -350,7 +414,7 @@ function PricingPageContent() {
                 <MetricCard
                   icon={<ShieldCheck className="size-4 text-primary" />}
                   label="Assinatura"
-                  value="recorrente"
+                  value="Mercado Pago"
                 />
               </div>
 
@@ -364,7 +428,7 @@ function PricingPageContent() {
 
                 {!authToken ? (
                   <Link
-                    href="/login?redirect=/pricing"
+                    href={`/login?redirect=/pricing?plan=${selectedPlanKey}`}
                     className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white transition hover:bg-white/10"
                   >
                     Fazer login
@@ -383,10 +447,10 @@ function PricingPageContent() {
                     isLoadingUser
                       ? "Carregando..."
                       : isPro
-                      ? "PRO"
-                      : authToken
-                      ? "FREE"
-                      : "Visitante"
+                        ? "PRO"
+                        : authToken
+                          ? "FREE"
+                          : "Visitante"
                   }
                 />
                 <InfoRow
@@ -403,8 +467,8 @@ function PricingPageContent() {
               </div>
 
               <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
-                Cada bloqueio no plano gratuito interrompe o seu fluxo. O Pro
-                existe para eliminar essa fricção.
+                O Pro remove a fricção do limite diário e mantém sua rotina de
+                estudo em andamento.
               </div>
             </div>
           </div>
@@ -426,33 +490,40 @@ function PricingPageContent() {
           <article className="glass-panel rounded-[32px] border border-primary/20 bg-primary/[0.08] p-6 md:p-8 shadow-[0_18px_60px_-24px_rgba(59,130,246,0.65)]">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
               <Crown className="size-4" />
-              Plano Pro
+              Planos Pro
             </div>
 
-            <div className="mt-6 flex items-end gap-3">
-              <span className="text-5xl font-bold text-white">R$ 29</span>
-              <span className="pb-2 text-sm text-muted-foreground">/mês</span>
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <PlanSelectorCard planKey="monthly" selectedPlanKey={selectedPlanKey} />
+              <PlanSelectorCard planKey="annual" selectedPlanKey={selectedPlanKey} />
             </div>
 
-            <div className="mt-3 flex items-center gap-2 text-sm text-slate-300">
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                Menos que R$ 1 por dia
-              </span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-                Cancelamento simples
-              </span>
-            </div>
+            <div className="mt-8 rounded-[24px] border border-white/10 bg-[#081224] p-5">
+              <p className="text-sm text-muted-foreground">Plano selecionado</p>
 
-            <p className="mt-5 text-sm leading-7 text-slate-300">
-              Para quem quer manter consistência de estudo, sem depender do
-              limite gratuito e sem perder ritmo exatamente quando está focado.
-            </p>
+              <div className="mt-3 flex items-end gap-3">
+                <span className="text-5xl font-bold text-white">
+                  {selectedPlanCopy.price}
+                </span>
+                <span className="pb-2 text-sm text-muted-foreground">
+                  {selectedPlanCopy.period}
+                </span>
+              </div>
+
+              <p className="mt-4 text-sm leading-7 text-slate-300">
+                {selectedPlanCopy.description}
+              </p>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
+                {selectedPlanCopy.helper}
+              </div>
+            </div>
 
             <div className="mt-8 space-y-3">
-              <FeatureItem text="Simulados ilimitados" />
-              <FeatureItem text="Mais prática por dia" />
-              <FeatureItem text="Análise de desempenho completa" />
-              <FeatureItem text="Insights inteligentes" />
+              <FeatureItem text="Mais questões por dia" />
+              <FeatureItem text="Mais uso do Chat IA" />
+              <FeatureItem text="Continuidade em provas, simulados e treinos" />
+              <FeatureItem text="Acompanhamento de evolução com mais clareza" />
               <FeatureItem text="Pagamento recorrente via Mercado Pago" />
             </div>
           </article>
@@ -460,7 +531,7 @@ function PricingPageContent() {
           <article className="glass-panel rounded-[32px] p-6 md:p-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CreditCard className="size-4" />
-              Assinatura MinhAprovação Pro
+              Assinar {selectedPlanCopy.name}
             </div>
 
             {!authToken ? (
@@ -469,7 +540,7 @@ function PricingPageContent() {
                   Faça login para assinar o plano Pro.
                 </p>
                 <Link
-                  href="/login?redirect=/pricing"
+                  href={`/login?redirect=/pricing?plan=${selectedPlanKey}`}
                   className="mt-4 inline-flex rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
                 >
                   Entrar para assinar
@@ -484,10 +555,11 @@ function PricingPageContent() {
               <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 p-5 text-sm text-red-200">
                 O backend ainda não recebeu as credenciais do Mercado Pago.
               </div>
-            ) : !publicConfig?.stored_plan?.plan_id ? (
+            ) : !selectedPlanId ? (
               <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-5 text-sm text-amber-100">
-                O plano do Mercado Pago ainda não foi criado no backend. Execute
-                primeiro o bootstrap do plano.
+                O plano {selectedPlanKey === "annual" ? "anual" : "mensal"} do
+                Mercado Pago ainda não foi criado no backend. Execute primeiro o
+                bootstrap deste plano.
               </div>
             ) : isPro ? (
               <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5 text-sm text-emerald-200">
@@ -495,6 +567,14 @@ function PricingPageContent() {
               </div>
             ) : canRenderPaymentForm ? (
               <form id="form-checkout" className="mt-6 space-y-4">
+                <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm text-slate-200">
+                  Você está assinando:{" "}
+                  <span className="font-semibold text-white">
+                    {selectedPlanCopy.name} — {selectedPlanCopy.price}
+                    {selectedPlanCopy.period}
+                  </span>
+                </div>
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="md:col-span-2">
                     <label className="mb-2 block text-sm text-slate-300">
@@ -601,15 +681,6 @@ function PricingPageContent() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-xs leading-6 text-amber-100">
-                  Durante os testes, o Mercado Pago pode recusar a tokenização de assinaturas com a mensagem
-                  <span className="mx-1 font-semibold text-white">
-                    Card token service not found
-                  </span>
-                  . Quando isso ocorrer, a interface está funcionando, mas a validação final precisa ser feita
-                  em produção controlada.
-                </div>
-
                 <button
                   type="submit"
                   disabled={isSubmitting}
@@ -617,7 +688,7 @@ function PricingPageContent() {
                 >
                   {isSubmitting
                     ? "Processando assinatura..."
-                    : "Assinar com Mercado Pago"}
+                    : `Assinar ${selectedPlanCopy.name}`}
                 </button>
 
                 <p className="text-xs leading-6 text-slate-400">
@@ -625,44 +696,6 @@ function PricingPageContent() {
                 </p>
               </form>
             ) : null}
-          </article>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-2">
-          <article className="glass-panel rounded-[28px] p-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300">
-              <Sparkles className="size-4 text-primary" />
-              Para testar
-            </div>
-
-            <h2 className="mt-4 text-2xl font-semibold text-white">
-              Plano Free
-            </h2>
-
-            <ul className="mt-6 space-y-3">
-              <FeatureItem text="Conhecer a plataforma" />
-              <FeatureItem text="Testar o fluxo do aluno" />
-              <FeatureItem text="Ver correção automática" />
-              <FeatureItem text="Entender a proposta do MinhAprovação" />
-            </ul>
-          </article>
-
-          <article className="glass-panel rounded-[28px] border border-primary/20 p-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Crown className="size-4" />
-              Para evoluir
-            </div>
-
-            <h2 className="mt-4 text-2xl font-semibold text-white">
-              Plano Pro
-            </h2>
-
-            <ul className="mt-6 space-y-3">
-              <FeatureItem text="Aumentar volume de treino" />
-              <FeatureItem text="Remover travas do gratuito" />
-              <FeatureItem text="Estudar com mais constância" />
-              <FeatureItem text="Ler evolução com mais clareza" />
-            </ul>
           </article>
         </section>
       </div>
@@ -676,17 +709,56 @@ function PricingPageFallback() {
       <div className="mx-auto max-w-7xl">
         <div className="glass-panel rounded-[32px] p-6 md:p-8">
           <div className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-4 py-1 text-sm text-primary">
-            Monetização ENEM
+            MinhAprovação Pro
           </div>
           <h1 className="mt-5 text-3xl font-bold tracking-tight text-white md:text-5xl">
-            Desbloqueie o Pro
+            Carregando planos...
           </h1>
-          <p className="mt-5 text-sm text-slate-300">
-            Carregando informações de pricing...
-          </p>
         </div>
       </div>
     </main>
+  )
+}
+
+function PlanSelectorCard({
+  planKey,
+  selectedPlanKey,
+}: {
+  planKey: BillingPlanKey
+  selectedPlanKey: BillingPlanKey
+}) {
+  const plan = PLAN_COPY[planKey]
+  const selected = planKey === selectedPlanKey
+
+  return (
+    <a
+      href={`/pricing?plan=${planKey}`}
+      className={`rounded-3xl border p-5 transition ${
+        selected
+          ? "border-primary/50 bg-primary/15"
+          : "border-white/10 bg-white/5 hover:bg-white/10"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-semibold text-white">{plan.name}</h3>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            selected
+              ? "bg-primary text-primary-foreground"
+              : "bg-white/10 text-slate-300"
+          }`}
+        >
+          {selected ? "Selecionado" : plan.badge}
+        </span>
+      </div>
+
+      <div className="mt-4 flex items-end gap-2">
+        <span className="text-3xl font-bold text-white">{plan.price}</span>
+        <span className="pb-1 text-sm text-slate-400">{plan.period}</span>
+      </div>
+
+      <p className="mt-3 text-sm leading-6 text-slate-300">{plan.description}</p>
+    </a>
   )
 }
 

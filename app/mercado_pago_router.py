@@ -31,6 +31,7 @@ from app.mercado_pago import (
     get_preapproval_plan,
     get_public_config,
     mercado_pago_is_configured,
+    normalize_plan_key,
     update_preapproval,
     validate_webhook_signature,
 )
@@ -46,6 +47,7 @@ MERCADOPAGO_BOOTSTRAP_SECRET = os.getenv("MERCADOPAGO_BOOTSTRAP_SECRET", "").str
 
 
 class MercadoPagoPlanBootstrapRequest(BaseModel):
+    plan_key: Literal["monthly", "annual"] = "monthly"
     reason: str | None = Field(default=None, max_length=120)
     transaction_amount: float | None = Field(default=None, gt=0)
     frequency: int | None = Field(default=None, ge=1, le=24)
@@ -71,6 +73,7 @@ class MercadoPagoPlanBootstrapRequest(BaseModel):
 
 
 class CreateMercadoPagoSubscriptionRequest(BaseModel):
+    plan_key: Literal["monthly", "annual"] = "monthly"
     card_token_id: str = Field(..., min_length=8, max_length=255)
     payer_email: str = Field(..., min_length=5, max_length=255)
     identification_type: str | None = Field(default=None, max_length=40)
@@ -149,16 +152,46 @@ def _enforce_bootstrap_permission(
         )
 
 
-def _get_stored_plan_data() -> dict[str, Any]:
-    plan_id = get_provider_config("plan_id")
-    plan_reason = get_provider_config("plan_reason")
-    amount = get_provider_config("plan_amount")
-    frequency = get_provider_config("plan_frequency")
-    frequency_type = get_provider_config("plan_frequency_type")
-    currency_id = get_provider_config("plan_currency_id")
-    back_url = get_provider_config("plan_back_url")
+
+def _plan_config_key(plan_key: str, suffix: str) -> str:
+    return f"{normalize_plan_key(plan_key)}_plan_{suffix}"
+
+
+def _get_plan_config_value(plan_key: str, suffix: str) -> str | None:
+    selected_plan_key = normalize_plan_key(plan_key)
+    value = get_provider_config(_plan_config_key(selected_plan_key, suffix))
+
+    # Compatibilidade com a configuração antiga de plano único.
+    if selected_plan_key == "monthly" and not value:
+        legacy_map = {
+            "id": "plan_id",
+            "reason": "plan_reason",
+            "amount": "plan_amount",
+            "frequency": "plan_frequency",
+            "frequency_type": "plan_frequency_type",
+            "currency_id": "plan_currency_id",
+            "back_url": "plan_back_url",
+        }
+        legacy_key = legacy_map.get(suffix)
+        if legacy_key:
+            value = get_provider_config(legacy_key)
+
+    return value
+
+
+def _get_stored_plan_data(plan_key: str = "monthly") -> dict[str, Any]:
+    selected_plan_key = normalize_plan_key(plan_key)
+
+    plan_id = _get_plan_config_value(selected_plan_key, "id")
+    plan_reason = _get_plan_config_value(selected_plan_key, "reason")
+    amount = _get_plan_config_value(selected_plan_key, "amount")
+    frequency = _get_plan_config_value(selected_plan_key, "frequency")
+    frequency_type = _get_plan_config_value(selected_plan_key, "frequency_type")
+    currency_id = _get_plan_config_value(selected_plan_key, "currency_id")
+    back_url = _get_plan_config_value(selected_plan_key, "back_url")
 
     return {
+        "plan_key": selected_plan_key,
         "plan_id": plan_id,
         "reason": plan_reason,
         "transaction_amount": float(amount) if amount else None,
@@ -167,6 +200,27 @@ def _get_stored_plan_data() -> dict[str, Any]:
         "currency_id": currency_id,
         "back_url": back_url,
     }
+
+
+def _get_plan_defaults_from_storage(plan_key: str) -> dict[str, Any]:
+    stored_plan = _get_stored_plan_data(plan_key)
+    overrides = {
+        "reason": stored_plan.get("reason"),
+        "transaction_amount": stored_plan.get("transaction_amount"),
+        "frequency": stored_plan.get("frequency"),
+        "frequency_type": stored_plan.get("frequency_type"),
+        "currency_id": stored_plan.get("currency_id"),
+        "back_url": stored_plan.get("back_url"),
+    }
+
+    sanitized_overrides = {
+        key: value for key, value in overrides.items() if value is not None
+    }
+
+    return get_plan_defaults(
+        sanitized_overrides,
+        plan_key=normalize_plan_key(plan_key),
+    )
 
 
 def _normalize_subscription_status(value: str | None) -> str:
@@ -267,11 +321,16 @@ def get_billing_public_config() -> dict:
     ensure_billing_tables()
 
     public_config = get_public_config()
-    stored_plan = _get_stored_plan_data()
+    monthly_plan = _get_stored_plan_data("monthly")
+    annual_plan = _get_stored_plan_data("annual")
 
     return {
         **public_config,
-        "stored_plan": stored_plan,
+        "stored_plan": monthly_plan,
+        "plan_options": {
+            "monthly": monthly_plan,
+            "annual": annual_plan,
+        },
         "config_map": get_provider_config_map(),
     }
 
@@ -325,7 +384,10 @@ def bootstrap_mercado_pago_plan(
             ),
         )
 
-    stored_plan_id = get_provider_config("plan_id")
+    plan_key = normalize_plan_key(payload.plan_key)
+    stored_plan = _get_stored_plan_data(plan_key)
+    stored_plan_id = stored_plan.get("plan_id")
+
     if stored_plan_id and not payload.force_recreate:
         try:
             remote_plan = get_preapproval_plan(stored_plan_id)
@@ -338,14 +400,24 @@ def bootstrap_mercado_pago_plan(
         return {
             "message": "Plano Mercado Pago já existente.",
             "provider": "mercadopago",
+            "plan_key": plan_key,
             "plan_id": stored_plan_id,
             "plan": remote_plan,
             "user": _serialize_user(user),
         }
 
     overrides = payload.model_dump(exclude_none=True)
-    bootstrap_defaults = build_default_plan_bootstrap_payload(overrides)
-    plan_defaults = get_plan_defaults(overrides)
+    overrides.pop("plan_key", None)
+    overrides.pop("force_recreate", None)
+
+    bootstrap_defaults = build_default_plan_bootstrap_payload(
+        overrides,
+        plan_key=plan_key,
+    )
+    plan_defaults = get_plan_defaults(
+        overrides,
+        plan_key=plan_key,
+    )
 
     try:
         created_plan = create_preapproval_plan(
@@ -369,17 +441,28 @@ def bootstrap_mercado_pago_plan(
             detail="Mercado Pago não retornou o id do plano criado.",
         )
 
-    set_provider_config("plan_id", created_plan_id)
-    set_provider_config("plan_reason", str(plan_defaults["reason"]))
-    set_provider_config("plan_amount", str(plan_defaults["transaction_amount"]))
-    set_provider_config("plan_frequency", str(plan_defaults["frequency"]))
-    set_provider_config("plan_frequency_type", str(plan_defaults["frequency_type"]))
-    set_provider_config("plan_currency_id", str(plan_defaults["currency_id"]))
-    set_provider_config("plan_back_url", str(plan_defaults["back_url"]))
+    set_provider_config(_plan_config_key(plan_key, "id"), created_plan_id)
+    set_provider_config(_plan_config_key(plan_key, "reason"), str(plan_defaults["reason"]))
+    set_provider_config(_plan_config_key(plan_key, "amount"), str(plan_defaults["transaction_amount"]))
+    set_provider_config(_plan_config_key(plan_key, "frequency"), str(plan_defaults["frequency"]))
+    set_provider_config(_plan_config_key(plan_key, "frequency_type"), str(plan_defaults["frequency_type"]))
+    set_provider_config(_plan_config_key(plan_key, "currency_id"), str(plan_defaults["currency_id"]))
+    set_provider_config(_plan_config_key(plan_key, "back_url"), str(plan_defaults["back_url"]))
+
+    # Compatibilidade com o modelo antigo: o plano mensal permanece como stored_plan padrão.
+    if plan_key == "monthly":
+        set_provider_config("plan_id", created_plan_id)
+        set_provider_config("plan_reason", str(plan_defaults["reason"]))
+        set_provider_config("plan_amount", str(plan_defaults["transaction_amount"]))
+        set_provider_config("plan_frequency", str(plan_defaults["frequency"]))
+        set_provider_config("plan_frequency_type", str(plan_defaults["frequency_type"]))
+        set_provider_config("plan_currency_id", str(plan_defaults["currency_id"]))
+        set_provider_config("plan_back_url", str(plan_defaults["back_url"]))
 
     return {
         "message": "Plano Mercado Pago criado com sucesso.",
         "provider": "mercadopago",
+        "plan_key": plan_key,
         "plan_id": created_plan_id,
         "plan": created_plan,
         "user": _serialize_user(user),
@@ -408,19 +491,22 @@ def create_mercado_pago_subscription(
             "user": _serialize_user(user),
         }
 
-    stored_plan_id = get_provider_config("plan_id")
+    plan_key = normalize_plan_key(payload.plan_key)
+    stored_plan = _get_stored_plan_data(plan_key)
+    stored_plan_id = stored_plan.get("plan_id")
+
     if not stored_plan_id:
         raise HTTPException(
             status_code=409,
             detail=(
-                "O plano do Mercado Pago ainda não foi criado no backend. "
+                f"O plano {plan_key} do Mercado Pago ainda não foi criado no backend. "
                 "Execute o bootstrap do plano antes de criar a assinatura."
             ),
         )
 
-    defaults = get_plan_defaults()
+    defaults = _get_plan_defaults_from_storage(plan_key)
     dates = build_default_subscription_dates()
-    external_reference = f"studypro-user-{user['id']}"
+    external_reference = f"minhaprovacao-user-{user['id']}-{plan_key}"
 
     try:
         created = create_preapproval(

@@ -122,7 +122,6 @@ export function UpgradePaywallPage() {
 function UpgradePaywallContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [checkoutNotice, setCheckoutNotice] = useState("")
   const [openFaq, setOpenFaq] = useState<string | null>("faq-0")
 
   const context = useMemo<PaywallContext>(() => {
@@ -133,15 +132,11 @@ function UpgradePaywallContent() {
   const copy = COPY[context]
 
   function onClickMonthly() {
-    setCheckoutNotice(
-      "Checkout mensal ainda não conectado. Esta tela já está pronta para receber a integração do plano Pro Mensal."
-    )
+    router.push("/pricing?plan=monthly")
   }
 
   function onClickAnnual() {
-    setCheckoutNotice(
-      "Checkout anual ainda não conectado. Esta tela já está pronta para receber a integração do plano Pro Anual."
-    )
+    router.push("/pricing?plan=annual")
   }
 
   return (
@@ -229,17 +224,11 @@ function UpgradePaywallContent() {
           </div>
         </section>
 
-        {checkoutNotice ? (
-          <div className="mt-8 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            {checkoutNotice}
-          </div>
-        ) : null}
-
         <section className="mt-12 grid gap-6 md:grid-cols-2">
           <PlanCard
             name="Pro Mensal"
             description="Para quem quer continuar estudando sem esperar o próximo dia."
-            price="R$ XX,XX"
+            price="R$ 19,90"
             period="/mês"
             benefits={MONTHLY_BENEFITS}
             ctaLabel="Assinar mensal"
@@ -249,7 +238,7 @@ function UpgradePaywallContent() {
           <PlanCard
             name="Pro Anual"
             description="Para quem quer se preparar com constância durante o ano."
-            price="R$ XX,XX"
+            price="R$ 149,90"
             period="/ano"
             benefits={ANNUAL_BENEFITS}
             ctaLabel="Assinar anual"

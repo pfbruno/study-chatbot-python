@@ -1,4 +1,4 @@
-﻿const API_URL =
+const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com";
 
@@ -63,6 +63,19 @@ export type CheckoutSessionResponse = {
   checkout_url: string;
 };
 
+export type BillingPlanKey = "monthly" | "annual"
+
+export type BillingPlanOption = {
+  plan_key: BillingPlanKey
+  plan_id: string | null
+  reason: string | null
+  transaction_amount: number | null
+  frequency: number | null
+  frequency_type: string | null
+  currency_id: string | null
+  back_url: string | null
+}
+
 export type BillingPublicConfigResponse = {
   provider: "mercadopago"
   public_key: string
@@ -75,15 +88,8 @@ export type BillingPublicConfigResponse = {
     currency_id: string
     back_url: string
   }
-  stored_plan: {
-    plan_id: string | null
-    reason: string | null
-    transaction_amount: number | null
-    frequency: number | null
-    frequency_type: string | null
-    currency_id: string | null
-    back_url: string | null
-  }
+  stored_plan: BillingPlanOption
+  plan_options?: Record<BillingPlanKey, BillingPlanOption>
   config_map: Record<string, string>
 }
 
@@ -413,6 +419,7 @@ export async function getBillingPublicConfig() {
 
 export async function createMercadoPagoSubscription(
   payload: {
+    plan_key?: BillingPlanKey;
     card_token_id: string;
     payer_email: string;
     identification_type?: string | null;

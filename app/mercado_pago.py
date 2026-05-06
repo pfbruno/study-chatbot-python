@@ -19,10 +19,37 @@ MERCADOPAGO_PLAN_AMOUNT = float(os.getenv("MERCADOPAGO_PLAN_AMOUNT", "29.00").st
 MERCADOPAGO_PLAN_FREQUENCY = int(os.getenv("MERCADOPAGO_PLAN_FREQUENCY", "1").strip())
 MERCADOPAGO_PLAN_FREQUENCY_TYPE = os.getenv("MERCADOPAGO_PLAN_FREQUENCY_TYPE", "months").strip()
 MERCADOPAGO_PLAN_CURRENCY_ID = os.getenv("MERCADOPAGO_PLAN_CURRENCY_ID", "BRL").strip()
+
+MERCADOPAGO_ANNUAL_PLAN_REASON = os.getenv(
+    "MERCADOPAGO_ANNUAL_PLAN_REASON",
+    "MinhAprovação Pro Anual",
+).strip()
+MERCADOPAGO_ANNUAL_PLAN_AMOUNT = float(
+    os.getenv("MERCADOPAGO_ANNUAL_PLAN_AMOUNT", "149.90").strip()
+)
+MERCADOPAGO_ANNUAL_PLAN_FREQUENCY = int(
+    os.getenv("MERCADOPAGO_ANNUAL_PLAN_FREQUENCY", "12").strip()
+)
+MERCADOPAGO_ANNUAL_PLAN_FREQUENCY_TYPE = os.getenv(
+    "MERCADOPAGO_ANNUAL_PLAN_FREQUENCY_TYPE",
+    "months",
+).strip()
+MERCADOPAGO_ANNUAL_PLAN_CURRENCY_ID = os.getenv(
+    "MERCADOPAGO_ANNUAL_PLAN_CURRENCY_ID",
+    "BRL",
+).strip()
+
 FRONTEND_BASE_URL = os.getenv(
     "FRONTEND_BASE_URL",
     "https://study-chatbot-python-uksv.vercel.app",
 ).rstrip("/")
+
+
+def normalize_plan_key(plan_key: str | None) -> str:
+    normalized = str(plan_key or "monthly").strip().lower()
+    if normalized == "annual":
+        return "annual"
+    return "monthly"
 
 
 class MercadoPagoError(Exception):
@@ -43,17 +70,17 @@ def mercado_pago_is_configured() -> bool:
 
 
 def get_public_config() -> dict[str, Any]:
+    monthly_defaults = get_plan_defaults(plan_key="monthly")
+    annual_defaults = get_plan_defaults(plan_key="annual")
+
     return {
         "provider": "mercadopago",
         "public_key": MERCADOPAGO_PUBLIC_KEY,
         "is_configured": mercado_pago_is_configured(),
-        "plan_defaults": {
-            "reason": MERCADOPAGO_PLAN_REASON,
-            "transaction_amount": MERCADOPAGO_PLAN_AMOUNT,
-            "frequency": MERCADOPAGO_PLAN_FREQUENCY,
-            "frequency_type": MERCADOPAGO_PLAN_FREQUENCY_TYPE,
-            "currency_id": MERCADOPAGO_PLAN_CURRENCY_ID,
-            "back_url": f"{FRONTEND_BASE_URL}/success?provider=mercadopago",
+        "plan_defaults": monthly_defaults,
+        "plan_options": {
+            "monthly": monthly_defaults,
+            "annual": annual_defaults,
         },
     }
 
@@ -110,21 +137,36 @@ def _request(
 
 def get_plan_defaults(
     overrides: dict[str, Any] | None = None,
+    plan_key: str | None = None,
 ) -> dict[str, Any]:
     overrides = overrides or {}
+    selected_plan_key = normalize_plan_key(plan_key)
+
+    if selected_plan_key == "annual":
+        reason = MERCADOPAGO_ANNUAL_PLAN_REASON
+        transaction_amount = MERCADOPAGO_ANNUAL_PLAN_AMOUNT
+        frequency = MERCADOPAGO_ANNUAL_PLAN_FREQUENCY
+        frequency_type = MERCADOPAGO_ANNUAL_PLAN_FREQUENCY_TYPE
+        currency_id = MERCADOPAGO_ANNUAL_PLAN_CURRENCY_ID
+        default_back_url = f"{FRONTEND_BASE_URL}/success?provider=mercadopago&plan=annual"
+    else:
+        reason = MERCADOPAGO_PLAN_REASON
+        transaction_amount = MERCADOPAGO_PLAN_AMOUNT
+        frequency = MERCADOPAGO_PLAN_FREQUENCY
+        frequency_type = MERCADOPAGO_PLAN_FREQUENCY_TYPE
+        currency_id = MERCADOPAGO_PLAN_CURRENCY_ID
+        default_back_url = f"{FRONTEND_BASE_URL}/success?provider=mercadopago&plan=monthly"
 
     return {
-        "reason": overrides.get("reason") or MERCADOPAGO_PLAN_REASON,
+        "plan_key": selected_plan_key,
+        "reason": overrides.get("reason") or reason,
         "transaction_amount": float(
-            overrides.get("transaction_amount", MERCADOPAGO_PLAN_AMOUNT)
+            overrides.get("transaction_amount", transaction_amount)
         ),
-        "frequency": int(overrides.get("frequency", MERCADOPAGO_PLAN_FREQUENCY)),
-        "frequency_type": str(
-            overrides.get("frequency_type", MERCADOPAGO_PLAN_FREQUENCY_TYPE)
-        ),
-        "currency_id": overrides.get("currency_id") or MERCADOPAGO_PLAN_CURRENCY_ID,
-        "back_url": overrides.get("back_url")
-        or f"{FRONTEND_BASE_URL}/success?provider=mercadopago",
+        "frequency": int(overrides.get("frequency", frequency)),
+        "frequency_type": str(overrides.get("frequency_type", frequency_type)),
+        "currency_id": overrides.get("currency_id") or currency_id,
+        "back_url": overrides.get("back_url") or default_back_url,
     }
 
 
@@ -159,8 +201,9 @@ def get_preapproval_plan(plan_id: str) -> dict[str, Any]:
 
 def build_default_plan_bootstrap_payload(
     overrides: dict[str, Any] | None = None,
+    plan_key: str | None = None,
 ) -> dict[str, Any]:
-    defaults = get_plan_defaults(overrides)
+    defaults = get_plan_defaults(overrides, plan_key=plan_key)
 
     return {
         "reason": defaults["reason"],
