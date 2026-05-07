@@ -7,6 +7,7 @@ import {
   BarChart3,
   BookOpen,
   Clock3,
+  Coins,
   FileText,
   Flame,
   GraduationCap,
@@ -166,6 +167,34 @@ export default function DashboardPage() {
 
   const currentPlan = billing?.user.plan ?? data.user?.plan ?? "free";
   const isPro = currentPlan === "pro";
+
+  const billingUsage = billing?.usage as
+    | {
+        daily_credit_limit?: number | null;
+        daily_limit?: number | null;
+        credits_used_today?: number | null;
+        simulations_generated_today?: number | null;
+      }
+    | undefined;
+
+  const dailyCreditsLimit =
+    billingUsage?.daily_credit_limit ??
+    billingUsage?.daily_limit ??
+    10;
+
+  const dailyCreditsUsed =
+    billingUsage?.credits_used_today ??
+    billingUsage?.simulations_generated_today ??
+    0;
+
+  const creditsCardValue = isPro
+    ? "Ilimitado"
+    : `${dailyCreditsUsed}/${dailyCreditsLimit}`;
+
+  const creditsCardHelper = isPro
+    ? "Plano Pro sem limite diário"
+    : "Créditos usados hoje";
+
 
   const canGenerateSimulation = billing?.usage.can_generate ?? true;
 
@@ -451,11 +480,11 @@ export default function DashboardPage() {
           helper={hasGamificationData ? "Sequência real registrada" : "Sem registros de streak"}
         />
         <GameStatCard
-          icon={<Sparkles className="size-5 text-blue-300" />}
-          iconBg="bg-blue-500/15"
-          title="XP total"
-          value={hasGamificationData ? `${gameProfile.totalXP}` : "N/D"}
-          helper={hasGamificationData ? `Nível ${gameProfile.level}` : "Sem XP registrado"}
+          icon={<Coins className="size-5 text-yellow-300" />}
+          iconBg="bg-yellow-500/15"
+          title="Créditos"
+          value={creditsCardValue}
+          helper={creditsCardHelper}
         />
         <GameStatCard
           icon={<Award className="size-5 text-purple-300" />}
