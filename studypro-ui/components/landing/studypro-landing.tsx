@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useState } from "react"
@@ -254,9 +254,11 @@ function Header() {
       <div className="container-shell">
         <div className="flex min-h-20 items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/15 text-primary ring-1 ring-primary/25">
-              <Brain className="size-5" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="MinhAprovação"
+              className="size-11 shrink-0 object-contain"
+            />
 
             <div>
               <div className="text-base font-semibold tracking-tight text-white">
