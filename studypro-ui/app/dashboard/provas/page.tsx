@@ -6,17 +6,10 @@ import {
   BookOpen,
   FileText,
   GraduationCap,
-  Loader2,
-  Sparkles,
   Trophy,
 } from "lucide-react"
 
-import {
-  AUTH_TOKEN_KEY,
-  getExamYears,
-  getSimulationEntitlement,
-  type SimulationEntitlementResponse,
-} from "@/lib/api"
+import { getExamYears } from "@/lib/api"
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -27,67 +20,9 @@ function StatCard({ label, value }: { label: string; value: string }) {
   )
 }
 
-function PlanStatusCard({
-  entitlement,
-  loading,
-}: {
-  entitlement: SimulationEntitlementResponse | null
-  loading: boolean
-}) {
-  const isPro = entitlement?.entitlements.is_pro ?? false
-  const remaining = entitlement?.usage.remaining_today
-  const dailyLimit = entitlement?.usage.daily_limit
-
-  return (
-    <div className="rounded-[24px] border border-white/10 bg-[#081224] p-5">
-      <div className="flex items-center gap-3">
-        <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
-          <Sparkles className="size-4 text-blue-300" />
-        </div>
-
-        <div>
-          <p className="text-sm text-slate-400">Plano atual</p>
-          <h3 className="text-lg font-semibold text-white">
-            {loading
-              ? "Carregando..."
-              : isPro
-              ? "PRO ativo"
-              : typeof remaining === "number" && typeof dailyLimit === "number"
-              ? `FREE · ${remaining}/${dailyLimit} geração(ões) restantes`
-              : "FREE"}
-          </h3>
-        </div>
-      </div>
-
-      <p className="mt-4 text-sm leading-7 text-slate-300">
-        {loading
-          ? "Verificando seu acesso atual."
-          : isPro
-          ? "Seu plano já está pronto para estudar com continuidade, mais prática e menos fricção."
-          : "As provas oficiais já estão disponíveis. O Pro amplia seu fluxo de treino e reduz interrupções ao longo da preparação."}
-      </p>
-
-      {!isPro ? (
-        <div className="mt-4">
-          <Link
-            href="/pricing"
-            className="inline-flex rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-          >
-            Ver plano Pro
-          </Link>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
 export default function ProvasPage() {
   const [yearsCount, setYearsCount] = useState(9)
   const [loadingYears, setLoadingYears] = useState(true)
-
-  const [entitlement, setEntitlement] =
-    useState<SimulationEntitlementResponse | null>(null)
-  const [loadingEntitlement, setLoadingEntitlement] = useState(true)
 
   useEffect(() => {
     async function loadYears() {
@@ -108,23 +43,6 @@ export default function ProvasPage() {
     }
 
     void loadYears()
-  }, [])
-
-  useEffect(() => {
-    async function loadEntitlement() {
-      try {
-        setLoadingEntitlement(true)
-        const token = localStorage.getItem(AUTH_TOKEN_KEY)
-        const data = await getSimulationEntitlement(token)
-        setEntitlement(data)
-      } catch {
-        setEntitlement(null)
-      } finally {
-        setLoadingEntitlement(false)
-      }
-    }
-
-    void loadEntitlement()
   }, [])
 
   const totalQuestionsLabel = useMemo(() => {
@@ -150,6 +68,7 @@ export default function ProvasPage() {
                 <h1 className="text-5xl font-bold tracking-tight text-white">
                   Área de Provas
                 </h1>
+
                 <p className="mt-4 max-w-3xl text-2xl leading-10 text-[#7ea0d6]">
                   Resolva provas oficiais do ENEM com gabarito, continuidade de
                   estudo e revisão posterior.
@@ -159,10 +78,12 @@ export default function ProvasPage() {
 
             <div className="mt-8 grid gap-4 sm:grid-cols-3">
               <StatCard label="Instituições" value="1" />
+
               <StatCard
                 label="Edições válidas"
                 value={loadingYears ? "..." : String(yearsCount)}
               />
+
               <StatCard label="Total de questões" value={totalQuestionsLabel} />
             </div>
           </div>
@@ -192,6 +113,7 @@ export default function ProvasPage() {
                 <GraduationCap className="size-4" />
                 {loadingYears ? "Carregando..." : `${yearsCount} edições`}
               </span>
+
               <span className="inline-flex items-center gap-2">
                 <Trophy className="size-4" />
                 Gabarito oficial
@@ -203,32 +125,6 @@ export default function ProvasPage() {
               className="mt-7 inline-flex items-center justify-center rounded-2xl bg-[#4b8df7] px-6 py-3 text-base font-semibold text-white transition hover:opacity-90"
             >
               Acessar ENEM
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-        <PlanStatusCard
-          entitlement={entitlement}
-          loading={loadingEntitlement}
-        />
-
-        <div className="rounded-[24px] border border-white/10 bg-[#081224] p-5">
-          <h3 className="text-lg font-semibold text-white">
-            Catálogo simplificado
-          </h3>
-          <p className="mt-4 text-sm leading-7 text-slate-300">
-            FUVEST, UNICAMP e UNESP foram removidos temporariamente do catálogo.
-            Neste momento, a navegação de provas está focada apenas no ENEM.
-          </p>
-
-          <div className="mt-4">
-            <Link
-              href="/dashboard/provas/enem"
-              className="inline-flex rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
-            >
-              Ir para as provas do ENEM
             </Link>
           </div>
         </div>
