@@ -8,6 +8,11 @@ import {
   type BillingUsage,
   type DashboardRecentAttempt,
 } from "@/lib/api";
+import {
+  buildTokenCacheKey,
+  readTimedCache,
+  writeTimedCache,
+} from "@/lib/simple-cache";
 
 type DashboardData = {
   questions: number;
@@ -35,9 +40,22 @@ const EMPTY_DASHBOARD: DashboardData = {
   entitlements: null,
 };
 
+const DASHBOARD_CACHE_PREFIX = "studypro_dashboard_cache";
+const DASHBOARD_CACHE_TTL_MS = 30 * 1000;
+
+function normalizeDashboardData(result: Partial<DashboardData>): DashboardData {
+  return {
+    ...EMPTY_DASHBOARD,
+    ...result,
+    recent_attempts: Array.isArray(result.recent_attempts)
+      ? result.recent_attempts
+      : [],
+  };
+}
+
 export function useDashboardData(token: string | null) {
   const [data, setData] = useState<DashboardData>(EMPTY_DASHBOARD);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,22 +71,35 @@ export function useDashboardData(token: string | null) {
         return;
       }
 
-      try {
-        setLoading(true);
+      const cacheKey = buildTokenCacheKey(DASHBOARD_CACHE_PREFIX, token);
+      const cached = readTimedCache<DashboardData>(
+        cacheKey,
+        DASHBOARD_CACHE_TTL_MS
+      );
+
+      if (cached && mounted) {
+        setData(cached);
+        setLoading(false);
         setError(null);
+      }
+
+      try {
+        if (!cached) {
+          setLoading(true);
+        }
+
+        setError(null);
+
         const result = await getDashboardData(token);
+        const normalized = normalizeDashboardData(result);
+
+        writeTimedCache(cacheKey, normalized, DASHBOARD_CACHE_TTL_MS);
 
         if (mounted) {
-          setData({
-            ...EMPTY_DASHBOARD,
-            ...result,
-            recent_attempts: Array.isArray(result.recent_attempts)
-              ? result.recent_attempts
-              : [],
-          });
+          setData(normalized);
         }
       } catch (err) {
-        if (mounted) {
+        if (mounted && !cached) {
           setError(
             err instanceof Error
               ? err.message
@@ -81,7 +112,7 @@ export function useDashboardData(token: string | null) {
       }
     }
 
-    fetchData();
+    void fetchData();
 
     return () => {
       mounted = false;

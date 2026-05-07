@@ -61,16 +61,8 @@ export default function DashboardLayout({
   useEffect(() => {
     let cancelled = false
 
-    async function validateSession() {
-      const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    function loadStoredUser() {
       const storedUser = localStorage.getItem(AUTH_USER_KEY)
-
-      if (!token) {
-        router.replace(
-          `/login?redirect=${encodeURIComponent(pathname || "/dashboard")}`
-        )
-        return
-      }
 
       if (storedUser) {
         try {
@@ -80,6 +72,23 @@ export default function DashboardLayout({
           setUser(null)
         }
       }
+    }
+
+    async function validateSession() {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY)
+
+      if (!token) {
+        router.replace(
+          `/login?redirect=${encodeURIComponent(pathname || "/dashboard")}`
+        )
+        return
+      }
+
+      loadStoredUser()
+
+      if (!cancelled) {
+        setIsReady(true)
+      }
 
       try {
         const session = await getMe(token)
@@ -88,7 +97,6 @@ export default function DashboardLayout({
 
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(session.user))
         setUser(session.user)
-        setIsReady(true)
       } catch {
         if (cancelled) return
 
@@ -111,7 +119,7 @@ export default function DashboardLayout({
 
     const intervalId = window.setInterval(() => {
       void validateSession()
-    }, 30000)
+    }, 60000)
 
     return () => {
       cancelled = true

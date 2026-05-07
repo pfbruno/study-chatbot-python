@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   getGamificationRanking,
-  getGamificationSummary,
   type GamificationRankingResponse,
   type GamificationSummaryResponse,
 } from "@/lib/api";
+import { fetchGamificationSummary } from "@/lib/gamification-client";
 
 const EMPTY_SUMMARY: GamificationSummaryResponse = {
   profile: {
@@ -47,7 +47,7 @@ export function useGamificationSummary(token: string | null) {
       try {
         setLoading(true);
         setError(null);
-        const result = await getGamificationSummary(token);
+        const result = await fetchGamificationSummary(token);
 
         if (mounted) {
           setData(result);

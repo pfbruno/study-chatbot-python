@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import type {
   GamificationAchievement,
@@ -6,12 +6,16 @@ import type {
   GamificationRecentUnlock,
   GamificationWeeklyEvolutionPoint,
 } from "@/lib/api"
+import { buildTokenCacheKey, clearTimedCache, readTimedCache, writeTimedCache } from "@/lib/simple-cache"
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com"
 
 export const GAMIFICATION_REFRESH_EVENT = "MinhAprovação:gamification-refresh"
+
+const GAMIFICATION_SUMMARY_CACHE_PREFIX = "studypro_gamification_summary_cache"
+const GAMIFICATION_SUMMARY_CACHE_TTL_MS = 15 * 1000
 
 export type PersistedGamificationChallenge = {
   id: string
@@ -108,9 +112,31 @@ async function request<T>(
 }
 
 export async function fetchGamificationSummary(token?: string | null) {
-  return request<PersistedGamificationSummaryResponse>("/gamification/summary", {
-    token,
-  })
+  const resolvedToken =
+    typeof token === "undefined" ? getStoredToken() : token ?? null
+
+  const cacheKey = buildTokenCacheKey(
+    GAMIFICATION_SUMMARY_CACHE_PREFIX,
+    resolvedToken
+  )
+
+  const cached = readTimedCache<PersistedGamificationSummaryResponse>(
+    cacheKey,
+    GAMIFICATION_SUMMARY_CACHE_TTL_MS
+  )
+
+  if (cached) return cached
+
+  const response = await request<PersistedGamificationSummaryResponse>(
+    "/gamification/summary",
+    {
+      token,
+    }
+  )
+
+  writeTimedCache(cacheKey, response, GAMIFICATION_SUMMARY_CACHE_TTL_MS)
+
+  return response
 }
 
 export async function trackPersistedGamificationChallenge(
@@ -143,5 +169,6 @@ export async function claimPersistedGamificationChallenge(
 
 export function dispatchGamificationRefresh() {
   if (typeof window === "undefined") return
+  clearTimedCache(GAMIFICATION_SUMMARY_CACHE_PREFIX)
   window.dispatchEvent(new CustomEvent(GAMIFICATION_REFRESH_EVENT))
 }

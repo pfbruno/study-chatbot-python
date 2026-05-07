@@ -1,4 +1,5 @@
 import { redirectToLoginAfterSessionEnded, isInvalidSessionStatus } from "@/lib/auth-session";
+import { readTimedCache, writeTimedCache } from "@/lib/simple-cache";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -360,6 +361,22 @@ async function request<T>(
     headers.Authorization = `Bearer ${resolvedToken}`;
   }
 
+  const publicCacheTtlMs =
+    method === "GET" &&
+    !resolvedToken &&
+    (endpoint.startsWith("/v2/exams") || endpoint.startsWith("/simulados/library"))
+      ? 5 * 60 * 1000
+      : 0;
+
+  const publicCacheKey = publicCacheTtlMs
+    ? `studypro_api_cache:${endpoint}`
+    : "";
+
+  if (publicCacheKey) {
+    const cached = readTimedCache<T>(publicCacheKey, publicCacheTtlMs);
+    if (cached) return cached;
+  }
+
   const response = await fetch(`${API_URL}${endpoint}`, {
     method,
     headers,
@@ -377,7 +394,13 @@ async function request<T>(
     throw new Error(message);
   }
 
-  return response.json() as Promise<T>;
+  const result = (await response.json()) as T;
+
+  if (publicCacheKey) {
+    writeTimedCache(publicCacheKey, result, publicCacheTtlMs);
+  }
+
+  return result;
 }
 
 /* ===========================

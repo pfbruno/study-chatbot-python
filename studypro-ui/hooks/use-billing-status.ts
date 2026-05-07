@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { getBillingStatus, type BillingStatusResponse } from "@/lib/api"
+import {
+  buildTokenCacheKey,
+  readTimedCache,
+  writeTimedCache,
+} from "@/lib/simple-cache"
+
+const BILLING_CACHE_PREFIX = "studypro_billing_cache"
+const BILLING_CACHE_TTL_MS = 15 * 1000
 
 export function useBillingStatus(token: string | null) {
   const [data, setData] = useState<BillingStatusResponse | null>(null)
@@ -19,17 +27,33 @@ export function useBillingStatus(token: string | null) {
         return
       }
 
-      setLoading(true)
-      setError(null)
+      const cacheKey = buildTokenCacheKey(BILLING_CACHE_PREFIX, token)
+      const cached = readTimedCache<BillingStatusResponse>(
+        cacheKey,
+        BILLING_CACHE_TTL_MS
+      )
+
+      if (cached && !cancelled) {
+        setData(cached)
+        setLoading(false)
+        setError(null)
+      }
 
       try {
+        if (!cached) {
+          setLoading(true)
+        }
+
+        setError(null)
+
         const response = await getBillingStatus(token)
+        writeTimedCache(cacheKey, response, BILLING_CACHE_TTL_MS)
 
         if (!cancelled) {
           setData(response)
         }
       } catch (err) {
-        if (!cancelled) {
+        if (!cancelled && !cached) {
           setError(
             err instanceof Error
               ? err.message
@@ -43,7 +67,7 @@ export function useBillingStatus(token: string | null) {
       }
     }
 
-    load()
+    void load()
 
     return () => {
       cancelled = true

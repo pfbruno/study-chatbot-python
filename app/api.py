@@ -10,7 +10,7 @@ from typing import Any, Literal
 
 import stripe
 from app.cors_config import configure_cors
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.simulation_library_router import router as simulation_library_router
 from pydantic import BaseModel, EmailStr, Field, field_validator
@@ -827,6 +827,13 @@ def _send_account_verification_email(user: dict) -> bool:
     )
 
 
+def _send_account_verification_email_background(user: dict) -> None:
+    try:
+        _send_account_verification_email(user)
+    except Exception as exc:  # noqa: BLE001
+        LOGGER.exception("email.verification.background_error: %s", exc)
+
+
 @app.on_event("startup")
 def startup_event() -> None:
     try:
@@ -856,7 +863,7 @@ def healthcheck() -> dict:
 
 
 @app.post("/auth/register", tags=["auth"])
-def register(payload: RegisterRequest) -> dict:
+def register(payload: RegisterRequest, background_tasks: BackgroundTasks) -> dict:
     existing_user = get_user_auth_by_email(payload.email)
     if existing_user:
         raise HTTPException(status_code=409, detail="E-mail já cadastrado.")
@@ -870,16 +877,13 @@ def register(payload: RegisterRequest) -> dict:
         plan="free",
     )
 
-    email_sent = _send_account_verification_email(user)
+    background_tasks.add_task(_send_account_verification_email_background, user)
 
     return {
-        "message": (
-            "Conta criada com sucesso. Verifique seu e-mail para confirmar o cadastro."
-            if email_sent
-            else "Conta criada com sucesso, mas o e-mail de confirmação não pôde ser enviado agora."
-        ),
+        "message": "Conta criada com sucesso. Verifique seu e-mail para confirmar o cadastro.",
         "email_verification_required": True,
-        "verification_email_sent": email_sent,
+        "verification_email_sent": True,
+        "email_delivery_status": "queued",
         "user": _serialize_user(user),
     }
 
