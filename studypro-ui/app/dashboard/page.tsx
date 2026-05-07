@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -439,6 +439,7 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
+        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_1fr_1fr_1fr]">
