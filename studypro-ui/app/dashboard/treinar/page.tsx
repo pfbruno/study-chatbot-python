@@ -18,6 +18,7 @@ import {
   getSimulationEntitlement,
   type SimulationEntitlementResponse,
 } from "@/lib/api";
+import { RichQuestionContent } from "@/components/study/rich-question-content";
 import { trackActivityEvent } from "@/lib/activity-events";
 
 const API_URL =
@@ -843,8 +844,12 @@ export default function TreinarPage() {
             </button>
           </div>
 
-          <div className="mt-6 whitespace-pre-line text-base leading-8 text-slate-100">
-            {currentQuestion.statement}
+          <div className="mt-6 rounded-[24px] border border-white/10 bg-[#020b18] p-5">
+            <RichQuestionContent
+              content={currentQuestion.statement}
+              className="text-base leading-8 text-slate-100"
+              imageClassName="max-h-[520px]"
+            />
           </div>
 
           <div className="mt-6 space-y-3">
@@ -874,8 +879,11 @@ export default function TreinarPage() {
                         {key}
                       </div>
 
-                      <div className="text-sm leading-7 text-slate-100">
-                        {currentQuestion.options[key]}
+                      <div className="min-w-0 flex-1">
+                        <RichQuestionContent
+                          content={currentQuestion.options[key]}
+                          imageClassName="max-h-[280px]"
+                        />
                       </div>
                     </div>
                   </button>
