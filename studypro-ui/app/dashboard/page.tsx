@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -13,7 +13,6 @@ import {
   History,
   Layers3,
   Loader2,
-  Lock,
   Medal,
   Sparkles,
   Star,
@@ -146,7 +145,6 @@ export default function DashboardPage() {
   const { data, loading, error } = useDashboardData(token);
   const {
     data: billing,
-    loading: billingLoading,
     error: billingError,
   } = useBillingStatus(token);
 
@@ -169,9 +167,6 @@ export default function DashboardPage() {
   const currentPlan = billing?.user.plan ?? data.user?.plan ?? "free";
   const isPro = currentPlan === "pro";
 
-  const simulationUsage = billing?.usage.simulations_generated_today ?? 0;
-  const simulationLimit = billing?.usage.daily_limit ?? null;
-  const simulationRemaining = billing?.usage.remaining_today ?? null;
   const canGenerateSimulation = billing?.usage.can_generate ?? true;
 
   const hasSmartInsights =
@@ -429,7 +424,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid w-full gap-4 xl:max-w-[420px]">
+                    <div className="w-full xl:max-w-[420px]">
             <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5">
               <p className="text-sm text-slate-400">Atividade de hoje</p>
               <div className="mt-2 text-3xl font-bold text-white">
@@ -443,46 +438,7 @@ export default function DashboardPage() {
                 Este número usa apenas histórico real salvo após correções de simulados.
               </p>
             </div>
-
-            <div className="rounded-[24px] border border-amber-500/20 bg-amber-500/10 p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm text-amber-100/80">Plano atual</p>
-                  <h2 className="mt-2 text-xl font-semibold uppercase text-white">
-                    {billingLoading ? "Carregando..." : currentPlan}
-                  </h2>
-
-                  <p className="mt-2 text-sm leading-6 text-amber-100">
-                    {isPro
-                      ? "Seu plano PRO está ativo. Os recursos premium já estão liberados."
-                      : simulationLimit === null
-                        ? "Seu plano gratuito está ativo."
-                        : `Hoje você gerou ${simulationUsage}/${simulationLimit} simulado(s).`}
-                  </p>
-
-                  {!isPro && typeof simulationRemaining === "number" ? (
-                    <p className="mt-2 text-sm text-amber-50/90">
-                      Restante hoje: {simulationRemaining}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500/15">
-                  <Lock className="size-5 text-amber-200" />
-                </div>
-              </div>
-
-              {!isPro ? (
-                <Link
-                  href="/pricing"
-                  className="mt-5 inline-flex w-full justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
-                >
-                  Desbloquear Pro
-                </Link>
-              ) : null}
-            </div>
           </div>
-        </div>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_1fr_1fr_1fr]">
