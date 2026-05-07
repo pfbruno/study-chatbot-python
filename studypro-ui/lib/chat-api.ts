@@ -76,10 +76,18 @@ export type ChatUsage = {
   scope: "user" | "guest"
   plan: "free" | "pro" | "guest"
   usage_date: string
+
+  credits_used_today?: number
+  daily_credit_limit?: number | null
+  credits_remaining_today?: number | null
+  can_consume?: boolean
+
   questions_asked_today: number
+  simulations_generated_today?: number
   daily_limit: number | null
   remaining_today: number | null
   can_ask: boolean
+  can_generate?: boolean
 }
 
 export type ChatEntitlementResponse = {

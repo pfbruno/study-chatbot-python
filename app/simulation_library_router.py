@@ -5,6 +5,16 @@ from typing import Literal
 from fastapi import APIRouter, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
 
+from app.credit_limits import (
+    DailyCreditLimitError,
+    build_guest_daily_credit_status,
+    build_user_daily_credit_status,
+    consume_guest_daily_credits,
+    consume_user_daily_credits,
+    ensure_guest_can_consume_credits,
+    ensure_user_can_consume_credits,
+    get_answer_credit_cost,
+)
 from app.database import (
     get_guest_usage,
     get_user_by_token,
@@ -223,47 +233,11 @@ def _build_guest_key(request: Request) -> str:
 
 
 def _build_plan_status_for_user(user: dict) -> dict:
-    usage_date = _today_str()
-    usage = get_user_usage(user["id"], usage_date)
-
-    if _is_pro_user(user):
-        return {
-            "scope": "user",
-            "plan": "pro",
-            "usage_date": usage_date,
-            "simulations_generated_today": usage["simulations_generated"],
-            "daily_limit": None,
-            "remaining_today": None,
-            "can_generate": True,
-        }
-
-    remaining = max(0, FREE_DAILY_SIMULATION_LIMIT - usage["simulations_generated"])
-    return {
-        "scope": "user",
-        "plan": "free",
-        "usage_date": usage_date,
-        "simulations_generated_today": usage["simulations_generated"],
-        "daily_limit": FREE_DAILY_SIMULATION_LIMIT,
-        "remaining_today": remaining,
-        "can_generate": remaining > 0,
-    }
+    return build_user_daily_credit_status(user, _today_str())
 
 
 def _build_plan_status_for_guest(request: Request) -> dict:
-    usage_date = _today_str()
-    guest_key = _build_guest_key(request)
-    usage = get_guest_usage(guest_key, usage_date)
-    remaining = max(0, GUEST_DAILY_SIMULATION_LIMIT - usage["simulations_generated"])
-
-    return {
-        "scope": "guest",
-        "plan": "guest",
-        "usage_date": usage_date,
-        "simulations_generated_today": usage["simulations_generated"],
-        "daily_limit": GUEST_DAILY_SIMULATION_LIMIT,
-        "remaining_today": remaining,
-        "can_generate": remaining > 0,
-    }
+    return build_guest_daily_credit_status(_build_guest_key(request), _today_str())
 
 
 def _enforce_simulation_generation_entitlement(
@@ -273,41 +247,76 @@ def _enforce_simulation_generation_entitlement(
     user = _get_current_user(authorization)
 
     if user:
-        status = _build_plan_status_for_user(user)
-        if not status["can_generate"]:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "Limite diário do plano gratuito atingido. "
-                    "Faça upgrade para o plano PRO."
-                ),
+        try:
+            status = ensure_user_can_consume_credits(
+                user,
+                _today_str(),
+                amount=1,
             )
+        except DailyCreditLimitError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
 
-        increment_user_simulation_usage(user["id"], _today_str())
-        updated_status = _build_plan_status_for_user(user)
         return {
             "auth_scope": "user",
             "user": _serialize_user(user),
-            "usage": updated_status,
+            "usage": status,
         }
 
-    guest_status = _build_plan_status_for_guest(request)
-    if not guest_status["can_generate"]:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "Limite diário do modo convidado atingido. "
-                "Crie uma conta para continuar."
-            ),
-        )
+    guest_key = _build_guest_key(request)
 
-    increment_guest_simulation_usage(_build_guest_key(request), _today_str())
-    updated_guest_status = _build_plan_status_for_guest(request)
+    try:
+        guest_status = ensure_guest_can_consume_credits(
+            guest_key,
+            _today_str(),
+            amount=1,
+        )
+    except DailyCreditLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
     return {
         "auth_scope": "guest",
         "user": None,
-        "usage": updated_guest_status,
+        "usage": guest_status,
     }
+
+
+def _consume_answer_credits(
+    request: Request,
+    authorization: str | None,
+    answers: list[str | None],
+) -> dict:
+    credit_cost = get_answer_credit_cost(answers)
+    user = _get_current_user(authorization)
+
+    try:
+        if user:
+            updated_status = consume_user_daily_credits(
+                user,
+                _today_str(),
+                amount=credit_cost,
+            )
+            return {
+                "auth_scope": "user",
+                "user": _serialize_user(user),
+                "usage": updated_status,
+                "credits_charged": credit_cost,
+            }
+
+        guest_key = _build_guest_key(request)
+        updated_guest_status = consume_guest_daily_credits(
+            guest_key,
+            _today_str(),
+            amount=credit_cost,
+        )
+
+        return {
+            "auth_scope": "guest",
+            "user": None,
+            "usage": updated_guest_status,
+            "credits_charged": credit_cost,
+        }
+    except DailyCreditLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
 @router.get("/simulados/library")
@@ -355,6 +364,7 @@ def create_ready_simulation(
 @router.post("/simulados/library/submit")
 def submit_ready_simulation(
     payload: LibrarySimulationSubmission,
+    request: Request,
     authorization: str | None = Header(default=None),
 ) -> dict:
     try:
@@ -363,6 +373,14 @@ def submit_ready_simulation(
             question_refs=payload.question_refs,
             answers=payload.answers,
         )
+
+        access_context = _consume_answer_credits(
+            request=request,
+            authorization=authorization,
+            answers=payload.answers,
+        )
+        result["access"] = access_context
+
         user = _get_current_user(authorization)
         if user:
             record_hook_activity_event(

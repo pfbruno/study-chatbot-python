@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import {
   ArrowLeft,
   CheckCircle2,
@@ -107,6 +107,16 @@ const OFFICIAL_EXAM_RESULT_PREFIX = "studypro_official_exam_result_"
 const OFFICIAL_EXAM_PROGRESS_PREFIX = "studypro_official_exam_progress_"
 
 const OPTION_KEYS = ["A", "B", "C", "D", "E"] as const
+
+function isLimitErrorMessage(message: string) {
+  const normalized = message.toLowerCase()
+  return (
+    normalized.includes("limite") ||
+    normalized.includes("crédito") ||
+    normalized.includes("credito") ||
+    normalized.includes("plano gratuito")
+  )
+}
 
 function buildFallbackExam(year: number): ExamDetail {
   return {
@@ -291,6 +301,7 @@ function questionButtonClass(params: {
 }
 
 export default function ExamYearPage() {
+  const router = useRouter()
   const params = useParams()
   const yearParam = params.year as string
   const examYear = Number(yearParam)
@@ -622,7 +633,8 @@ export default function ExamYearPage() {
         const remoteResult = await submitExamAnswers(
           "enem",
           examYear,
-          orderedAnswers
+          orderedAnswers,
+          localStorage.getItem("studypro_auth_token")
         )
         const localFallback = buildLocalResult()
 
@@ -677,7 +689,17 @@ export default function ExamYearPage() {
             })),
           })
         }
-      } catch {
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Não foi possível corrigir a prova."
+
+        if (isLimitErrorMessage(message)) {
+          router.push("/upgrade?context=general&from=provas")
+          return
+        }
+
         const localResult = buildLocalResult()
         localStorage.setItem(resultStorageKey, JSON.stringify(localResult))
         setResult(localResult)

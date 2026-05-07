@@ -501,9 +501,9 @@ export function ChatIA() {
     if (!entitlement) return "Carregando..."
     if (isPro) return "Plano PRO"
     if (typeof remainingToday === "number") {
-      return `${remainingToday} pergunta(s) restantes hoje`
+      return `${remainingToday} crédito(s) gratuitos restantes hoje`
     }
-    return "Plano gratuito"
+    return "Plano Free · 10 créditos/dia"
   }, [entitlement, isPro, remainingToday])
 
   const isEmptyState = !activeSession || activeSession.messages.length <= 1
@@ -701,6 +701,16 @@ export function ChatIA() {
         err instanceof Error
           ? err.message
           : "Erro inesperado ao enviar mensagem."
+
+      const isLimitError =
+        message.toLowerCase().includes("limite") ||
+        message.toLowerCase().includes("crédito") ||
+        message.toLowerCase().includes("credito")
+
+      if (isLimitError) {
+        router.push("/upgrade?context=chat&from=chat")
+        return
+      }
 
       setError(message)
 

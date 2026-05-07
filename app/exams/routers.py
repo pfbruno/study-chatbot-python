@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Header, HTTPException
 
+from app.credit_limits import (
+    DailyCreditLimitError,
+    consume_user_daily_credits,
+    ensure_user_can_consume_credits,
+    get_answer_credit_cost,
+)
 from app.database import get_hook_recent_events, get_user_by_token
 from app.exams.schemas import ExamSubmitRequest
 from app.exams.service import (
@@ -95,6 +101,11 @@ def submit_exam(
 ) -> dict:
     try:
         user = _current_user_optional(authorization)
+        credit_cost = get_answer_credit_cost(payload.answers)
+
+        if user:
+            ensure_user_can_consume_credits(user, amount=credit_cost)
+
         result = submit_exam_sheet(
             exam_id,
             payload.answers,
@@ -103,6 +114,8 @@ def submit_exam(
         )
 
         if user:
+            consume_user_daily_credits(user, amount=credit_cost)
+
             record_hook_activity_event_repo(
                 user_id=int(user["id"]),
                 event_type="exam_completed",
@@ -120,6 +133,8 @@ def submit_exam(
         return result
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except DailyCreditLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
@@ -135,6 +150,11 @@ def submit_exam_by_source_year(
 ) -> dict:
     try:
         user = _current_user_optional(authorization)
+        credit_cost = get_answer_credit_cost(payload.answers)
+
+        if user:
+            ensure_user_can_consume_credits(user, amount=credit_cost)
+
         result = submit_exam_sheet_by_source_year(
             source=source,
             year=year,
@@ -144,6 +164,8 @@ def submit_exam_by_source_year(
         )
 
         if user:
+            consume_user_daily_credits(user, amount=credit_cost)
+
             record_hook_activity_event_repo(
                 user_id=int(user["id"]),
                 event_type="exam_completed",
@@ -162,6 +184,8 @@ def submit_exam_by_source_year(
         return result
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except DailyCreditLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001

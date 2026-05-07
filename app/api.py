@@ -22,6 +22,14 @@ from app.analytics import (
 )
 from app.chat_router import router as chat_router
 from app.chatbot import process_question
+from app.credit_limits import (
+    DailyCreditLimitError,
+    build_guest_daily_credit_status,
+    build_user_daily_credit_status,
+    ensure_daily_credit_tables,
+    ensure_guest_can_consume_credits,
+    ensure_user_can_consume_credits,
+)
 from app.database import (
     clear_user_subscription,
     connect,
@@ -411,47 +419,11 @@ def _build_guest_key(request: Request) -> str:
 
 
 def _build_plan_status_for_user(user: dict) -> dict:
-    usage_date = _today_str()
-    usage = get_user_usage(user["id"], usage_date)
-
-    if _is_pro_user(user):
-        return {
-            "scope": "user",
-            "plan": "pro",
-            "usage_date": usage_date,
-            "simulations_generated_today": usage["simulations_generated"],
-            "daily_limit": None,
-            "remaining_today": None,
-            "can_generate": True,
-        }
-
-    remaining = max(0, FREE_DAILY_SIMULATION_LIMIT - usage["simulations_generated"])
-    return {
-        "scope": "user",
-        "plan": "free",
-        "usage_date": usage_date,
-        "simulations_generated_today": usage["simulations_generated"],
-        "daily_limit": FREE_DAILY_SIMULATION_LIMIT,
-        "remaining_today": remaining,
-        "can_generate": remaining > 0,
-    }
+    return build_user_daily_credit_status(user, _today_str())
 
 
 def _build_plan_status_for_guest(request: Request) -> dict:
-    usage_date = _today_str()
-    guest_key = _build_guest_key(request)
-    usage = get_guest_usage(guest_key, usage_date)
-    remaining = max(0, GUEST_DAILY_SIMULATION_LIMIT - usage["simulations_generated"])
-
-    return {
-        "scope": "guest",
-        "plan": "guest",
-        "usage_date": usage_date,
-        "simulations_generated_today": usage["simulations_generated"],
-        "daily_limit": GUEST_DAILY_SIMULATION_LIMIT,
-        "remaining_today": remaining,
-        "can_generate": remaining > 0,
-    }
+    return build_guest_daily_credit_status(_build_guest_key(request), _today_str())
 
 
 def _enforce_simulation_generation_entitlement(
@@ -461,40 +433,36 @@ def _enforce_simulation_generation_entitlement(
     user = _get_current_user(authorization)
 
     if user:
-        status = _build_plan_status_for_user(user)
-        if not status["can_generate"]:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "Limite diário do plano gratuito atingido. "
-                    "Faça upgrade para o plano PRO."
-                ),
+        try:
+            status = ensure_user_can_consume_credits(
+                user,
+                _today_str(),
+                amount=1,
             )
+        except DailyCreditLimitError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
 
-        increment_user_simulation_usage(user["id"], _today_str())
-        updated_status = _build_plan_status_for_user(user)
         return {
             "auth_scope": "user",
             "user": _serialize_user(user),
-            "usage": updated_status,
+            "usage": status,
         }
 
-    guest_status = _build_plan_status_for_guest(request)
-    if not guest_status["can_generate"]:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "Limite diário do modo convidado atingido. "
-                "Crie uma conta para continuar."
-            ),
-        )
+    guest_key = _build_guest_key(request)
 
-    increment_guest_simulation_usage(_build_guest_key(request), _today_str())
-    updated_guest_status = _build_plan_status_for_guest(request)
+    try:
+        guest_status = ensure_guest_can_consume_credits(
+            guest_key,
+            _today_str(),
+            amount=1,
+        )
+    except DailyCreditLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
     return {
         "auth_scope": "guest",
         "user": None,
-        "usage": updated_guest_status,
+        "usage": guest_status,
     }
 
 
@@ -864,6 +832,7 @@ def startup_event() -> None:
     try:
         LOGGER.info("startup.begin", extra={"db_path": get_db_path()})
         create_table()
+        ensure_daily_credit_tables()
         _ensure_email_verification_tables()
         cleaned_tokens = cleanup_expired_auth_tokens()
         create_exam_tables()

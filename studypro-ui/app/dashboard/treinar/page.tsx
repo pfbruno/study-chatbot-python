@@ -702,11 +702,17 @@ export default function TreinarPage() {
 
       router.push("/dashboard/treinar/resultado");
     } catch (error) {
-      setSubmitError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Erro inesperado ao enviar o treino."
-      );
+          : "Erro inesperado ao enviar o treino.";
+
+      if (isLimitErrorMessage(message)) {
+        router.push("/upgrade?context=general&from=treinar");
+        return;
+      }
+
+      setSubmitError(message);
     } finally {
       setIsSubmitting(false);
     }

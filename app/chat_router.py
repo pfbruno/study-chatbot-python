@@ -11,12 +11,13 @@ from typing import Any, Literal
 from fastapi import APIRouter, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field, field_validator
 
-from app.chat_limits import (
-    ensure_chat_usage_tables,
-    get_guest_chat_usage,
-    get_user_chat_usage,
-    increment_guest_chat_usage,
-    increment_user_chat_usage,
+from app.credit_limits import (
+    DailyCreditLimitError,
+    build_guest_daily_credit_status,
+    build_user_daily_credit_status,
+    consume_guest_daily_credits,
+    consume_user_daily_credits,
+    ensure_daily_credit_tables,
 )
 from app.chatbot import process_question
 from app.database import (
@@ -715,83 +716,43 @@ def _build_guest_key(request: Request) -> str:
 
 
 def _build_chat_status_for_user(user: dict) -> dict:
-    usage_date = _today_str()
-    usage = get_user_chat_usage(user["id"], usage_date)
-
-    if _is_pro_user(user):
-        return {
-            "scope": "user",
-            "plan": "pro",
-            "usage_date": usage_date,
-            "questions_asked_today": usage["questions_asked"],
-            "daily_limit": None,
-            "remaining_today": None,
-            "can_ask": True,
-        }
-
-    remaining = max(0, FREE_DAILY_CHAT_LIMIT - usage["questions_asked"])
-    return {
-        "scope": "user",
-        "plan": "free",
-        "usage_date": usage_date,
-        "questions_asked_today": usage["questions_asked"],
-        "daily_limit": FREE_DAILY_CHAT_LIMIT,
-        "remaining_today": remaining,
-        "can_ask": remaining > 0,
-    }
+    return build_user_daily_credit_status(user, _today_str())
 
 
 def _build_chat_status_for_guest(request: Request) -> dict:
-    usage_date = _today_str()
-    guest_key = _build_guest_key(request)
-    usage = get_guest_chat_usage(guest_key, usage_date)
-
-    remaining = max(0, GUEST_DAILY_CHAT_LIMIT - usage["questions_asked"])
-    return {
-        "scope": "guest",
-        "plan": "guest",
-        "usage_date": usage_date,
-        "questions_asked_today": usage["questions_asked"],
-        "daily_limit": GUEST_DAILY_CHAT_LIMIT,
-        "remaining_today": remaining,
-        "can_ask": remaining > 0,
-    }
+    return build_guest_daily_credit_status(_build_guest_key(request), _today_str())
 
 
 def _enforce_chat_entitlement(request: Request, authorization: str | None) -> dict:
     user = _get_current_user(authorization)
 
     if user:
-        status = _build_chat_status_for_user(user)
-        if not status["can_ask"]:
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "Você atingiu o limite diário do plano gratuito no chat. "
-                    "Faça upgrade para continuar."
-                ),
+        try:
+            updated_status = consume_user_daily_credits(
+                user,
+                _today_str(),
+                amount=1,
             )
+        except DailyCreditLimitError as exc:
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
 
-        increment_user_chat_usage(user["id"], _today_str())
-        updated_status = _build_chat_status_for_user(user)
         return {
             "authenticated": True,
             "user": _serialize_user(user),
             "usage": updated_status,
         }
 
-    guest_status = _build_chat_status_for_guest(request)
-    if not guest_status["can_ask"]:
-        raise HTTPException(
-            status_code=403,
-            detail=(
-                "Você atingiu o limite diário como convidado no chat. "
-                "Crie uma conta ou faça upgrade para continuar."
-            ),
-        )
+    guest_key = _build_guest_key(request)
 
-    increment_guest_chat_usage(_build_guest_key(request), _today_str())
-    updated_guest_status = _build_chat_status_for_guest(request)
+    try:
+        updated_guest_status = consume_guest_daily_credits(
+            guest_key,
+            _today_str(),
+            amount=1,
+        )
+    except DailyCreditLimitError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+
     return {
         "authenticated": False,
         "user": None,
@@ -851,7 +812,7 @@ def get_chat_entitlement(
     request: Request,
     authorization: str | None = Header(default=None),
 ) -> dict:
-    ensure_chat_usage_tables()
+    ensure_daily_credit_tables()
     user = _get_current_user(authorization)
 
     if user:
@@ -874,7 +835,7 @@ def send_chat_message(
     request: Request,
     authorization: str | None = Header(default=None),
 ) -> dict:
-    ensure_chat_usage_tables()
+    ensure_daily_credit_tables()
 
     access = _enforce_chat_entitlement(request, authorization)
     action = _extract_simulation_action(payload.question)

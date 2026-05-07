@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -87,6 +87,16 @@ const ACTIVE_SIMULATION_KEY = "studypro_active_simulation"
 const ACTIVE_SIMULATION_ANSWERS_KEY = "studypro_active_simulation_answers"
 const LAST_SIMULATION_RESULT_KEY = "studypro_last_simulation_result"
 const OPTION_ORDER = ["A", "B", "C", "D", "E"] as const
+
+function isLimitErrorMessage(message: string) {
+  const normalized = message.toLowerCase()
+  return (
+    normalized.includes("limite") ||
+    normalized.includes("crédito") ||
+    normalized.includes("credito") ||
+    normalized.includes("plano gratuito")
+  )
+}
 
 export default function ResolverSimuladoPage() {
   const router = useRouter()
@@ -236,11 +246,17 @@ export default function ResolverSimuladoPage() {
       sessionStorage.removeItem(ACTIVE_SIMULATION_ANSWERS_KEY)
       router.push("/dashboard/simulados/resultado")
     } catch (error) {
-      setSubmitError(
+      const message =
         error instanceof Error
           ? error.message
           : "Erro inesperado ao enviar o simulado."
-      )
+
+      if (isLimitErrorMessage(message)) {
+        router.push("/upgrade?context=general&from=simulados")
+        return
+      }
+
+      setSubmitError(message)
     } finally {
       setIsSubmitting(false)
     }

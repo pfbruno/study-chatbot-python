@@ -38,10 +38,18 @@ export type BillingUsage = {
   scope: "user" | "guest";
   plan: "free" | "pro" | "guest";
   usage_date: string;
+
+  credits_used_today?: number;
+  daily_credit_limit?: number | null;
+  credits_remaining_today?: number | null;
+  can_consume?: boolean;
+
   simulations_generated_today: number;
+  questions_asked_today?: number;
   daily_limit: number | null;
   remaining_today: number | null;
   can_generate: boolean;
+  can_ask?: boolean;
 };
 
 export type BillingStatusResponse = {
