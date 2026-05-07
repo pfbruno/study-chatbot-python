@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
 import type { LucideIcon } from "lucide-react"
+import { MinhAprovacaoLogo } from "@/components/brand/minhaprovacao-logo"
 import {
   ArrowLeft,
   Check,
@@ -13,7 +14,6 @@ import {
   ListChecks,
   MessageSquareText,
   ShieldCheck,
-  Sparkles,
   Zap,
 } from "lucide-react"
 
@@ -149,18 +149,13 @@ function UpgradePaywallContent() {
 
       <div className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
         <header className="flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-emerald-400 shadow-lg shadow-blue-500/20">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-
-            <div>
-              <p className="text-lg font-bold leading-none">MinhAprovação</p>
-              <p className="mt-1 text-xs text-slate-400">
-                Plataforma inteligente de estudos
-              </p>
-            </div>
-          </Link>
+          <MinhAprovacaoLogo
+            href="/"
+            size={52}
+            titleClassName="text-lg font-bold leading-none text-white"
+            subtitleClassName="mt-1 text-xs text-slate-400"
+            subtitle="Plataforma inteligente de estudos"
+          />
 
           <button
             type="button"

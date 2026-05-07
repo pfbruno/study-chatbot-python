@@ -28,6 +28,7 @@ import {
   type BillingUsage,
 } from "@/lib/api"
 import { normalizeBillingErrorMessage } from "@/lib/billing-errors"
+import { MinhAprovacaoLogo } from "@/components/brand/minhaprovacao-logo"
 
 declare global {
   interface Window {
@@ -383,6 +384,23 @@ function PricingPageContent() {
   return (
     <main className="min-h-screen px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl space-y-8">
+        <header className="flex items-center justify-between gap-4">
+          <MinhAprovacaoLogo
+            href="/"
+            size={52}
+            titleClassName="text-lg font-bold leading-none text-white"
+            subtitleClassName="mt-1 text-xs text-slate-400"
+            subtitle="Plataforma inteligente de estudos"
+          />
+
+          <Link
+            href="/dashboard"
+            className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            Voltar ao dashboard
+          </Link>
+        </header>
+
         <section className="glass-panel rounded-[32px] p-6 md:p-8">
           <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
             <div>
