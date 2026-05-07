@@ -36,6 +36,12 @@ function LoginPageContent() {
     [searchParams]
   )
 
+  const sessionMessage = useMemo(() => {
+    return searchParams.get("session") === "ended"
+      ? "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo."
+      : ""
+  }, [searchParams])
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -183,6 +189,12 @@ function LoginPageContent() {
                 Criar agora
               </Link>
             </p>
+
+            {sessionMessage ? (
+              <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                {sessionMessage}
+              </div>
+            ) : null}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <Field icon={<Mail className="h-4 w-4 text-slate-400" />}>

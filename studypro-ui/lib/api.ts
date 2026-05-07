@@ -1,3 +1,5 @@
+import { redirectToLoginAfterSessionEnded, isInvalidSessionStatus } from "@/lib/auth-session";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
   "https://study-chatbot-python.onrender.com";
@@ -366,7 +368,13 @@ async function request<T>(
   });
 
   if (!response.ok) {
-    throw new Error(await parseApiError(response));
+    const message = await parseApiError(response);
+
+    if (resolvedToken && isInvalidSessionStatus(response.status)) {
+      redirectToLoginAfterSessionEnded();
+    }
+
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;

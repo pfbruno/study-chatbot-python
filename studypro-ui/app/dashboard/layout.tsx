@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from "@/lib/api"
+import { AUTH_TOKEN_KEY, AUTH_USER_KEY, getMe } from "@/lib/api"
+import { clearAuthSession } from "@/lib/auth-session"
 import {
   fetchGamificationSummary,
   GAMIFICATION_REFRESH_EVENT,
@@ -58,26 +59,65 @@ export default function DashboardLayout({
   const isChatRoute = pathname === "/dashboard/chat"
 
   useEffect(() => {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY)
-    const storedUser = localStorage.getItem(AUTH_USER_KEY)
+    let cancelled = false
 
-    if (!token) {
-      router.replace(
-        `/login?redirect=${encodeURIComponent(pathname || "/dashboard")}`
-      )
-      return
-    }
+    async function validateSession() {
+      const token = localStorage.getItem(AUTH_TOKEN_KEY)
+      const storedUser = localStorage.getItem(AUTH_USER_KEY)
 
-    if (storedUser) {
+      if (!token) {
+        router.replace(
+          `/login?redirect=${encodeURIComponent(pathname || "/dashboard")}`
+        )
+        return
+      }
+
+      if (storedUser) {
+        try {
+          setUser(JSON.parse(storedUser) as DashboardUser)
+        } catch {
+          localStorage.removeItem(AUTH_USER_KEY)
+          setUser(null)
+        }
+      }
+
       try {
-        setUser(JSON.parse(storedUser) as DashboardUser)
+        const session = await getMe(token)
+
+        if (cancelled) return
+
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(session.user))
+        setUser(session.user)
+        setIsReady(true)
       } catch {
-        localStorage.removeItem(AUTH_USER_KEY)
-        setUser(null)
+        if (cancelled) return
+
+        clearAuthSession()
+        router.replace(
+          `/login?session=ended&redirect=${encodeURIComponent(
+            pathname || "/dashboard"
+          )}`
+        )
       }
     }
 
-    setIsReady(true)
+    void validateSession()
+
+    function handleFocus() {
+      void validateSession()
+    }
+
+    window.addEventListener("focus", handleFocus)
+
+    const intervalId = window.setInterval(() => {
+      void validateSession()
+    }, 30000)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener("focus", handleFocus)
+      window.clearInterval(intervalId)
+    }
   }, [pathname, router])
 
   useEffect(() => {
