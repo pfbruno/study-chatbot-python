@@ -235,6 +235,17 @@ export function AppSidebar({
     setMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileOpen]);
+
   return (
     <>
       {showMobileTrigger ? (
@@ -257,7 +268,7 @@ export function AppSidebar({
       ) : null}
 
       {showMobileTrigger && mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[80] lg:hidden" role="dialog" aria-modal="true">
           <button
             type="button"
             aria-label="Fechar menu"
@@ -265,25 +276,21 @@ export function AppSidebar({
             onClick={() => setMobileOpen(false)}
           />
 
-          <div className="absolute inset-y-0 left-0 flex w-[min(86vw,340px)] max-w-full flex-col border-r border-white/10 bg-[#050b16] shadow-2xl">
-            <div className="flex shrink-0 items-center justify-end border-b border-white/10 px-4 py-4">
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
-                aria-label="Fechar menu"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
+          <aside className="fixed left-0 top-0 z-[81] h-[100dvh] w-[86vw] max-w-[340px] overflow-y-auto border-r border-white/10 bg-[#050b16] shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(false)}
+              className="absolute right-4 top-4 z-10 inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-[#071225] text-slate-200 shadow-lg transition hover:bg-white/10"
+              aria-label="Fechar menu"
+            >
+              <X className="size-5" />
+            </button>
 
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <SidebarNav
-                pathname={pathname}
-                onNavigate={() => setMobileOpen(false)}
-              />
-            </div>
-          </div>
+            <SidebarNav
+              pathname={pathname}
+              onNavigate={() => setMobileOpen(false)}
+            />
+          </aside>
         </div>
       ) : null}
     </>
