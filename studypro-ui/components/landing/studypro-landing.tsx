@@ -1018,9 +1018,11 @@ function Footer() {
         <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-primary/15 text-primary">
-                <Brain className="size-5" />
-              </div>
+              <img
+                src="/logo.png"
+                alt="MinhAprovação"
+                className="size-11 shrink-0 object-contain"
+              />
 
               <div>
                 <p className="font-semibold text-white">MinhAprovação</p>
