@@ -1,9 +1,9 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { FormEvent, Suspense, useMemo, useState } from "react"
-import { BookOpen, Eye, EyeOff, Lock, Mail, User } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail, User } from "lucide-react"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -118,7 +118,7 @@ function RegisterPageContent() {
       <section className="glass-panel hidden rounded-[32px] border-white/10 p-8 lg:flex lg:flex-col lg:justify-between">
         <div>
           <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
-            <BookOpen className="size-4 text-primary" />
+            <img src="/logo.png" alt="MinhAprovação" className="size-5 object-contain" />
             MinhAprovação
           </div>
 
@@ -140,7 +140,7 @@ function RegisterPageContent() {
               "Recomendações inteligentes para revisão",
             ].map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-slate-300">
-                <div className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-accent/15 text-accent">
+                <div className="mt-0.5 flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary">
                   ✓
                 </div>
                 <span>{item}</span>
@@ -187,7 +187,7 @@ function RegisterPageContent() {
               <div className="mt-4">
                 <Link
                   href={redirectTo}
-                  className="inline-flex rounded-xl bg-emerald-400 px-4 py-2 text-sm font-semibold text-black"
+                  className="inline-flex rounded-xl bg-[#2f7cff] px-4 py-2 text-sm font-semibold text-white"
                 >
                   Ir para login
                 </Link>

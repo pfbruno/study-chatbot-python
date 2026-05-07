@@ -581,7 +581,7 @@ export default function SimuladosPage() {
           </div>
 
           <Link
-            href="/upgrade?context=general&from=simulados"
+            href="/pricing?plan=monthly"
             className="inline-flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/15"
           >
             <Crown className="size-4" />

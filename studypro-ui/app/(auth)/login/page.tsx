@@ -1,9 +1,9 @@
-﻿"use client"
+"use client"
 
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { FormEvent, ReactNode, Suspense, useMemo, useState } from "react"
-import { BookOpen, Lock, Mail, Send } from "lucide-react"
+import { Lock, Mail, Send } from "lucide-react"
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
@@ -127,24 +127,28 @@ function LoginPageContent() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950 text-white">
+    <main className="min-h-screen bg-[#050b16] text-white">
       <div className="grid min-h-screen lg:grid-cols-2">
         <aside className="relative hidden overflow-hidden border-r border-white/10 lg:flex">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-transparent to-cyan-500/20" />
-          <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-emerald-500/20 blur-3xl" />
-          <div className="absolute bottom-10 right-10 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2f7cff]/20 via-transparent to-blue-500/10" />
+          <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[#2f7cff]/20 blur-3xl" />
+          <div className="absolute bottom-10 right-10 h-72 w-72 rounded-full bg-blue-500/15 blur-3xl" />
 
           <div className="relative z-10 m-auto max-w-lg space-y-6 px-10">
-            <Link href="/" className="inline-flex items-center gap-2 text-emerald-300">
-              <BookOpen className="h-6 w-6" />
-              <span className="text-xl font-semibold">MinhAprovação</span>
+            <Link href="/" className="inline-flex items-center gap-3 text-[#79a6ff]">
+              <img
+                src="/logo.png"
+                alt="MinhAprovação"
+                className="h-10 w-10 shrink-0 object-contain"
+              />
+              <span className="text-xl font-semibold text-white">MinhAprovação</span>
             </Link>
 
             <h1 className="text-4xl font-semibold leading-tight">
               Volte para a plataforma e acompanhe seu progresso com mais clareza.
             </h1>
 
-            <p className="text-neutral-300">
+            <p className="text-slate-300">
               Simulados, histórico e evolução reunidos em uma experiência SaaS
               moderna, sem métricas infladas e com foco real no estudo.
             </p>
@@ -159,10 +163,10 @@ function LoginPageContent() {
                   key={item.label}
                   className="rounded-2xl border border-white/10 bg-white/5 p-4"
                 >
-                  <p className="text-lg font-semibold text-emerald-300">
+                  <p className="text-lg font-semibold text-[#79a6ff]">
                     {item.value}
                   </p>
-                  <p className="text-xs text-neutral-300">{item.label}</p>
+                  <p className="text-xs text-slate-300">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -170,18 +174,18 @@ function LoginPageContent() {
         </aside>
 
         <section className="flex items-center justify-center px-6 py-12">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 shadow-2xl shadow-black/30">
+          <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#071225] p-8 shadow-2xl shadow-black/30">
             <h2 className="text-2xl font-semibold">Entrar</h2>
 
-            <p className="mt-2 text-sm text-neutral-400">
+            <p className="mt-2 text-sm text-slate-400">
               Não tem conta?{" "}
-              <Link href="/register" className="text-emerald-300">
+              <Link href="/register" className="text-[#79a6ff]">
                 Criar agora
               </Link>
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-              <Field icon={<Mail className="h-4 w-4 text-neutral-400" />}>
+              <Field icon={<Mail className="h-4 w-4 text-slate-400" />}>
                 <input
                   type="email"
                   required
@@ -192,7 +196,7 @@ function LoginPageContent() {
                 />
               </Field>
 
-              <Field icon={<Lock className="h-4 w-4 text-neutral-400" />}>
+              <Field icon={<Lock className="h-4 w-4 text-slate-400" />}>
                 <input
                   type="password"
                   required
@@ -212,7 +216,7 @@ function LoginPageContent() {
                       type="button"
                       onClick={handleResendVerification}
                       disabled={isResending || !email || !password}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <Send className="h-3.5 w-3.5" />
                       {isResending ? "Reenviando..." : "Reenviar confirmação"}
@@ -222,7 +226,7 @@ function LoginPageContent() {
               ) : null}
 
               {resendMessage ? (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-sm text-blue-100">
                   {resendMessage}
                 </div>
               ) : null}
@@ -230,7 +234,7 @@ function LoginPageContent() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-black hover:brightness-95 disabled:opacity-60"
+                className="w-full rounded-xl bg-[#2f7cff] px-4 py-3 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-60"
               >
                 {isSubmitting ? "Entrando..." : "Entrar"}
               </button>
@@ -261,17 +265,17 @@ function AuthFallback({
   description: string
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-neutral-950 px-6 text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[#050b16] px-6 text-white">
       <div className="w-full max-w-md rounded-3xl border border-white/10 bg-white/5 p-8">
         <h2 className="text-2xl font-semibold">{title}</h2>
-        <p className="mt-2 text-sm text-neutral-400">{description}</p>
+        <p className="mt-2 text-sm text-slate-400">{description}</p>
       </div>
     </main>
   )
 }
 
 const inputClassName =
-  "w-full rounded-xl border border-white/10 bg-neutral-950 py-3 pl-10 pr-4 text-sm text-white outline-none transition focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20"
+  "w-full rounded-2xl border border-white/10 bg-[#081224] py-3 pl-10 pr-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-[#2f7cff]/50 focus:ring-2 focus:ring-[#2f7cff]/20"
 
 async function safeReadError(response: Response): Promise<string> {
   try {
