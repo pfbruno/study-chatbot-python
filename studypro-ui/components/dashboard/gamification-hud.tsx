@@ -1,16 +1,28 @@
 "use client"
 
-import { Flame, Trophy } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Coins, Flame, Trophy } from "lucide-react"
 
-import type {
-  GamificationProfile,
-  GamificationWeeklyEvolutionPoint,
+import {
+  AUTH_TOKEN_KEY,
+  getBillingStatus,
+  type BillingUsage,
+  type GamificationProfile,
+  type GamificationWeeklyEvolutionPoint,
 } from "@/lib/api"
 
 type GamificationHudProps = {
   profile: GamificationProfile
   weeklyEvolution: GamificationWeeklyEvolutionPoint[]
   loading?: boolean
+}
+
+type CreditUsage = BillingUsage & {
+  credits_used_today?: number | null
+  daily_credit_limit?: number | null
+  credits_remaining_today?: number | null
+  questions_asked_today?: number | null
+  simulations_generated_today?: number | null
 }
 
 function buildWeeklySquares(
@@ -30,11 +42,82 @@ function buildWeeklySquares(
   })
 }
 
+function getCreditDisplayValue(usage: CreditUsage | null, loading: boolean) {
+  if (loading) return "..."
+
+  const plan = usage?.plan ?? "free"
+  const isPro = plan === "pro"
+
+  if (isPro) return "Ilimitado"
+
+  const dailyLimit =
+    usage?.daily_credit_limit ??
+    usage?.daily_limit ??
+    10
+
+  const creditsUsed =
+    usage?.credits_used_today ??
+    usage?.simulations_generated_today ??
+    usage?.questions_asked_today ??
+    0
+
+  return `${creditsUsed}/${dailyLimit}`
+}
+
 export function GamificationHud({
   profile,
   weeklyEvolution,
   loading = false,
 }: GamificationHudProps) {
+  const [creditUsage, setCreditUsage] = useState<CreditUsage | null>(null)
+  const [creditLoading, setCreditLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadCredits() {
+      try {
+        setCreditLoading(true)
+
+        const token = localStorage.getItem(AUTH_TOKEN_KEY)
+
+        if (!token) {
+          if (isMounted) {
+            setCreditUsage(null)
+          }
+          return
+        }
+
+        const billing = await getBillingStatus(token)
+
+        if (isMounted) {
+          setCreditUsage(billing.usage as CreditUsage)
+        }
+      } catch {
+        if (isMounted) {
+          setCreditUsage(null)
+        }
+      } finally {
+        if (isMounted) {
+          setCreditLoading(false)
+        }
+      }
+    }
+
+    void loadCredits()
+
+    function handleFocus() {
+      void loadCredits()
+    }
+
+    window.addEventListener("focus", handleFocus)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener("focus", handleFocus)
+    }
+  }, [])
+
   const nextLevelXP = Math.max(profile.nextLevelXP || 1, 1)
   const currentXP = Math.max(profile.currentXP || 0, 0)
   const progressPercentage = Math.max(
@@ -45,6 +128,11 @@ export function GamificationHud({
   const weeklySquares = buildWeeklySquares(
     weeklyEvolution,
     profile.streakDays || 0
+  )
+
+  const creditsValue = useMemo(
+    () => getCreditDisplayValue(creditUsage, creditLoading),
+    [creditUsage, creditLoading]
   )
 
   return (
@@ -96,6 +184,22 @@ export function GamificationHud({
               />
             ))}
           </div>
+        </div>
+      </div>
+
+      <div className="flex min-w-[150px] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+        <div className="flex size-10 items-center justify-center rounded-2xl bg-yellow-500/10 text-yellow-300">
+          <Coins className="size-4" />
+        </div>
+
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-400">
+            Créditos
+          </p>
+
+          <p className="mt-1 text-lg font-bold leading-none text-white">
+            {creditsValue}
+          </p>
         </div>
       </div>
     </div>
