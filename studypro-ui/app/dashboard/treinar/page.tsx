@@ -11,7 +11,6 @@ import {
   Loader2,
   RotateCcw,
   Sparkles,
-  Target,
 } from "lucide-react";
 
 import {
@@ -48,6 +47,9 @@ type SimulationQuestion = {
   statement: string;
   options: Record<string, string>;
   source_pdf_label?: string | null;
+  source_year?: number | null;
+  source_number?: number | null;
+  source_ref?: string | null;
 };
 
 type GeneratedTrainingResponse = {
@@ -66,6 +68,7 @@ type GeneratedTrainingResponse = {
   };
   subjects_used: string[];
   question_numbers: number[];
+  question_refs?: string[];
   questions: SimulationQuestion[];
   simulation_source?: string | null;
 };
@@ -87,6 +90,7 @@ type TrainingSession = {
   };
   subjects_used: string[];
   question_numbers: number[];
+  question_refs: string[];
   questions: SimulationQuestion[];
   chunks_loaded: number;
 };
@@ -225,13 +229,20 @@ async function generateTrainingBatch(
   }
 
   const data = (await response.json()) as GeneratedTrainingResponse;
+  const questions = data.questions.slice(0, filter.chunkSize);
+  const questionRefs =
+    data.question_refs?.slice(0, filter.chunkSize) ??
+    questions.map((question) =>
+      buildFallbackQuestionRef(data.exam_type, data.year, question)
+    );
 
   return {
     ...data,
     requested_question_count: filter.chunkSize,
-    generated_question_count: Math.min(filter.chunkSize, data.questions.length),
+    generated_question_count: questions.length,
     question_numbers: data.question_numbers.slice(0, filter.chunkSize),
-    questions: data.questions.slice(0, filter.chunkSize),
+    question_refs: questionRefs,
+    questions,
   };
 }
 
@@ -244,9 +255,32 @@ function mergeTrainingChunks(
     return {
       ...nextChunk,
       filterId,
+      question_refs:
+        nextChunk.question_refs ??
+        nextChunk.questions.map((question) =>
+          buildFallbackQuestionRef(nextChunk.exam_type, nextChunk.year, question)
+        ),
       chunks_loaded: 1,
     };
   }
+
+  const existingRefs = new Set(current.question_refs);
+  const nextQuestionNumbers: number[] = [];
+  const nextQuestionRefs: string[] = [];
+  const nextQuestions: SimulationQuestion[] = [];
+
+  nextChunk.questions.forEach((question, index) => {
+    const questionRef =
+      nextChunk.question_refs?.[index] ??
+      buildFallbackQuestionRef(nextChunk.exam_type, nextChunk.year, question);
+
+    if (existingRefs.has(questionRef)) return;
+
+    existingRefs.add(questionRef);
+    nextQuestionNumbers.push(nextChunk.question_numbers[index] ?? question.number);
+    nextQuestionRefs.push(questionRef);
+    nextQuestions.push(question);
+  });
 
   return {
     ...current,
@@ -255,17 +289,19 @@ function mergeTrainingChunks(
     generated_at: nextChunk.generated_at,
     title: nextChunk.title,
     requested_question_count:
-      current.requested_question_count + nextChunk.requested_question_count,
+      current.requested_question_count + nextQuestions.length,
     generated_question_count:
-      current.generated_question_count + nextChunk.generated_question_count,
-    question_numbers: [...current.question_numbers, ...nextChunk.question_numbers],
-    questions: [...current.questions, ...nextChunk.questions],
+      current.generated_question_count + nextQuestions.length,
+    question_numbers: [...current.question_numbers, ...nextQuestionNumbers],
+    question_refs: [...current.question_refs, ...nextQuestionRefs],
+    questions: [...current.questions, ...nextQuestions],
     subjects_used: Array.from(
       new Set([...current.subjects_used, ...nextChunk.subjects_used])
     ),
     chunks_loaded: current.chunks_loaded + 1,
   };
 }
+
 
 function getAnsweredCount(answers: Record<number, string>, total: number) {
   let count = 0;
@@ -280,6 +316,29 @@ function getAnsweredCount(answers: Record<number, string>, total: number) {
   return count;
 }
 
+function buildFallbackQuestionRef(
+  examType: string,
+  year: number,
+  question: SimulationQuestion
+) {
+  return (
+    question.source_ref ||
+    `${examType}:${question.source_year ?? year}:${
+      question.source_number ?? question.number
+    }`
+  );
+}
+
+function isLimitErrorMessage(message: string) {
+  const normalized = message.toLowerCase();
+
+  return (
+    normalized.includes("limite") ||
+    normalized.includes("limit") ||
+    normalized.includes("plano gratuito")
+  );
+}
+
 export default function TreinarPage() {
   const router = useRouter();
 
@@ -291,7 +350,6 @@ export default function TreinarPage() {
 
   const [entitlement, setEntitlement] =
     useState<SimulationEntitlementResponse | null>(null);
-  const [loadingEntitlement, setLoadingEntitlement] = useState(true);
 
   const [loadingSession, setLoadingSession] = useState(true);
   const [generatingFirstBatch, setGeneratingFirstBatch] = useState(false);
@@ -315,20 +373,14 @@ export default function TreinarPage() {
 
   const isPro = entitlement?.entitlements.is_pro ?? false;
   const canGenerate = entitlement?.usage.can_generate ?? true;
-  const remainingToday = entitlement?.usage.remaining_today;
-  const dailyLimit = entitlement?.usage.daily_limit;
-
   useEffect(() => {
     async function loadEntitlement() {
       try {
-        setLoadingEntitlement(true);
         const token = localStorage.getItem(AUTH_TOKEN_KEY);
         const data = await getSimulationEntitlement(token);
         setEntitlement(data);
       } catch {
         setEntitlement(null);
-      } finally {
-        setLoadingEntitlement(false);
       }
     }
 
@@ -352,7 +404,20 @@ export default function TreinarPage() {
         const parsedSession = JSON.parse(rawSession) as TrainingSession;
 
         if (parsedSession?.filterId === initialFilter) {
-          setSession(parsedSession);
+          const normalizedSession: TrainingSession = {
+            ...parsedSession,
+            question_refs:
+              parsedSession.question_refs ??
+              parsedSession.questions.map((question) =>
+                buildFallbackQuestionRef(
+                  parsedSession.exam_type,
+                  parsedSession.year,
+                  question
+                )
+              ),
+          };
+
+          setSession(normalizedSession);
 
           if (rawAnswers) {
             const parsedAnswers = JSON.parse(rawAnswers) as Record<number, string>;
@@ -363,7 +428,7 @@ export default function TreinarPage() {
             const parsedIndex = Number(rawCurrentIndex);
             if (!Number.isNaN(parsedIndex) && parsedIndex >= 0) {
               setCurrentIndex(
-                Math.min(parsedIndex, (parsedSession.questions?.length ?? 1) - 1)
+                Math.min(parsedIndex, (normalizedSession.questions?.length ?? 1) - 1)
               );
             }
           }
@@ -424,9 +489,7 @@ export default function TreinarPage() {
 
   async function startFreshTraining(filterId: TrainingFilterId) {
     if (!canGenerate && !isPro) {
-      setLoadError(
-        "Você atingiu o limite diário do plano gratuito. Tente novamente amanhã ou vá para o plano Pro."
-      );
+      router.push("/upgrade?context=general&from=treinar");
       setLoadingSession(false);
       return;
     }
@@ -454,11 +517,17 @@ export default function TreinarPage() {
 
       await trackTrainingStart(filterId, 1, firstChunk.questions.length);
     } catch (error) {
-      setLoadError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Não foi possível iniciar o treino agora."
-      );
+          : "Não foi possível iniciar o treino agora.";
+
+      if (isLimitErrorMessage(message)) {
+        router.push("/upgrade?context=general&from=treinar");
+        return;
+      }
+
+      setLoadError(message);
     } finally {
       setGeneratingFirstBatch(false);
       setLoadingSession(false);
@@ -469,9 +538,7 @@ export default function TreinarPage() {
     if (!session) return;
 
     if (!canGenerate && !isPro) {
-      setActionError(
-        "Você atingiu o limite diário do plano gratuito. Vá para o Pro ou tente novamente no próximo dia."
-      );
+      router.push("/upgrade?context=general&from=treinar");
       return;
     }
 
@@ -483,6 +550,14 @@ export default function TreinarPage() {
       const nextChunk = await generateTrainingBatch(selectedFilter, token);
 
       const mergedSession = mergeTrainingChunks(session, nextChunk, selectedFilter);
+      const addedQuestions = mergedSession.questions.length - session.questions.length;
+
+      if (addedQuestions <= 0) {
+        setActionError(
+          "Não foi possível carregar novas questões sem repetição agora. Tente novamente."
+        );
+        return;
+      }
 
       setSession(mergedSession);
       setCurrentIndex((prev) => prev + 1);
@@ -490,14 +565,20 @@ export default function TreinarPage() {
       await trackTrainingStart(
         selectedFilter,
         mergedSession.chunks_loaded,
-        nextChunk.questions.length
+        addedQuestions
       );
     } catch (error) {
-      setActionError(
+      const message =
         error instanceof Error
           ? error.message
-          : "Não foi possível carregar mais questões agora."
-      );
+          : "Não foi possível carregar mais questões agora.";
+
+      if (isLimitErrorMessage(message)) {
+        router.push("/upgrade?context=general&from=treinar");
+        return;
+      }
+
+      setActionError(message);
     } finally {
       setGeneratingNextBatch(false);
     }
@@ -577,14 +658,11 @@ export default function TreinarPage() {
 
       const payload = {
         exam_type: session.exam_type,
-        year: session.year,
-        question_numbers: session.question_numbers,
-        answers: session.question_numbers.map(
-          (_questionNumber, index) => answers[index] ?? null
-        ),
+        question_refs: session.question_refs,
+        answers: session.questions.map((_question, index) => answers[index] ?? null),
       };
 
-      const response = await fetch(`${API_URL}/simulados/submit`, {
+      const response = await fetch(`${API_URL}/simulados/library/submit`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -668,7 +746,7 @@ export default function TreinarPage() {
 
           {!isPro ? (
             <Link
-              href="/pricing"
+              href="/upgrade?context=general&from=treinar"
               className="inline-flex items-center gap-2 rounded-2xl border border-primary/20 bg-primary/10 px-5 py-3 text-sm font-semibold text-primary transition hover:bg-primary/15"
             >
               <Sparkles className="size-4" />
@@ -690,48 +768,8 @@ export default function TreinarPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
-        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
-              <Target className="size-4" />
-              Modo Treinar
-            </div>
-
-            <h1 className="mt-4 text-3xl font-bold tracking-tight text-white">
-              Responda agora, sem etapa intermediária
-            </h1>
-
-            <p className="mt-3 max-w-3xl text-base leading-7 text-[#7ea0d6]">
-              O treino abre direto em questões. O filtro padrão é{" "}
-              <span className="font-semibold text-white">Todas</span>, mas você
-              pode alternar para uma disciplina específica a qualquer momento.
-            </p>
-          </div>
-
-          <div className="rounded-[24px] border border-white/10 bg-[#020b18] p-5 xl:w-[360px]">
-            <p className="text-sm text-slate-400">Seu treino hoje</p>
-
-            <div className="mt-2 text-2xl font-bold text-white">
-              {loadingEntitlement
-                ? "Carregando..."
-                : isPro
-                  ? "Plano PRO ativo"
-                  : typeof remainingToday === "number" &&
-                      typeof dailyLimit === "number"
-                    ? `${remainingToday} de ${dailyLimit} geração(ões) restantes`
-                    : "Plano Free"}
-            </div>
-
-            <p className="mt-3 text-sm leading-7 text-slate-300">
-              {isPro
-                ? "Você pode estender o treino com muito mais liberdade."
-                : "Ao chegar no fim do bloco atual, mais 10 questões são geradas no mesmo modo."}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-3">
+      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-4 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
+        <div className="flex flex-wrap gap-3">
           {TRAINING_FILTERS.map((filter) => {
             const isActive = selectedFilter === filter.id;
 
