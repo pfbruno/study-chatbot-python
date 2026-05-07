@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -205,15 +205,15 @@ function SidebarNav({
           </div>
           <div className="mt-2 text-lg font-semibold text-white">Free</div>
           <p className="mt-2 text-sm leading-6 text-amber-50/90">
-            Desbloqueie analytics avançado, simulados premium, ranking e
-            evolução gamificada.
+            Desbloqueie questões ilimitadas, mais treinos, simulados e uso ampliado
+            do Chat IA.
           </p>
           <Link
             href="/pricing"
             onClick={onNavigate}
             className="mt-4 inline-flex w-full items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:opacity-90"
           >
-            Ver plano Pro
+            Desbloquear Pro
           </Link>
         </div>
       </div>
