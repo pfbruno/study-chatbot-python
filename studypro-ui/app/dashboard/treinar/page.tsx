@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -700,7 +700,7 @@ export default function TreinarPage() {
       sessionStorage.removeItem(TRAINING_ANSWERS_KEY);
       sessionStorage.removeItem(TRAINING_CURRENT_INDEX_KEY);
 
-      router.push("/dashboard/simulados/resultado");
+      router.push("/dashboard/treinar/resultado");
     } catch (error) {
       setSubmitError(
         error instanceof Error
