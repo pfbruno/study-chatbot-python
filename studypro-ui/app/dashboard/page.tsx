@@ -407,26 +407,26 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full max-w-full space-y-6 overflow-x-hidden">
       {gamificationError || billingError ? (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           {[gamificationError, billingError].filter(Boolean).join(" | ")}
         </div>
       ) : null}
 
-      <section className="rounded-[32px] border border-white/10 bg-[#071225] p-6 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)]">
-        <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
-          <div className="max-w-3xl">
+      <section className="rounded-[28px] border border-white/10 bg-[#071225] p-4 shadow-[0_10px_40px_-28px_rgba(59,130,246,0.5)] sm:rounded-[32px] sm:p-6">
+        <div className="flex min-w-0 flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
+          <div className="min-w-0 max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm text-blue-300">
               <Target className="size-4" />
               Foco atual: ENEM
             </div>
 
-            <h1 className="mt-5 text-4xl font-bold tracking-tight text-white">
+            <h1 className="mt-5 text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Continue evoluindo com estratégia
             </h1>
 
-            <p className="mt-4 text-lg leading-8 text-slate-300">
+            <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
               Foque em provas, simulados, treino rápido, correção detalhada e evolução por área do ENEM.
             </p>
 
@@ -437,7 +437,7 @@ export default function DashboardPage() {
                     ? "/pricing"
                     : "/dashboard/simulados"
                 }
-                className="rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                className="inline-flex w-full justify-center rounded-2xl bg-[#2f7cff] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 sm:w-auto"
               >
                 {!isPro && !canGenerateSimulation
                   ? "Desbloquear Pro"
@@ -446,7 +446,7 @@ export default function DashboardPage() {
 
               <Link
                 href="/dashboard/treinar"
-                className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:text-white"
+                className="inline-flex w-full justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:text-white sm:w-auto"
               >
                 Treinar agora
               </Link>
@@ -471,20 +471,13 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_1fr_1fr_1fr]">
+      <section className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-[1fr_1fr_1fr_1fr]">
         <GameStatCard
           icon={<Flame className="size-5 text-orange-300" />}
           iconBg="bg-orange-500/15"
           title="Streak atual"
           value={hasGamificationData ? `${gameProfile.streakDays} dias` : "N/D"}
           helper={hasGamificationData ? "Sequência real registrada" : "Sem registros de streak"}
-        />
-        <GameStatCard
-          icon={<Coins className="size-5 text-yellow-300" />}
-          iconBg="bg-yellow-500/15"
-          title="Créditos"
-          value={creditsCardValue}
-          helper={creditsCardHelper}
         />
         <GameStatCard
           icon={<Award className="size-5 text-purple-300" />}
@@ -502,9 +495,9 @@ export default function DashboardPage() {
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
                 <Trophy className="size-5 text-blue-300" />
@@ -519,22 +512,22 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto">
               <Link
                 href="/dashboard/conquistas"
-                className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90"
+                className="inline-flex flex-1 justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#071225] transition hover:opacity-90 sm:flex-none"
               >
                 Conquistas
               </Link>
               <Link
                 href="/dashboard/desafios"
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                className="inline-flex flex-1 justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 sm:flex-none"
               >
                 Desafios
               </Link>
               <Link
                 href="/dashboard/ranking"
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                className="inline-flex flex-1 justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 sm:flex-none"
               >
                 Ranking
               </Link>
@@ -670,9 +663,9 @@ export default function DashboardPage() {
         </article>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+      <section className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-[1fr_1fr]">
         <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-500/10">
                 <Medal className="size-5 text-emerald-300" />
@@ -689,7 +682,7 @@ export default function DashboardPage() {
 
             <Link
               href="/dashboard/conquistas"
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              className="inline-flex flex-1 justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 sm:flex-none"
             >
               Ver todas
             </Link>
@@ -731,7 +724,7 @@ export default function DashboardPage() {
         </article>
 
         <article className="rounded-[28px] border border-white/10 bg-[#071225] p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-2xl bg-blue-500/10">
                 <TrendingUp className="size-5 text-blue-300" />
@@ -748,7 +741,7 @@ export default function DashboardPage() {
 
             <Link
               href="/dashboard/ranking"
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+              className="inline-flex flex-1 justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 sm:flex-none"
             >
               Abrir ranking
             </Link>
@@ -784,7 +777,7 @@ export default function DashboardPage() {
         </article>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-3">
+      <section className="grid min-w-0 gap-4 sm:gap-6 xl:grid-cols-3">
         <CrossCtaCard
           href="/dashboard/conquistas"
           icon={<Award className="size-6 text-purple-300" />}
@@ -828,7 +821,7 @@ export default function DashboardPage() {
               </div>
               <Link
                 href="/dashboard/simulados"
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                className="inline-flex flex-1 justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/10 sm:flex-none"
               >
                 Continuar treinando
               </Link>

@@ -210,8 +210,8 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <AppSidebar />
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+      <AppSidebar showMobileTrigger={false} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <DashboardTopbar
@@ -219,7 +219,7 @@ export default function DashboardLayout({
           onSearchChange={setSearchQuery}
           user={user}
           avatarLabel={avatarLabel}
-          mobileSidebar={<AppSidebar />}
+          mobileSidebar={<AppSidebar showDesktopSidebar={false} />}
           gamificationProfile={gamification.profile}
           weeklyEvolution={gamification.weeklyEvolution}
           gamificationLoading={gamificationLoading}
@@ -234,7 +234,7 @@ export default function DashboardLayout({
           className={
             isChatRoute
               ? "min-h-0 flex-1 overflow-hidden"
-              : "min-h-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8"
+              : "min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6 lg:px-8"
           }
         >
           {children}

@@ -158,10 +158,16 @@
 
   html {
     scroll-behavior: smooth;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
       sans-serif;
     background-image:
@@ -204,5 +210,14 @@
       linear-gradient(to right, rgb(255 255 255 / 0.05) 1px, transparent 1px),
       linear-gradient(to bottom, rgb(255 255 255 / 0.05) 1px, transparent 1px);
     background-size: 32px 32px;
+  }
+}
+
+@layer base {
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100%;
   }
 }

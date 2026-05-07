@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import type { ReactNode } from "react"
 
@@ -34,8 +34,8 @@ export function DashboardTopbar({
   gamificationLoading = false,
 }: DashboardTopbarProps) {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/65 backdrop-blur-xl">
-      <div className="flex min-h-[76px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-slate-950/65 backdrop-blur-xl">
+      <div className="flex min-h-[76px] w-full min-w-0 items-center gap-3 px-3 py-3 sm:px-6 lg:px-8">
         <div className="lg:hidden">{mobileSidebar}</div>
 
         {gamificationProfile ? (
@@ -46,7 +46,7 @@ export function DashboardTopbar({
           />
         ) : null}
 
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex min-w-0 items-center gap-3">
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-white">

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -221,7 +221,13 @@ function SidebarNav({
   );
 }
 
-export function AppSidebar() {
+export function AppSidebar({
+  showMobileTrigger = true,
+  showDesktopSidebar = true,
+}: {
+  showMobileTrigger?: boolean;
+  showDesktopSidebar?: boolean;
+} = {}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -231,31 +237,36 @@ export function AppSidebar() {
 
   return (
     <>
-      <div className="lg:hidden">
-        <button
-          type="button"
-          onClick={() => setMobileOpen(true)}
-          className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
-          aria-label="Abrir menu"
-        >
-          <Menu className="size-5" />
-        </button>
-      </div>
+      {showMobileTrigger ? (
+        <div className="lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            className="inline-flex size-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
+            aria-label="Abrir menu"
+          >
+            <Menu className="size-5" />
+          </button>
+        </div>
+      ) : null}
 
-      <aside className="hidden w-[300px] shrink-0 border-r border-white/10 bg-[#050b16] lg:block">
-        <SidebarNav pathname={pathname} />
-      </aside>
+      {showDesktopSidebar ? (
+        <aside className="hidden w-[300px] shrink-0 border-r border-white/10 bg-[#050b16] lg:block">
+          <SidebarNav pathname={pathname} />
+        </aside>
+      ) : null}
 
-      {mobileOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden">
+      {showMobileTrigger && mobileOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
           <button
             type="button"
             aria-label="Fechar menu"
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-[88vw] max-w-[340px] border-r border-white/10 bg-[#050b16] shadow-2xl">
-            <div className="flex items-center justify-end border-b border-white/10 px-4 py-4">
+
+          <div className="absolute inset-y-0 left-0 flex w-[min(86vw,340px)] max-w-full flex-col border-r border-white/10 bg-[#050b16] shadow-2xl">
+            <div className="flex shrink-0 items-center justify-end border-b border-white/10 px-4 py-4">
               <button
                 type="button"
                 onClick={() => setMobileOpen(false)}
@@ -265,10 +276,13 @@ export function AppSidebar() {
                 <X className="size-5" />
               </button>
             </div>
-            <SidebarNav
-              pathname={pathname}
-              onNavigate={() => setMobileOpen(false)}
-            />
+
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <SidebarNav
+                pathname={pathname}
+                onNavigate={() => setMobileOpen(false)}
+              />
+            </div>
           </div>
         </div>
       ) : null}
