@@ -10,7 +10,7 @@ const API_BASE_URL =
   "https://study-chatbot-python.onrender.com"
 
 const inputClassName =
-  "h-12 w-full rounded-2xl border border-white/10 bg-white/5 pl-11 pr-4 text-sm text-white placeholder:text-white/40 outline-none transition focus:border-primary/60 focus:bg-white/[0.07]"
+  "h-12 w-full min-w-0 rounded-2xl border border-white/10 bg-[#081224] pl-11 pr-4 text-base text-white placeholder:text-white/40 outline-none transition focus:border-primary/60"
 
 function safeDecodeError(text: string): string {
   try {
@@ -114,8 +114,8 @@ function RegisterPageContent() {
   }
 
   return (
-    <div className="grid w-full gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-      <section className="glass-panel hidden rounded-[32px] border-white/10 p-8 lg:flex lg:flex-col lg:justify-between">
+    <div className="grid w-full max-w-full gap-8 overflow-x-hidden lg:grid-cols-[1.05fr_0.95fr]">
+      <section className="hidden rounded-[32px] border border-white/10 bg-white/5 p-8 lg:flex lg:flex-col lg:justify-between">
         <div>
           <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
             <img src="/logo.png" alt="MinhAprovação" className="size-5 object-contain" />
@@ -157,11 +157,15 @@ function RegisterPageContent() {
         </div>
       </section>
 
-      <section className="glass-panel w-full rounded-[32px] border-white/10 p-6 sm:p-8">
-        <div className="mx-auto w-full max-w-md">
+      <section className="w-full rounded-[32px] border border-white/10 bg-white/5 p-6 sm:p-8">
+        <div className="mx-auto w-full max-w-md min-w-0">
           <div className="mb-8">
             <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 lg:hidden">
-              <BookOpen className="size-4 text-primary" />
+              <img
+                src="/logo.png"
+                alt="MinhAprovação"
+                className="size-5 shrink-0 object-contain"
+              />
               MinhAprovação
             </div>
 
