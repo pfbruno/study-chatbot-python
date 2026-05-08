@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -272,11 +272,11 @@ export function AppSidebar({
           <button
             type="button"
             aria-label="Fechar menu"
-            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/75"
             onClick={() => setMobileOpen(false)}
           />
 
-          <aside className="fixed left-0 top-0 z-[81] h-[100dvh] w-[86vw] max-w-[340px] overflow-y-auto border-r border-white/10 bg-[#050b16] shadow-2xl">
+          <aside className="fixed left-0 top-0 z-[81] h-screen w-[86vw] max-w-[340px] overflow-y-auto border-r border-white/10 bg-[#050b16] shadow-2xl">
             <button
               type="button"
               onClick={() => setMobileOpen(false)}
