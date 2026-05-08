@@ -184,7 +184,7 @@
   }
 
   .glass-panel {
-    @apply border border-white/10 bg-white/5 backdrop-blur-xl;
+    @apply border border-white/10 bg-white/5;
   }
 
   .section-padding {

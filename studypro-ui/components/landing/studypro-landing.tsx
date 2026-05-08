@@ -250,7 +250,7 @@ function Header() {
   const [open, setOpen] = useState(false)
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/75 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/75">
       <div className="container-shell">
         <div className="flex min-h-20 items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
@@ -873,7 +873,7 @@ function Pricing() {
 
             <ul className="mt-7 space-y-4 text-sm text-slate-300">
               {[
-                "Acesso inicial Ã  plataforma",
+                "Acesso inicial à plataforma",
                 "Treinos e simulados com limite",
                 "Correção automática",
                 "Visualização básica de desempenho",

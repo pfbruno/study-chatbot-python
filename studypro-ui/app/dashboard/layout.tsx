@@ -210,7 +210,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <AppSidebar showMobileTrigger={false} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">

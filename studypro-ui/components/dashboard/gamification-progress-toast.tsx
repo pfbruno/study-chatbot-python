@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Sparkles, Trophy } from "lucide-react"
@@ -171,7 +171,7 @@ export function GamificationProgressToast({
       {queue.map((toast) => (
         <article
           key={toast.id}
-          className={`rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-xl transition ${
+          className={`rounded-2xl border px-4 py-3 shadow-2xl transition ${
             toast.variant === "completed"
               ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-100"
               : toast.variant === "xp"

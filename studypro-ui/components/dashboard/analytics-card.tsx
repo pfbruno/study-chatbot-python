@@ -12,7 +12,7 @@ export function AnalyticsCard({
   icon?: React.ReactNode
 }) {
   return (
-    <Card className="overflow-hidden rounded-[28px] border-white/10 bg-white/5 backdrop-blur-xl">
+    <Card className="overflow-hidden rounded-[28px] border-white/10 bg-white/5">
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-4">
           <div>

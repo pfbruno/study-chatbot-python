@@ -15,7 +15,7 @@ export function InsightsPanel({
     insights?.trim() || "Continue praticando para gerar insights mais detalhados."
 
   return (
-    <Card className="rounded-[32px] border-white/10 bg-white/5 backdrop-blur-xl">
+    <Card className="rounded-[32px] border-white/10 bg-white/5">
       <CardContent className="p-6 md:p-7">
         <p className="text-sm text-muted-foreground">Insights</p>
         <h2 className="mt-2 text-2xl font-semibold text-white">

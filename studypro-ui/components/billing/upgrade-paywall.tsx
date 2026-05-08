@@ -184,7 +184,7 @@ function UpgradePaywallContent() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-[#0b1324]/80 p-6 shadow-2xl shadow-black/20 backdrop-blur">
+          <div className="rounded-3xl border border-white/10 bg-[#0b1324]/80 p-6 shadow-2xl shadow-black/20">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               Seu status hoje
             </p>
@@ -252,7 +252,7 @@ function UpgradePaywallContent() {
             </p>
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-[#0b1324]/80 backdrop-blur">
+          <div className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-[#0b1324]/80">
             <div className="grid grid-cols-[1.2fr_1fr_1fr] divide-x divide-white/10 border-b border-white/10 bg-white/[0.03] text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               <div className="px-4 py-3 sm:px-6">Recurso</div>
               <div className="px-4 py-3 text-center sm:px-6">Free</div>
@@ -299,7 +299,7 @@ function UpgradePaywallContent() {
             </p>
           </div>
 
-          <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b1324]/80 px-2 backdrop-blur sm:px-6">
+          <div className="mt-6 rounded-3xl border border-white/10 bg-[#0b1324]/80 px-2 sm:px-6">
             {FAQS.map((faq, index) => {
               const id = `faq-${index}`
               const isOpen = openFaq === id
@@ -333,7 +333,7 @@ function UpgradePaywallContent() {
           </div>
         </section>
 
-        <footer className="mt-14 rounded-3xl border border-white/10 bg-[#0b1324]/60 p-6 text-center backdrop-blur sm:p-8">
+        <footer className="mt-14 rounded-3xl border border-white/10 bg-[#0b1324]/60 p-6 text-center sm:p-8">
           <p className="mx-auto max-w-2xl text-sm leading-relaxed text-slate-400">
             Sem promessas falsas de aprovação. A MinhAprovação ajuda você a
             estudar com mais consistência, revisar erros e acompanhar sua
@@ -428,7 +428,7 @@ function PlanCard({
 }: PlanCardProps) {
   return (
     <div
-      className={`relative flex flex-col rounded-3xl border p-6 backdrop-blur transition sm:p-8 ${
+      className={`relative flex flex-col rounded-3xl border p-6 transition sm:p-8 ${
         highlighted
           ? "border-blue-400/50 bg-gradient-to-b from-blue-500/10 via-[#0b1324]/90 to-[#0b1324] shadow-2xl shadow-blue-500/10"
           : "border-white/10 bg-[#0b1324]/80 hover:border-white/20"

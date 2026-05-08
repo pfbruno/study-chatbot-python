@@ -34,7 +34,7 @@ export function DashboardTopbar({
   gamificationLoading = false,
 }: DashboardTopbarProps) {
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-slate-950/65 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 w-full border-b border-white/10 bg-slate-950/65">
       <div className="flex min-h-[76px] w-full min-w-0 items-center gap-3 px-3 py-3 sm:px-6 lg:px-8">
         <div className="lg:hidden">{mobileSidebar}</div>
 
