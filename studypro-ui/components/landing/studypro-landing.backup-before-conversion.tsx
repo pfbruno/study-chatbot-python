@@ -447,35 +447,33 @@ function Hero() {
             <SectionBadge>Plataforma de estudos com IA para ENEM</SectionBadge>
 
             <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-7xl">
-              Descubra seus pontos fracos e estude com{" "}
+              Entenda seus erros e estude com{" "}
               <span className="text-gradient">direção.</span>
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 md:text-xl">
-              Resolva provas, faça simulados, treine questões e entenda seus
-              erros com IA. O MinhAprovação mostra onde você está errando e
-              transforma cada correção em próximo passo de estudo.
+              Resolva provas, faça simulados e receba explicações por IA nas
+              questões que você errou ou deixou em branco. O MinhAprovação mostra o
+              que revisar sem prometer atalhos irreais.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <PrimaryButton href="/register">
-                Descobrir meus pontos fracos — grátis
-              </PrimaryButton>
-              <SecondaryButton href="/dashboard/provas">
-                Resolver minha primeira prova agora
+              <PrimaryButton href="/register">Começar grátis</PrimaryButton>
+              <SecondaryButton href="#como-funciona">
+                Ver como funciona
               </SecondaryButton>
             </div>
 
             <p className="mt-5 max-w-xl text-sm leading-7 text-slate-400">
-              Ganhe XP, mantenha sua streak e acompanhe sua evolução enquanto
-              pratica com provas, simulados e correção inteligente.
+              Sem promessa falsa de aprovação. Apenas prática, correção,
+              explicação dos erros e dados reais da sua jornada.
             </p>
 
             <div className="mt-10 grid gap-3 sm:grid-cols-3">
               {[
-                "+50 XP por simulado",
-                "Streak de estudo",
-                "Ranking semanal",
+                "Provas e simulados",
+                "Explicação por IA",
+                "Dashboard real",
               ].map((item) => (
                 <div
                   key={item}
@@ -995,7 +993,7 @@ function FinalCta() {
           <SectionBadge>Comece pelo que mais importa</SectionBadge>
 
           <h2 className="mx-auto mt-5 max-w-4xl text-3xl font-bold tracking-tight text-white sm:text-5xl">
-            Descubra seus pontos fracos e transforme sua próxima questão errada em revisão objetiva.
+            Transforme sua próxima questão errada em uma revisão objetiva.
           </h2>
 
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-300">
