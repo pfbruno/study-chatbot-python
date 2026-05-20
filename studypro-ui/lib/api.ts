@@ -1,3 +1,23 @@
+const API_REQUEST_TIMEOUT_MS = 12000
+
+export async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = API_REQUEST_TIMEOUT_MS
+) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    return await fetchWithTimeout(input, {
+      ...init,
+      signal: init.signal ?? controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 import { redirectToLoginAfterSessionEnded, isInvalidSessionStatus } from "@/lib/auth-session";
 import { readTimedCache, writeTimedCache } from "@/lib/simple-cache";
 
@@ -377,7 +397,7 @@ async function request<T>(
     if (cached) return cached;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await fetchWithTimeout(`${API_URL}${endpoint}`, {
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
