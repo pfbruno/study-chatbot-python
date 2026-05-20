@@ -38,7 +38,7 @@ function LoginPageContent() {
 
   const sessionMessage = useMemo(() => {
     return searchParams.get("session") === "ended"
-      ? "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo."
+      ? "Sua sessão expirou ou precisou ser renovada. Entre novamente para continuar."
       : ""
   }, [searchParams])
 
